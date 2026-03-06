@@ -4,7 +4,7 @@
     <el-card class="checkin-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <el-icon><Mood /></el-icon>
+          <el-icon><Histogram /></el-icon>
           <span>今日心情打卡</span>
         </div>
       </template>
@@ -145,7 +145,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useEmotionStore } from '../../stores/emotion'
 import { ElMessage } from 'element-plus'
-import { Mood, MagicStick, DataLine } from '@element-plus/icons-vue'
+import { Histogram, MagicStick, DataLine } from '@element-plus/icons-vue'
 
 const emotionStore = useEmotionStore()
 const currentRecord = ref(emotionStore.currentRecord)

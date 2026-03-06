@@ -34,9 +34,8 @@ if [ ! -f "backend/main.py" ]; then
     exit 1
 fi
 
-# 获取脚本所在目录
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+# 获取脚本所在目录（即项目根目录）
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 print_info "====================================="
 print_info "心情疗愈 App - 一键启动脚本"
@@ -88,10 +87,18 @@ source venv/bin/activate
 
 # 安装后端依赖
 print_info "检查后端依赖..."
-if [ ! -f "venv/.requirements_installed" ]; then
+REQ_HASH_FILE="venv/.requirements_hash"
+CURRENT_REQ_HASH=$(shasum -a 256 requirements.txt | awk '{print $1}')
+INSTALLED_REQ_HASH=""
+
+if [ -f "$REQ_HASH_FILE" ]; then
+    INSTALLED_REQ_HASH=$(cat "$REQ_HASH_FILE")
+fi
+
+if [ "$CURRENT_REQ_HASH" != "$INSTALLED_REQ_HASH" ]; then
     print_info "安装后端依赖（首次可能需要几分钟）..."
     pip install -q -r requirements.txt
-    touch venv/.requirements_installed
+    echo "$CURRENT_REQ_HASH" > "$REQ_HASH_FILE"
     print_success "后端依赖安装完成"
 else
     print_success "后端依赖已安装"

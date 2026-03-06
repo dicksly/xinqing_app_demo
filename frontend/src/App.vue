@@ -14,7 +14,7 @@
           class="main-menu"
         >
           <el-menu-item index="/emotion">
-            <el-icon><Mood /></el-icon>
+            <el-icon><Histogram /></el-icon>
             <span>情绪气象站</span>
           </el-menu-item>
           <el-menu-item index="/mindfulness">
@@ -41,9 +41,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Sunny, Mood, Moon, ChatDotRound, Reading } from '@element-plus/icons-vue'
+import { Sunny, Histogram, Moon, ChatDotRound, Reading } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()

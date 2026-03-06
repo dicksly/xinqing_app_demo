@@ -80,7 +80,7 @@
     <el-card class="breathing-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <el-icon><Oxygen /></el-icon>
+          <el-icon><DataLine /></el-icon>
           <span>4-7-8 呼吸训练</span>
         </div>
       </template>
@@ -141,7 +141,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { Moon, Oxygen, Grid, VideoPlay, VideoPause } from '@element-plus/icons-vue'
+import { Moon, DataLine, Grid, VideoPlay, VideoPause } from '@element-plus/icons-vue'
 import { mindfulnessApi } from '../../api'
 import { ElMessage } from 'element-plus'
 
