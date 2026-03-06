@@ -1,0 +1,26 @@
+# FastAPI 和相关依赖
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# 数据库
+sqlalchemy==2.0.23
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# 加密
+cryptography==41.0.7
+
+# HTTP 工具
+python-multipart==0.0.6
+
+# 开发工具
+python-dotenv==1.0.0
+
+# 跨域支持
+python-cors==1.13.0
+
+# 数据验证
+email-validator==2.1.0
+
+# 时间处理
+python-dateutil==2.8.2
