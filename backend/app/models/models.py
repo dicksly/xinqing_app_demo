@@ -57,9 +57,9 @@ class TreeholeEntry(Base):
 
 class KnowledgeContent(Base):
     """知识库内容表"""
-    
+
     __tablename__ = "knowledge_contents"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255))  # 标题
     content_type = Column(String(20))  # 内容类型：video/comic/test/quote
@@ -68,3 +68,38 @@ class KnowledgeContent(Base):
     tags = Column(Text)  # 标签（JSON字符串）
     view_count = Column(Integer, default=0)  # 浏览次数
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class User(Base):
+    """用户表"""
+
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), unique=True, index=True)  # 用户名
+    email = Column(String(100), unique=True, index=True)  # 邮箱
+    password_hash = Column(String(255))  # 密码哈希
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_login = Column(DateTime, nullable=True)
+
+    # 关联
+    game_progress = relationship("GameProgress", back_populates="user")
+
+
+class GameProgress(Base):
+    """游戏进度表"""
+
+    __tablename__ = "game_progress"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    game_type = Column(String(20))  # bubble, soap, organize, mandala
+    total_play_count = Column(Integer, default=0)  # 总游玩次数
+    total_play_time = Column(Integer, default=0)  # 总游玩时长（秒）
+    unlocked_skins = Column(Text, default="[]")  # 已解锁皮肤（JSON）
+    current_skin = Column(String(50), default="default")  # 当前皮肤
+    stats = Column(Text, default="{}")  # 游戏特定统计（JSON）
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # 关联
+    user = relationship("User", back_populates="game_progress")

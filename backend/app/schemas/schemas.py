@@ -135,3 +135,80 @@ class WeeklyReportResponse(BaseModel):
     average_sleep: float
     top_stress_sources: List[str]
     happy_moments_count: int
+
+
+# ============ 用户认证相关 Schema ============
+
+class UserCreate(BaseModel):
+    """用户注册"""
+    username: str = Field(..., min_length=3, max_length=50, description="用户名")
+    email: str = Field(..., description="邮箱")
+    password: str = Field(..., min_length=6, max_length=100, description="密码")
+
+
+class UserLogin(BaseModel):
+    """用户登录"""
+    username: str = Field(..., description="用户名")
+    password: str = Field(..., description="密码")
+
+
+class UserResponse(BaseModel):
+    """用户信息响应"""
+    id: int
+    username: str
+    email: str
+    created_at: datetime
+    last_login: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class TokenResponse(BaseModel):
+    """Token 响应"""
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+
+# ============ 游戏进度相关 Schema ============
+
+class GameProgressBase(BaseModel):
+    """游戏进度基础 Schema"""
+    game_type: str = Field(..., description="游戏类型：bubble/soap/organize/mandala")
+
+
+class GameProgressUpdate(BaseModel):
+    """更新游戏进度"""
+    total_play_count: Optional[int] = None
+    total_play_time: Optional[int] = None
+    unlocked_skins: Optional[List[str]] = None
+    current_skin: Optional[str] = None
+    stats: Optional[dict] = None
+
+
+class GameProgressResponse(BaseModel):
+    """游戏进度响应"""
+    id: int
+    game_type: str
+    total_play_count: int
+    total_play_time: int
+    unlocked_skins: List[str]
+    current_skin: str
+    stats: dict
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class GameSyncRequest(BaseModel):
+    """批量同步游戏数据请求"""
+    progress_list: List[dict] = Field(..., description="游戏进度列表")
+
+
+class GameRecordCreate(BaseModel):
+    """记录游戏会话"""
+    game_type: str = Field(..., description="游戏类型")
+    play_time: int = Field(..., description="本次游玩时长（秒）")
+    stats: Optional[dict] = Field(None, description="本次游戏统计")
