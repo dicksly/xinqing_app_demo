@@ -128,22 +128,49 @@
           v-for="game in games"
           :key="game.id"
           class="game-item"
+          :class="{ disabled: !game.implemented }"
           @click="openGame(game)"
         >
           <span class="game-icon">{{ game.icon }}</span>
           <span class="game-title">{{ game.title }}</span>
           <span class="game-desc">{{ game.desc }}</span>
+          <span v-if="!game.implemented" class="coming-soon">即将推出</span>
         </div>
       </div>
     </el-card>
+
+    <!-- 游戏弹窗 -->
+    <el-dialog
+      v-model="showGameModal"
+      :title="currentGame?.title"
+      width="90%"
+      :style="{ maxWidth: '600px' }"
+      :close-on-click-modal="false"
+      destroy-on-close
+    >
+      <BubbleGame v-if="currentGame?.id === 'bubble'" @close="closeGame" />
+      <div v-else class="game-placeholder">
+        <p>游戏开发中，敬请期待...</p>
+      </div>
+    </el-dialog>
+
+    <!-- 登录弹窗 -->
+    <AuthDialog v-model="showAuthDialog" @success="onAuthSuccess" />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { Moon, DataLine, Grid, VideoPlay, VideoPause } from '@element-plus/icons-vue'
+import { ref, onMounted } from 'vue'
+import { Moon, DataLine, Grid } from '@element-plus/icons-vue'
 import { mindfulnessApi } from '../../api'
 import { ElMessage } from 'element-plus'
+import { useAuthStore } from '../../stores/auth'
+import { useGamesStore } from '../../stores/games'
+import AuthDialog from '../../components/auth/AuthDialog.vue'
+import BubbleGame from './games/BubbleGame.vue'
+
+const authStore = useAuthStore()
+const gamesStore = useGamesStore()
 
 // 冥想类型
 const meditationTypes = [
@@ -169,11 +196,16 @@ const breathingTimer = ref(null)
 
 // 解压游戏
 const games = [
-  { id: 'bubble', title: '捏泡泡纸', icon: '🫧', desc: '释放压力，享受触感' },
-  { id: 'soap', title: '切肥皂', icon: '🧼', desc: '看着泡沫破裂，烦恼消失' },
-  { id: 'organize', title: '整理收纳', icon: '📦', desc: '秩序感带来平静' },
-  { id: 'mandala', title: '曼陀罗涂色', icon: '🎨', desc: '专注当下，创造美好' },
+  { id: 'bubble', title: '捏泡泡纸', icon: '🫧', desc: '释放压力，享受触感', implemented: true },
+  { id: 'soap', title: '切肥皂', icon: '🧼', desc: '看着泡沫破裂，烦恼消失', implemented: false },
+  { id: 'organize', title: '整理收纳', icon: '📦', desc: '秩序感带来平静', implemented: false },
+  { id: 'mandala', title: '曼陀罗涂色', icon: '🎨', desc: '专注当下，创造美好', implemented: false },
 ]
+
+// 游戏弹窗
+const showGameModal = ref(false)
+const currentGame = ref(null)
+const showAuthDialog = ref(false)
 
 // 开始冥想
 async function startMeditation() {
@@ -186,13 +218,12 @@ async function startMeditation() {
 
   if (isPlaying.value) {
     try {
-      // 这里可以调用后端 API 记录冥想会话
       await mindfulnessApi.create({
         session_type: selectedType.value,
         duration_minutes: selectedDuration.value,
         completed: false,
       })
-      
+
       ElMessage.success('开始冥想！')
     } catch (error) {
       console.error('记录冥想失败:', error)
@@ -215,44 +246,43 @@ function toggleBreathing() {
 
 function startBreathingCycle() {
   let cycleCount = 0
-  
+
   const cycle = () => {
     if (!isBreathingActive.value) return
-    
+
     // 吸气 4 秒
     isInhaling.value = true
     isExhaling.value = false
     breathingText.value = '吸气...'
-    navigator.vibrate?.(200) // 震动提示
-    
+    navigator.vibrate?.(200)
+
     setTimeout(() => {
       if (!isBreathingActive.value) return
-      
+
       // 屏息 7 秒
       isInhaling.value = false
       isExhaling.value = false
       breathingText.value = '屏息...'
-      
+
       setTimeout(() => {
         if (!isBreathingActive.value) return
-        
+
         // 呼气 8 秒
         isInhaling.value = false
         isExhaling.value = true
         breathingText.value = '呼气...'
-        navigator.vibrate?.([100, 50, 100]) // 震动提示
-        
+        navigator.vibrate?.([100, 50, 100])
+
         setTimeout(() => {
           if (!isBreathingActive.value) return
-          
+
           // 完成一次循环
           breathingText.value = '准备'
           cycleCount++
-          
+
           if (cycleCount < 4) {
             breathingTimer.value = setTimeout(cycle, 100)
           } else {
-            // 完成一组训练
             isBreathingActive.value = false
             ElMessage.success('训练完成！')
           }
@@ -268,7 +298,7 @@ function stopBreathingCycle() {
   isInhaling.value = false
   isExhaling.value = false
   breathingText.value = '准备'
-  
+
   if (breathingTimer.value) {
     clearTimeout(breathingTimer.value)
     breathingTimer.value = null
@@ -277,9 +307,34 @@ function stopBreathingCycle() {
 
 // 打开游戏
 function openGame(game) {
-  ElMessage.info(`正在打开：${game.title}`)
-  // 这里可以实现游戏逻辑或跳转到游戏页面
+  if (!game.implemented) {
+    ElMessage.info(`${game.title} 即将推出，敬请期待！`)
+    return
+  }
+
+  currentGame.value = game
+  showGameModal.value = true
+
+  // 初始化游戏数据
+  gamesStore.init()
 }
+
+// 关闭游戏
+function closeGame() {
+  showGameModal.value = false
+  currentGame.value = null
+}
+
+// 登录成功回调
+function onAuthSuccess() {
+  ElMessage.success('登录成功，游戏数据已同步')
+}
+
+// 初始化
+onMounted(() => {
+  // 检查登录状态
+  authStore.checkAuth()
+})
 </script>
 
 <style scoped>
@@ -488,12 +543,18 @@ function openGame(game) {
   cursor: pointer;
   transition: all 0.3s;
   background: #ffffff;
+  position: relative;
 }
 
-.game-item:hover {
+.game-item:hover:not(.disabled) {
   border-color: #d4a373;
   background: #f8f4f0;
   transform: translateY(-4px);
+}
+
+.game-item.disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .game-icon {
@@ -512,6 +573,23 @@ function openGame(game) {
 
 .game-desc {
   font-size: 12px;
+  color: #8b7e74;
+}
+
+.coming-soon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 10px;
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #999;
+}
+
+.game-placeholder {
+  padding: 60px 0;
+  text-align: center;
   color: #8b7e74;
 }
 </style>

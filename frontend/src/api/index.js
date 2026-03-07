@@ -8,14 +8,40 @@ const api = axios.create({
   },
 })
 
+// 请求拦截器：添加 token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('xinqing_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// 响应拦截器：处理 401
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token 过期，清除登录状态
+      localStorage.removeItem('xinqing_token')
+      localStorage.removeItem('xinqing_user')
+      // 可选：跳转到登录页或刷新页面
+    }
+    return Promise.reject(error)
+  }
+)
+
 // 情绪记录 API
 export const emotionApi = {
   // 创建情绪记录
   create: (data) => api.post('/emotion-records', data),
-  
+
   // 获取情绪记录列表
   getList: (params) => api.get('/emotion-records', { params }),
-  
+
   // 获取周报
   getWeeklyReport: () => api.get('/emotion-records/weekly-report'),
 }
@@ -30,7 +56,7 @@ export const mindfulnessApi = {
 export const treeholeApi = {
   // 创建条目
   create: (data) => api.post('/treehole-entries', data),
-  
+
   // 获取已发布的条目
   getPublished: (params) => api.get('/treehole-entries', { params }),
 }
@@ -39,6 +65,36 @@ export const treeholeApi = {
 export const knowledgeApi = {
   // 获取内容列表
   getList: (params) => api.get('/knowledge-contents', { params }),
+}
+
+// 用户认证 API
+export const authApi = {
+  // 注册
+  register: (data) => api.post('/auth/register', data),
+
+  // 登录
+  login: (data) => api.post('/auth/login', data),
+
+  // 获取当前用户信息
+  getMe: () => api.get('/auth/me'),
+}
+
+// 游戏 API
+export const gamesApi = {
+  // 获取所有游戏进度
+  getProgress: () => api.get('/games/progress'),
+
+  // 获取单个游戏进度
+  getProgressByType: (gameType) => api.get(`/games/progress/${gameType}`),
+
+  // 更新游戏进度
+  updateProgress: (gameType, data) => api.post(`/games/progress/${gameType}`, data),
+
+  // 同步本地数据到服务器
+  sync: (data) => api.post('/games/sync', data),
+
+  // 记录游戏会话
+  recordSession: (data) => api.post('/games/record', data),
 }
 
 export default api
