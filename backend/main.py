@@ -8,8 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 import os
+from pathlib import Path
 
-from app.api.v1 import api_router
+from app.api.v1.api import router as api_router
 from app.core.config import settings
 from app.core.database import engine, Base
 
@@ -34,7 +35,7 @@ app = FastAPI(
 # 配置 CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=getattr(settings, "ALLOWED_ORIGINS", ["*"]),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -44,7 +45,9 @@ app.add_middleware(
 app.include_router(api_router, prefix="/api/v1")
 
 # 挂载静态文件（前端资源）
-app.mount("/static", StaticFiles(directory="static"), name="static")
+static_dir = Path("static")
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 
 @app.on_event("startup")
