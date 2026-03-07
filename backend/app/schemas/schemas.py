@@ -2,7 +2,7 @@
 Pydantic Schemas - 用于数据验证和序列化
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, AliasChoices
 from typing import Optional, List
 from datetime import datetime
 
@@ -10,12 +10,41 @@ from datetime import datetime
 class EmotionRecordBase(BaseModel):
     """情绪记录基础 Schema"""
     mood: str = Field(..., description="心情：焦虑、丧、平静、开心、元气")
-    energy_level: float = Field(..., ge=0, le=100, description="能量水平 0-100")
-    sleep_quality: int = Field(..., ge=1, le=5, description="睡眠质量 1-5星")
-    stress_sources: Optional[str] = Field(None, description="压力源（JSON字符串）")
-    social_preference: Optional[str] = Field(None, description="社交意愿：alone/social")
-    happy_moment: Optional[str] = Field(None, max_length=50, description="微光时刻（最多50字）")
-    happy_moment_type: Optional[str] = Field(None, description="微光时刻类型：text/voice/image")
+    energy_level: float = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="能量水平 0-100",
+        validation_alias=AliasChoices("energy_level", "energyLevel"),
+    )
+    sleep_quality: int = Field(
+        ...,
+        ge=1,
+        le=5,
+        description="睡眠质量 1-5星",
+        validation_alias=AliasChoices("sleep_quality", "sleepQuality"),
+    )
+    stress_sources: Optional[str] = Field(
+        None,
+        description="压力源（JSON字符串）",
+        validation_alias=AliasChoices("stress_sources", "stressSources"),
+    )
+    social_preference: Optional[str] = Field(
+        None,
+        description="社交意愿：alone/social",
+        validation_alias=AliasChoices("social_preference", "socialPreference"),
+    )
+    happy_moment: Optional[str] = Field(
+        None,
+        max_length=50,
+        description="微光时刻（最多50字）",
+        validation_alias=AliasChoices("happy_moment", "happyMoment"),
+    )
+    happy_moment_type: Optional[str] = Field(
+        None,
+        description="微光时刻类型：text/voice/image",
+        validation_alias=AliasChoices("happy_moment_type", "happyMomentType"),
+    )
 
 
 class EmotionRecordCreate(EmotionRecordBase):
