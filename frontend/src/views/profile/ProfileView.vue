@@ -11,7 +11,7 @@
           <span class="user-id">ID: {{ authStore.user?.id }}</span>
         </div>
         <el-button type="danger" size="small" @click="handleLogout" round>
-          退出登录
+          {{ t('common.logout') }}
         </el-button>
       </div>
 
@@ -19,10 +19,10 @@
         <div class="prompt-icon">
           <component :is="User" />
         </div>
-        <h3 class="prompt-title">登录解锁更多功能</h3>
-        <p class="prompt-desc">登录后可以同步您的数据，跨设备使用</p>
+        <h3 class="prompt-title">{{ t('profile.loginPrompt') }}</h3>
+        <p class="prompt-desc">{{ t('profile.loginDesc') }}</p>
         <el-button type="primary" @click="showAuthDialog = true" round>
-          登录 / 注册
+          {{ t('common.login') }} / {{ t('common.register') }}
         </el-button>
       </div>
     </section>
@@ -31,25 +31,25 @@
     <section v-if="authStore.isAuthenticated" class="stats-card card">
       <header class="card-header">
         <component :is="DataLine" class="header-icon" />
-        <h2 class="card-title">我的数据</h2>
+        <h2 class="card-title">{{ t('profile.myData') }}</h2>
       </header>
 
       <div class="stats-grid">
         <div class="stat-item">
           <span class="stat-value">{{ userStats.checkinDays }}</span>
-          <span class="stat-label">打卡天数</span>
+          <span class="stat-label">{{ t('profile.stats.checkinDays') }}</span>
         </div>
         <div class="stat-item">
           <span class="stat-value">{{ userStats.meditationMinutes }}</span>
-          <span class="stat-label">冥想时长(分)</span>
+          <span class="stat-label">{{ t('profile.stats.meditationMinutes') }}</span>
         </div>
         <div class="stat-item">
           <span class="stat-value">{{ userStats.treeholeCount }}</span>
-          <span class="stat-label">树洞倾诉</span>
+          <span class="stat-label">{{ t('profile.stats.treeholeCount') }}</span>
         </div>
         <div class="stat-item">
           <span class="stat-value">{{ userStats.gameCount }}</span>
-          <span class="stat-label">游戏次数</span>
+          <span class="stat-label">{{ t('profile.stats.gameCount') }}</span>
         </div>
       </div>
     </section>
@@ -61,7 +61,7 @@
           <div class="menu-icon">
             <component :is="Document" />
           </div>
-          <span class="menu-label">历史记录</span>
+          <span class="menu-label">{{ t('profile.myRecords') }}</span>
           <component :is="ArrowRight" class="menu-arrow" />
         </div>
 
@@ -69,7 +69,7 @@
           <div class="menu-icon">
             <component :is="Star" />
           </div>
-          <span class="menu-label">我的收藏</span>
+          <span class="menu-label">{{ t('profile.favorites') }}</span>
           <component :is="ArrowRight" class="menu-arrow" />
         </div>
 
@@ -77,7 +77,7 @@
           <div class="menu-icon">
             <component :is="Setting" />
           </div>
-          <span class="menu-label">设置</span>
+          <span class="menu-label">{{ t('profile.settings') }}</span>
           <component :is="ArrowRight" class="menu-arrow" />
         </div>
 
@@ -85,7 +85,7 @@
           <div class="menu-icon">
             <component :is="InfoFilled" />
           </div>
-          <span class="menu-label">关于我们</span>
+          <span class="menu-label">{{ t('profile.about') }}</span>
           <component :is="ArrowRight" class="menu-arrow" />
         </div>
       </div>
@@ -93,7 +93,7 @@
 
     <!-- 版本信息 -->
     <div class="version-info">
-      <span>心情疗愈 v1.0.0</span>
+      <span>{{ locale === 'zh-CN' ? '心情疗愈' : 'Mood Healing' }} v1.0.0</span>
     </div>
 
     <!-- 登录弹窗 -->
@@ -103,6 +103,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   User,
   UserFilled,
@@ -119,6 +120,7 @@ import { useEmotionStore } from '../../stores/emotion'
 import { ElMessage } from 'element-plus'
 import AuthDialog from '../../components/auth/AuthDialog.vue'
 
+const { t, locale } = useI18n()
 const authStore = useAuthStore()
 const gamesStore = useGamesStore()
 const emotionStore = useEmotionStore()
@@ -136,12 +138,12 @@ const userStats = reactive({
 // 退出登录
 function handleLogout() {
   authStore.logout()
-  ElMessage.success('已退出登录')
+  ElMessage.success(locale.value === 'zh-CN' ? '已退出登录' : 'Logged out')
 }
 
 // 登录成功回调
 function onAuthSuccess() {
-  ElMessage.success('登录成功')
+  ElMessage.success(t('auth.loginSuccess'))
   loadUserStats()
 }
 
@@ -163,20 +165,13 @@ async function loadUserStats() {
 
 // 菜单点击
 function handleMenuClick(type) {
-  switch (type) {
-    case 'records':
-      ElMessage.info('历史记录功能开发中')
-      break
-    case 'favorites':
-      ElMessage.info('收藏功能开发中')
-      break
-    case 'settings':
-      ElMessage.info('设置功能开发中')
-      break
-    case 'about':
-      ElMessage.info('心情疗愈 - 您的心理健康伙伴')
-      break
+  const messages = {
+    records: locale.value === 'zh-CN' ? '历史记录功能开发中' : 'History feature in development',
+    favorites: locale.value === 'zh-CN' ? '收藏功能开发中' : 'Favorites feature in development',
+    settings: locale.value === 'zh-CN' ? '设置功能开发中' : 'Settings feature in development',
+    about: locale.value === 'zh-CN' ? '心情疗愈 - 您的心理健康伙伴' : 'Mood Healing - Your Mental Health Partner',
   }
+  ElMessage.info(messages[type])
 }
 
 onMounted(() => {

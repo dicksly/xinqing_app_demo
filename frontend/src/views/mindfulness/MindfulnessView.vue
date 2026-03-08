@@ -4,7 +4,7 @@
     <section class="meditation-card card">
       <header class="card-header">
         <component :is="Moon" class="header-icon" />
-        <h2 class="card-title">场景化冥想</h2>
+        <h2 class="card-title">{{ t('mindfulness.meditationTitle') }}</h2>
       </header>
 
       <!-- 冥想分类 -->
@@ -28,20 +28,20 @@
 
       <!-- 时长选择 -->
       <div v-if="selectedType" class="section">
-        <h3 class="section-title">选择时长</h3>
+        <h3 class="section-title">{{ t('mindfulness.selectDuration') }}</h3>
         <el-radio-group v-model="selectedDuration" class="duration-group">
-          <el-radio-button :label="3">3分钟</el-radio-button>
-          <el-radio-button :label="10">10分钟</el-radio-button>
-          <el-radio-button :label="20">20分钟</el-radio-button>
+          <el-radio-button :label="3">{{ locale === 'zh-CN' ? '3分钟' : '3 min' }}</el-radio-button>
+          <el-radio-button :label="10">{{ locale === 'zh-CN' ? '10分钟' : '10 min' }}</el-radio-button>
+          <el-radio-button :label="20">{{ locale === 'zh-CN' ? '20分钟' : '20 min' }}</el-radio-button>
         </el-radio-group>
       </div>
 
       <!-- 音量控制 -->
       <div v-if="selectedType" class="section">
-        <h3 class="section-title">音量调节</h3>
+        <h3 class="section-title">{{ t('mindfulness.volumeControl') }}</h3>
         <div class="volume-control">
           <div class="volume-item">
-            <span class="volume-label">人声</span>
+            <span class="volume-label">{{ t('mindfulness.voice') }}</span>
             <el-slider
               v-model="voiceVolume"
               :show-tooltip="false"
@@ -49,7 +49,7 @@
             />
           </div>
           <div class="volume-item">
-            <span class="volume-label">背景音</span>
+            <span class="volume-label">{{ t('mindfulness.bgMusic') }}</span>
             <el-slider
               v-model="bgVolume"
               :show-tooltip="false"
@@ -58,12 +58,12 @@
           </div>
         </div>
         <div class="bg-music-selector">
-          <span class="selector-label">背景音类型</span>
-          <el-select v-model="bgMusicType" placeholder="选择背景音" size="small">
-            <el-option label="白噪音" value="white-noise" />
-            <el-option label="雨声" value="rain" />
-            <el-option label="森林" value="forest" />
-            <el-option label="阿尔法波" value="alpha-wave" />
+          <span class="selector-label">{{ t('mindfulness.bgMusicType') }}</span>
+          <el-select v-model="bgMusicType" :placeholder="locale === 'zh-CN' ? '选择背景音' : 'Select background'" size="small">
+            <el-option :label="t('mindfulness.bgMusic.whiteNoise')" value="white-noise" />
+            <el-option :label="t('mindfulness.bgMusic.rain')" value="rain" />
+            <el-option :label="t('mindfulness.bgMusic.forest')" value="forest" />
+            <el-option :label="t('mindfulness.bgMusic.alphaWave')" value="alpha-wave" />
           </el-select>
         </div>
       </div>
@@ -79,7 +79,7 @@
         round
       >
         <component :is="isPlaying ? VideoPause : VideoPlay" />
-        <span>{{ isPlaying ? '暂停冥想' : '开始冥想' }}</span>
+        <span>{{ isPlaying ? t('mindfulness.pauseMeditation') : t('mindfulness.startMeditation') }}</span>
       </el-button>
     </section>
 
@@ -87,7 +87,7 @@
     <section class="breathing-card card">
       <header class="card-header">
         <component :is="DataLine" class="header-icon" />
-        <h2 class="card-title">4-7-8 呼吸训练</h2>
+        <h2 class="card-title">{{ t('mindfulness.breathingTitle') }}</h2>
       </header>
 
       <div class="breathing-animation">
@@ -97,23 +97,23 @@
       </div>
 
       <div class="breathing-info">
-        <p class="info-text">4-7-8 呼吸法是一种简单但有效的放松技巧</p>
+        <p class="info-text">{{ t('mindfulness.breathing.description') }}</p>
         <div class="steps">
           <div class="step">
             <span class="step-num">1</span>
-            <span class="step-text">用鼻子吸气 4 秒</span>
+            <span class="step-text">{{ t('mindfulness.breathing.step1') }}</span>
           </div>
           <div class="step">
             <span class="step-num">2</span>
-            <span class="step-text">屏住呼吸 7 秒</span>
+            <span class="step-text">{{ t('mindfulness.breathing.step2') }}</span>
           </div>
           <div class="step">
             <span class="step-num">3</span>
-            <span class="step-text">用嘴巴呼气 8 秒</span>
+            <span class="step-text">{{ t('mindfulness.breathing.step3') }}</span>
           </div>
           <div class="step">
             <span class="step-num">4</span>
-            <span class="step-text">重复 3-4 次</span>
+            <span class="step-text">{{ t('mindfulness.breathing.step4') }}</span>
           </div>
         </div>
       </div>
@@ -125,7 +125,7 @@
         round
       >
         <component :is="isBreathingActive ? VideoPause : VideoPlay" />
-        <span>{{ isBreathingActive ? '暂停训练' : '开始训练' }}</span>
+        <span>{{ isBreathingActive ? t('mindfulness.breathing.pauseTraining') : t('mindfulness.breathing.startTraining') }}</span>
       </el-button>
     </section>
 
@@ -134,16 +134,16 @@
       <header class="card-header">
         <div class="header-left">
           <component :is="Grid" class="header-icon" />
-          <h2 class="card-title">解压小游戏</h2>
+          <h2 class="card-title">{{ t('mindfulness.gamesTitle') }}</h2>
         </div>
         <div class="header-right">
           <template v-if="authStore.isAuthenticated">
             <span class="user-name">{{ authStore.user?.username }}</span>
-            <el-button size="small" @click="handleLogout" text type="info">退出</el-button>
+            <el-button size="small" @click="handleLogout" text type="info">{{ t('common.logout') }}</el-button>
           </template>
           <template v-else>
             <el-button size="small" type="primary" @click="showAuthDialog = true">
-              登录
+              {{ t('common.login') }}
             </el-button>
           </template>
         </div>
@@ -162,7 +162,7 @@
           </div>
           <span class="game-title">{{ game.title }}</span>
           <span class="game-desc">{{ game.desc }}</span>
-          <span v-if="!game.implemented" class="coming-soon">即将推出</span>
+          <span v-if="!game.implemented" class="coming-soon">{{ t('mindfulness.games.comingSoon') }}</span>
         </div>
       </div>
     </section>
@@ -179,7 +179,7 @@
     >
       <BubbleGame v-if="currentGame?.id === 'bubble'" @close="closeGame" />
       <div v-else class="game-placeholder">
-        <p>游戏开发中，敬请期待...</p>
+        <p>{{ locale === 'zh-CN' ? '游戏开发中，敬请期待...' : 'Game in development, coming soon...' }}</p>
       </div>
     </el-dialog>
 
@@ -189,7 +189,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Moon,
   DataLine,
@@ -212,16 +213,25 @@ import { useGamesStore } from '../../stores/games'
 import AuthDialog from '../../components/auth/AuthDialog.vue'
 import BubbleGame from './games/BubbleGame.vue'
 
+const { t, locale } = useI18n()
 const authStore = useAuthStore()
 const gamesStore = useGamesStore()
 
 // 冥想类型 - 使用 SVG 图标
-const meditationTypes = [
-  { value: 'sleep', label: '睡眠助眠', icon: MoonNight, iconClass: 'icon-purple', desc: '帮助进入深度睡眠' },
-  { value: 'wake', label: '晨间唤醒', icon: Sunrise, iconClass: 'icon-orange', desc: '开启元气满满的一天' },
-  { value: 'stress', label: '抗压训练', icon: Trophy, iconClass: 'icon-blue', desc: '提升专注力和信心' },
-  { value: 'emergency', label: '情绪急救', icon: FirstAidKit, iconClass: 'icon-red', desc: '快速平复情绪' },
-]
+const meditationTypes = computed(() => [
+  { value: 'sleep', label: t('mindfulness.meditation.sleep'), icon: MoonNight, iconClass: 'icon-purple', desc: t('mindfulness.meditation.sleepDesc') },
+  { value: 'wake', label: t('mindfulness.meditation.wake'), icon: Sunrise, iconClass: 'icon-orange', desc: t('mindfulness.meditation.wakeDesc') },
+  { value: 'stress', label: t('mindfulness.meditation.stress'), icon: Trophy, iconClass: 'icon-blue', desc: t('mindfulness.meditation.stressDesc') },
+  { value: 'emergency', label: t('mindfulness.meditation.emergency'), icon: FirstAidKit, iconClass: 'icon-red', desc: t('mindfulness.meditation.emergencyDesc') },
+])
+
+// 解压游戏 - 使用 SVG 图标
+const games = computed(() => [
+  { id: 'bubble', title: t('mindfulness.games.bubble'), icon: GridIcon, iconClass: 'icon-primary', desc: t('mindfulness.games.bubbleDesc'), implemented: true },
+  { id: 'soap', title: t('mindfulness.games.soap'), icon: Scissor, iconClass: 'icon-secondary', desc: t('mindfulness.games.soapDesc'), implemented: false },
+  { id: 'organize', title: t('mindfulness.games.organize'), icon: Box, iconClass: 'icon-warm', desc: t('mindfulness.games.organizeDesc'), implemented: false },
+  { id: 'mandala', title: t('mindfulness.games.mandala'), icon: Brush, iconClass: 'icon-pink', desc: t('mindfulness.games.mandalaDesc'), implemented: false },
+])
 
 const selectedType = ref('')
 const selectedDuration = ref(10)
@@ -234,26 +244,31 @@ const isPlaying = ref(false)
 const isInhaling = ref(false)
 const isExhaling = ref(false)
 const isBreathingActive = ref(false)
-const breathingText = ref('准备')
+const breathingText = ref('')
 const breathingTimer = ref(null)
-
-// 解压游戏 - 使用 SVG 图标
-const games = [
-  { id: 'bubble', title: '捏泡泡纸', icon: GridIcon, iconClass: 'icon-primary', desc: '释放压力', implemented: true },
-  { id: 'soap', title: '切肥皂', icon: Scissor, iconClass: 'icon-secondary', desc: '看着泡沫破裂', implemented: false },
-  { id: 'organize', title: '整理收纳', icon: Box, iconClass: 'icon-warm', desc: '秩序感带来平静', implemented: false },
-  { id: 'mandala', title: '曼陀罗涂色', icon: Brush, iconClass: 'icon-pink', desc: '专注当下', implemented: false },
-]
 
 // 游戏弹窗
 const showGameModal = ref(false)
 const currentGame = ref(null)
 const showAuthDialog = ref(false)
 
+// 呼吸文本
+const breathingTexts = computed(() => ({
+  ready: locale.value === 'zh-CN' ? '准备' : 'Ready',
+  inhale: t('mindfulness.breathing.inhale'),
+  hold: t('mindfulness.breathing.hold'),
+  exhale: t('mindfulness.breathing.exhale'),
+}))
+
+// 初始化呼吸文本
+onMounted(() => {
+  breathingText.value = breathingTexts.value.ready
+})
+
 // 开始冥想
 async function startMeditation() {
   if (!selectedType.value) {
-    ElMessage.warning('请选择冥想类型')
+    ElMessage.warning(locale.value === 'zh-CN' ? '请选择冥想类型' : 'Please select meditation type')
     return
   }
 
@@ -267,12 +282,12 @@ async function startMeditation() {
         completed: false,
       })
 
-      ElMessage.success('开始冥想！')
+      ElMessage.success(locale.value === 'zh-CN' ? '开始冥想！' : 'Meditation started!')
     } catch (error) {
       console.error('记录冥想失败:', error)
     }
   } else {
-    ElMessage.info('冥想已暂停')
+    ElMessage.info(locale.value === 'zh-CN' ? '冥想已暂停' : 'Meditation paused')
   }
 }
 
@@ -296,7 +311,7 @@ function startBreathingCycle() {
     // 吸气 4 秒
     isInhaling.value = true
     isExhaling.value = false
-    breathingText.value = '吸气...'
+    breathingText.value = breathingTexts.value.inhale
 
     setTimeout(() => {
       if (!isBreathingActive.value) return
@@ -304,7 +319,7 @@ function startBreathingCycle() {
       // 屏息 7 秒
       isInhaling.value = false
       isExhaling.value = false
-      breathingText.value = '屏息...'
+      breathingText.value = breathingTexts.value.hold
 
       setTimeout(() => {
         if (!isBreathingActive.value) return
@@ -312,20 +327,20 @@ function startBreathingCycle() {
         // 呼气 8 秒
         isInhaling.value = false
         isExhaling.value = true
-        breathingText.value = '呼气...'
+        breathingText.value = breathingTexts.value.exhale
 
         setTimeout(() => {
           if (!isBreathingActive.value) return
 
           // 完成一次循环
-          breathingText.value = '准备'
+          breathingText.value = breathingTexts.value.ready
           cycleCount++
 
           if (cycleCount < 4) {
             breathingTimer.value = setTimeout(cycle, 100)
           } else {
             isBreathingActive.value = false
-            ElMessage.success('训练完成！')
+            ElMessage.success(t('mindfulness.breathing.trainingComplete'))
           }
         }, 8000)
       }, 7000)
@@ -338,7 +353,7 @@ function startBreathingCycle() {
 function stopBreathingCycle() {
   isInhaling.value = false
   isExhaling.value = false
-  breathingText.value = '准备'
+  breathingText.value = breathingTexts.value.ready
 
   if (breathingTimer.value) {
     clearTimeout(breathingTimer.value)
@@ -349,7 +364,7 @@ function stopBreathingCycle() {
 // 打开游戏
 function openGame(game) {
   if (!game.implemented) {
-    ElMessage.info(`${game.title} 即将推出，敬请期待！`)
+    ElMessage.info(`${game.title} ${t('mindfulness.games.comingSoon')}`)
     return
   }
 
@@ -368,18 +383,19 @@ function closeGame() {
 
 // 登录成功回调
 function onAuthSuccess() {
-  ElMessage.success('登录成功，游戏数据已同步')
+  ElMessage.success(t('auth.dataSynced'))
 }
 
 // 登出
 function handleLogout() {
   authStore.logout()
-  ElMessage.success('已退出登录')
+  ElMessage.success(locale.value === 'zh-CN' ? '已退出登录' : 'Logged out')
 }
 
 // 初始化
 onMounted(() => {
   authStore.checkAuth()
+  breathingText.value = breathingTexts.value.ready
 })
 </script>
 
@@ -660,7 +676,7 @@ onMounted(() => {
 /* 呼吸按钮 */
 .breathing-btn {
   width: 100%;
-  background: linear-gradient(135deg, var(--color-secondary, #8b5cf6) 0%, var(--color-secondary-light, #a78bfa) 100%);
+  background: linear-gradient(135deg, var(--color-secondary, #8b5cf6) 0%, #a78bfa 100%);
   border: none;
   display: flex;
   align-items: center;
@@ -718,7 +734,7 @@ onMounted(() => {
 .icon-warm { background: rgba(251, 191, 36, 0.15); }
 .icon-warm svg { color: var(--color-warm, #fbbf24); }
 .icon-pink { background: rgba(244, 114, 182, 0.15); }
-.icon-pink svg { color: var(--color-energetic, #f472b6); }
+.icon-pink svg { color: #f472b6; }
 
 .game-title {
   font-size: var(--font-sm, 13px);

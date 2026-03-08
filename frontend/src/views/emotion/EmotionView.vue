@@ -4,12 +4,12 @@
     <section class="checkin-card card">
       <header class="card-header">
         <component :is="Histogram" class="header-icon" />
-        <h2 class="card-title">今日心情打卡</h2>
+        <h2 class="card-title">{{ t('emotion.title') }}</h2>
       </header>
 
       <!-- 心情选择 -->
       <div class="section">
-        <h3 class="section-title">基础状态</h3>
+        <h3 class="section-title">{{ t('emotion.basicStatus') }}</h3>
         <div class="mood-grid">
           <div
             v-for="mood in moods"
@@ -29,7 +29,7 @@
       <!-- 能量水平 -->
       <div class="section">
         <div class="slider-header">
-          <span class="slider-label">能量水平</span>
+          <span class="slider-label">{{ t('emotion.energyLevel') }}</span>
           <span class="slider-value">{{ currentRecord.energyLevel }}%</span>
         </div>
         <el-slider
@@ -42,19 +42,19 @@
 
       <!-- 睡眠质量 -->
       <div class="section sleep-section">
-        <span class="section-label">睡眠质量</span>
+        <span class="section-label">{{ t('emotion.sleepQuality') }}</span>
         <el-rate
           v-model="currentRecord.sleepQuality"
           :max="5"
           show-score
-          score-template="{value}星"
+          :score-template="locale === 'zh-CN' ? '{value}星' : '{value} stars'"
           :colors="['#fbbf24', '#fbbf24', '#fbbf24']"
         />
       </div>
 
       <!-- 压力来源（负面心情时显示） -->
       <div v-if="showAttribution" class="section">
-        <h3 class="section-title">压力来源</h3>
+        <h3 class="section-title">{{ t('emotion.stressSources') }}</h3>
         <div class="stress-tags">
           <el-check-tag
             v-for="tag in stressSources"
@@ -66,21 +66,21 @@
           </el-check-tag>
         </div>
 
-        <h3 class="section-title">社交意愿</h3>
+        <h3 class="section-title">{{ t('emotion.socialPreference') }}</h3>
         <el-radio-group v-model="currentRecord.socialPreference" class="social-radio">
-          <el-radio-button label="alone">想独处充电</el-radio-button>
-          <el-radio-button label="social">想找人贴贴</el-radio-button>
+          <el-radio-button label="alone">{{ t('emotion.social.alone') }}</el-radio-button>
+          <el-radio-button label="social">{{ t('emotion.social.social') }}</el-radio-button>
         </el-radio-group>
       </div>
 
       <!-- 微光时刻 -->
       <div class="section">
-        <h3 class="section-title">微光时刻</h3>
+        <h3 class="section-title">{{ t('emotion.happyMoment') }}</h3>
         <el-input
           v-model="currentRecord.happyMoment"
           type="textarea"
           :rows="2"
-          placeholder="记录今日一件小确幸..."
+          :placeholder="t('emotion.happyMomentPlaceholder')"
           maxlength="50"
           show-word-limit
           resize="none"
@@ -93,7 +93,7 @@
           type="primary"
         >
           <component :is="MagicStick" />
-          <span>换一个灵感</span>
+          <span>{{ t('emotion.getInspiration') }}</span>
         </el-button>
       </div>
 
@@ -106,7 +106,7 @@
         class="submit-btn"
         round
       >
-        完成打卡
+        {{ t('emotion.submitCheckin') }}
       </el-button>
     </section>
 
@@ -114,31 +114,31 @@
     <section class="report-card card">
       <header class="card-header">
         <component :is="DataLine" class="header-icon" />
-        <h2 class="card-title">本周报告</h2>
+        <h2 class="card-title">{{ t('emotion.weeklyReport') }}</h2>
       </header>
 
       <div v-if="weeklyReport" class="report-content">
         <div class="report-stats">
           <div class="stat-item">
             <span class="stat-value">{{ weeklyReport.total_records }}</span>
-            <span class="stat-label">打卡天数</span>
+            <span class="stat-label">{{ t('emotion.report.checkinDays') }}</span>
           </div>
           <div class="stat-item">
             <span class="stat-value">{{ weeklyReport.average_energy?.toFixed(1) }}</span>
-            <span class="stat-label">平均能量</span>
+            <span class="stat-label">{{ t('emotion.report.avgEnergy') }}</span>
           </div>
           <div class="stat-item">
             <span class="stat-value">{{ weeklyReport.average_sleep?.toFixed(1) }}</span>
-            <span class="stat-label">平均睡眠</span>
+            <span class="stat-label">{{ t('emotion.report.avgSleep') }}</span>
           </div>
           <div class="stat-item">
             <span class="stat-value">{{ weeklyReport.happy_moments_count }}</span>
-            <span class="stat-label">微光时刻</span>
+            <span class="stat-label">{{ t('emotion.report.happyMoments') }}</span>
           </div>
         </div>
 
         <div v-if="weeklyReport.top_stress_sources?.length > 0" class="stress-chart">
-          <h4 class="chart-title">主要压力源</h4>
+          <h4 class="chart-title">{{ t('emotion.report.topStressSources') }}</h4>
           <div class="stress-tags-list">
             <span
               v-for="(source, index) in weeklyReport.top_stress_sources"
@@ -151,57 +151,66 @@
         </div>
       </div>
 
-      <el-empty v-else description="暂无本周数据" :image-size="60" />
+      <el-empty v-else :description="t('emotion.report.noData')" :image-size="60" />
     </section>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useEmotionStore } from '../../stores/emotion'
 import { ElMessage } from 'element-plus'
 import { Histogram, MagicStick, DataLine, Warning, CircleClose, Remove, StarFilled, Sunny } from '@element-plus/icons-vue'
 
+const { t, locale } = useI18n()
 const emotionStore = useEmotionStore()
 const currentRecord = ref(emotionStore.currentRecord)
 const submitting = ref(false)
 const weeklyReport = ref(emotionStore.weeklyReport)
 
 // 心情选项 - 使用 SVG 图标
-const moods = [
-  { value: 'anxious', label: '焦虑', icon: Warning, iconClass: 'icon-anxious' },
-  { value: 'sad', label: '丧', icon: CircleClose, iconClass: 'icon-sad' },
-  { value: 'calm', label: '平静', icon: Remove, iconClass: 'icon-calm' },
-  { value: 'happy', label: '开心', icon: StarFilled, iconClass: 'icon-happy' },
-  { value: 'energetic', label: '元气', icon: Sunny, iconClass: 'icon-energetic' },
-]
+const moods = computed(() => [
+  { value: 'anxious', label: t('emotion.mood.anxious'), icon: Warning, iconClass: 'icon-anxious' },
+  { value: 'sad', label: t('emotion.mood.sad'), icon: CircleClose, iconClass: 'icon-sad' },
+  { value: 'calm', label: t('emotion.mood.calm'), icon: Remove, iconClass: 'icon-calm' },
+  { value: 'happy', label: t('emotion.mood.happy'), icon: StarFilled, iconClass: 'icon-happy' },
+  { value: 'energetic', label: t('emotion.mood.energetic'), icon: Sunny, iconClass: 'icon-energetic' },
+])
 
 // 压力源选项
-const stressSources = [
-  { value: 'work', label: '#工作' },
-  { value: 'interpersonal', label: '#人际' },
-  { value: 'family', label: '#家庭' },
-  { value: 'money', label: '#金钱' },
-  { value: 'health', label: '#健康' },
-  { value: 'none', label: '#无原因' },
-]
+const stressSources = computed(() => [
+  { value: 'work', label: t('emotion.stress.work') },
+  { value: 'interpersonal', label: t('emotion.stress.interpersonal') },
+  { value: 'family', label: t('emotion.stress.family') },
+  { value: 'money', label: t('emotion.stress.money') },
+  { value: 'health', label: t('emotion.stress.health') },
+  { value: 'none', label: t('emotion.stress.none') },
+])
 
 // 能量滑块标记
-const energyMarks = {
-  0: '低',
-  50: '中',
-  100: '高',
-}
+const energyMarks = computed(() => ({
+  0: locale.value === 'zh-CN' ? '低' : 'Low',
+  50: locale.value === 'zh-CN' ? '中' : 'Med',
+  100: locale.value === 'zh-CN' ? '高' : 'High',
+}))
 
 // 灵感提示词
-const inspirations = [
+const inspirations = computed(() => locale.value === 'zh-CN' ? [
   '好喝的咖啡',
   '好看的晚霞',
   '准时下班',
   '朋友的消息',
   '好吃的晚餐',
   '完成一件小事',
-]
+] : [
+  'A good cup of coffee',
+  'Beautiful sunset',
+  'Leaving work on time',
+  'Message from a friend',
+  'Delicious dinner',
+  'Completed a small task',
+])
 
 // 是否显示归因部分
 const showAttribution = computed(() => {
@@ -220,14 +229,14 @@ function toggleStressSource(value) {
 
 // 获取灵感
 function getInspiration() {
-  const randomIndex = Math.floor(Math.random() * inspirations.length)
-  currentRecord.value.happyMoment = inspirations[randomIndex]
+  const randomIndex = Math.floor(Math.random() * inspirations.value.length)
+  currentRecord.value.happyMoment = inspirations.value[randomIndex]
 }
 
 // 提交打卡
 async function handleSubmit() {
   if (!currentRecord.value.mood) {
-    ElMessage.warning('请选择今日心情')
+    ElMessage.warning(locale.value === 'zh-CN' ? '请选择今日心情' : 'Please select your mood')
     return
   }
 
@@ -238,11 +247,11 @@ async function handleSubmit() {
       stressSources: JSON.stringify(currentRecord.value.stressSources),
     })
 
-    ElMessage.success('打卡成功！')
+    ElMessage.success(locale.value === 'zh-CN' ? '打卡成功！' : 'Check-in successful!')
     emotionStore.resetCurrentRecord()
     emotionStore.fetchWeeklyReport()
   } catch (error) {
-    ElMessage.error('打卡失败，请重试')
+    ElMessage.error(locale.value === 'zh-CN' ? '打卡失败，请重试' : 'Check-in failed, please try again')
   } finally {
     submitting.value = false
   }

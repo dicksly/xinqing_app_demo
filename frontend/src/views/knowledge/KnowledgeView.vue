@@ -4,7 +4,7 @@
     <section class="quote-card card">
       <header class="card-header">
         <component :is="Trophy" class="header-icon" />
-        <h2 class="card-title">每日金句</h2>
+        <h2 class="card-title">{{ t('knowledge.dailyQuote') }}</h2>
         <span class="date-tag">{{ currentDate }}</span>
       </header>
 
@@ -18,7 +18,7 @@
     <section class="content-section card">
       <el-tabs v-model="activeCategory" class="content-tabs">
         <!-- 短视频/条漫 -->
-        <el-tab-pane label="视频" name="video">
+        <el-tab-pane :label="t('knowledge.video')" name="video">
           <div v-loading="loading" class="video-grid">
             <div
               v-for="item in videoContent"
@@ -39,11 +39,11 @@
               </div>
             </div>
           </div>
-          <el-empty v-if="!loading && videoContent.length === 0" description="暂无内容" :image-size="60" />
+          <el-empty v-if="!loading && videoContent.length === 0" :description="locale === 'zh-CN' ? '暂无内容' : 'No content'" :image-size="60" />
         </el-tab-pane>
 
         <!-- 心理测试 -->
-        <el-tab-pane label="测试" name="test">
+        <el-tab-pane :label="t('knowledge.test')" name="test">
           <div v-loading="loading" class="test-list">
             <div
               v-for="test in tests"
@@ -59,28 +59,31 @@
                 <p class="test-desc">{{ test.desc }}</p>
                 <div class="test-meta">
                   <span class="meta-tag">{{ test.duration }}</span>
-                  <span class="meta-tag">{{ test.questions_count }}题</span>
+                  <span class="meta-tag">{{ test.questions_count }}{{ locale === 'zh-CN' ? '题' : 'Q' }}</span>
                 </div>
               </div>
-              <el-button type="primary" size="small" round>开始</el-button>
+              <el-button type="primary" size="small" round>{{ locale === 'zh-CN' ? '开始测试' : 'Start' }}</el-button>
             </div>
           </div>
         </el-tab-pane>
 
         <!-- 知识文章 -->
-        <el-tab-pane label="文章" name="article">
+        <el-tab-pane :label="t('knowledge.article')" name="article">
           <div v-loading="loading" class="article-list">
-            <div
+            <el-card
               v-for="article in articles"
               :key="article.id"
-              class="article-item touchable"
+              class="article-item"
+              shadow="hover"
               @click="viewArticle(article)"
             >
               <div class="article-header">
                 <h3 class="article-title">{{ article.title }}</h3>
                 <span class="article-tag">{{ article.category }}</span>
               </div>
-              <p class="article-preview">{{ article.content?.substring(0, 80) }}...</p>
+              <div class="article-preview">
+                {{ article.content?.substring(0, 80) }}...
+              </div>
               <div class="article-footer">
                 <span class="article-time">{{ formatTime(article.created_at) }}</span>
                 <div class="article-views">
@@ -88,13 +91,13 @@
                   <span>{{ article.view_count }}</span>
                 </div>
               </div>
-            </div>
+            </el-card>
           </div>
-          <el-empty v-if="!loading && articles.length === 0" description="暂无文章" :image-size="60" />
+          <el-empty v-if="!loading && articles.length === 0" :description="locale === 'zh-CN' ? '暂无文章' : 'No articles'" :image-size="60" />
         </el-tab-pane>
 
         <!-- 专题策划 -->
-        <el-tab-pane label="专题" name="topic">
+        <el-tab-pane :label="t('knowledge.topic')" name="topic">
           <div class="topic-list">
             <div
               v-for="topic in topics"
@@ -110,7 +113,7 @@
               </div>
               <p class="topic-desc">{{ topic.desc }}</p>
               <div class="topic-footer">
-                <span class="topic-count">{{ topic.content_count }}个内容</span>
+                <span class="topic-count">{{ topic.content_count }}{{ t('knowledge.contentCount') }}</span>
               </div>
             </div>
           </div>
@@ -144,10 +147,10 @@
       </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="showContentDialog = false">关闭</el-button>
+          <el-button @click="showContentDialog = false">{{ t('common.close') }}</el-button>
           <el-button type="primary" @click="likeContent">
             <component :is="StarFilled" />
-            <span>收藏</span>
+            <span>{{ t('knowledge.favorite') }}</span>
           </el-button>
         </div>
       </template>
@@ -168,7 +171,7 @@
           :key="index"
           class="question-item"
         >
-          <h4 class="question-title">问题 {{ index + 1 }}: {{ question.text }}</h4>
+          <h4 class="question-title">{{ t('knowledge.testQuestions') }} {{ index + 1 }}: {{ question.text }}</h4>
           <el-radio-group v-model="question.selectedAnswer" class="question-options">
             <el-radio
               v-for="option in question.options"
@@ -183,20 +186,20 @@
       <div v-else class="test-result">
         <div class="result-header">
           <component :is="CircleCheckFilled" class="result-icon" />
-          <h3>测试完成</h3>
+          <h3>{{ t('knowledge.testComplete') }}</h3>
         </div>
         <div class="result-detail">
-          <h4>测试结果分析</h4>
+          <h4>{{ t('knowledge.testResult') }}</h4>
           <p>{{ testResult }}</p>
           <div class="divider"></div>
-          <h4>建议</h4>
+          <h4>{{ t('knowledge.testSuggestion') }}</h4>
           <p>{{ testSuggestion }}</p>
         </div>
       </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="showTestDialog = false">取消</el-button>
-          <el-button v-if="!testCompleted" type="primary" @click="submitTest">提交测试</el-button>
+          <el-button @click="showTestDialog = false">{{ t('common.cancel') }}</el-button>
+          <el-button v-if="!testCompleted" type="primary" @click="submitTest">{{ t('knowledge.submitTest') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -205,6 +208,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Trophy,
   View,
@@ -219,10 +223,14 @@ import {
 import { knowledgeApi } from '../../api'
 import { ElMessage } from 'element-plus'
 
+const { t, locale } = useI18n()
+
 // 每日金句
 const dailyQuote = ref({
-  text: "生命中最重要的不是你遭遇了什么，而是你记住了什么。",
-  author: "未知",
+  text: locale.value === 'zh-CN'
+    ? "生命中最重要的不是你遭遇了什么，而是你记住了什么。"
+    : "The most important thing is not what happens to you, but what you remember.",
+  author: locale.value === 'zh-CN' ? "未知" : "Unknown",
 })
 
 const currentDate = ref('')
@@ -231,9 +239,115 @@ const currentDate = ref('')
 const activeCategory = ref('video')
 const loading = ref(false)
 const videoContent = ref([])
-const tests = ref([])
 const articles = ref([])
-const topics = ref([])
+
+// 测试数据
+const tests = computed(() => [
+  {
+    id: 1,
+    title: t('knowledge.tests.mbti'),
+    icon: Cpu,
+    iconClass: 'icon-blue',
+    desc: t('knowledge.tests.mbtiDesc'),
+    duration: locale.value === 'zh-CN' ? '5分钟' : '5 min',
+    questions_count: 12,
+    questions: [
+      {
+        text: locale.value === 'zh-CN' ? '在社交场合中，你通常会？' : 'In social situations, you usually?',
+        options: locale.value === 'zh-CN' ? [
+          { value: 'A', text: '主动与人交谈' },
+          { value: 'B', text: '偶尔参与对话' },
+          { value: 'C', text: '更多时间倾听' },
+          { value: 'D', text: '希望早点离开' },
+        ] : [
+          { value: 'A', text: 'Actively engage' },
+          { value: 'B', text: 'Occasionally participate' },
+          { value: 'C', text: 'Listen more' },
+          { value: 'D', text: 'Want to leave early' },
+        ],
+        selectedAnswer: '',
+      },
+      {
+        text: locale.value === 'zh-CN' ? '做决定时，你更倾向于？' : 'When making decisions, you tend to?',
+        options: locale.value === 'zh-CN' ? [
+          { value: 'A', text: '凭感觉和直觉' },
+          { value: 'B', text: '分析利弊后决定' },
+          { value: 'C', text: '参考他人意见' },
+          { value: 'D', text: '纠结很久才决定' },
+        ] : [
+          { value: 'A', text: 'Follow intuition' },
+          { value: 'B', text: 'Analyze pros and cons' },
+          { value: 'C', text: 'Seek others\' opinions' },
+          { value: 'D', text: 'Hesitate for a long time' },
+        ],
+        selectedAnswer: '',
+      },
+      {
+        text: locale.value === 'zh-CN' ? '面对压力时，你会？' : 'When facing stress, you would?',
+        options: locale.value === 'zh-CN' ? [
+          { value: 'A', text: '积极寻找解决方案' },
+          { value: 'B', text: '先放松一下再处理' },
+          { value: 'C', text: '寻求他人帮助' },
+          { value: 'D', text: '感到焦虑和无助' },
+        ] : [
+          { value: 'A', text: 'Actively find solutions' },
+          { value: 'B', text: 'Relax first, then handle' },
+          { value: 'C', text: 'Seek help from others' },
+          { value: 'D', text: 'Feel anxious and helpless' },
+        ],
+        selectedAnswer: '',
+      },
+    ],
+  },
+  {
+    id: 2,
+    title: t('knowledge.tests.stress'),
+    icon: Timer,
+    iconClass: 'icon-orange',
+    desc: t('knowledge.tests.stressDesc'),
+    duration: locale.value === 'zh-CN' ? '3分钟' : '3 min',
+    questions_count: 10,
+    questions: [],
+  },
+  {
+    id: 3,
+    title: t('knowledge.tests.attachment'),
+    icon: Connection,
+    iconClass: 'icon-pink',
+    desc: t('knowledge.tests.attachmentDesc'),
+    duration: locale.value === 'zh-CN' ? '8分钟' : '8 min',
+    questions_count: 15,
+    questions: [],
+  },
+])
+
+// 专题数据
+const topics = computed(() => [
+  {
+    id: 1,
+    title: locale.value === 'zh-CN' ? '考试季抗压指南' : 'Exam Season Stress Relief',
+    status: t('knowledge.topicStatus.active'),
+    statusClass: 'status-active',
+    desc: locale.value === 'zh-CN' ? '帮助考生调整心态，发挥最佳水平' : 'Help students adjust their mindset for peak performance',
+    content_count: 12,
+  },
+  {
+    id: 2,
+    title: locale.value === 'zh-CN' ? '毕业季迷茫破解' : 'Graduation Confusion Guide',
+    status: t('knowledge.topicStatus.pending'),
+    statusClass: 'status-pending',
+    desc: locale.value === 'zh-CN' ? '从校园到职场的心理过渡指南' : 'Psychological transition from campus to workplace',
+    content_count: 8,
+  },
+  {
+    id: 3,
+    title: locale.value === 'zh-CN' ? '求职季心理建设' : 'Job Hunting Mental Preparation',
+    status: t('knowledge.topicStatus.planned'),
+    statusClass: 'status-planned',
+    desc: locale.value === 'zh-CN' ? '在求职过程中保持良好心态' : 'Maintain a positive mindset during job hunting',
+    content_count: 10,
+  },
+])
 
 // 对话框状态
 const showContentDialog = ref(false)
@@ -254,102 +368,12 @@ const parsedTags = computed(() => {
   }
 })
 
-// 模拟数据 - 使用 SVG 图标
-const mockTests = [
-  {
-    id: 1,
-    title: 'MBTI 人格类型简化版',
-    icon: Cpu,
-    iconClass: 'icon-blue',
-    desc: '探索你的性格类型，了解自己',
-    duration: '5分钟',
-    questions_count: 12,
-    questions: [
-      {
-        text: '在社交场合中，你通常会？',
-        options: [
-          { value: 'A', text: '主动与人交谈' },
-          { value: 'B', text: '偶尔参与对话' },
-          { value: 'C', text: '更多时间倾听' },
-          { value: 'D', text: '希望早点离开' },
-        ],
-        selectedAnswer: '',
-      },
-      {
-        text: '做决定时，你更倾向于？',
-        options: [
-          { value: 'A', text: '凭感觉和直觉' },
-          { value: 'B', text: '分析利弊后决定' },
-          { value: 'C', text: '参考他人意见' },
-          { value: 'D', text: '纠结很久才决定' },
-        ],
-        selectedAnswer: '',
-      },
-      {
-        text: '面对压力时，你会？',
-        options: [
-          { value: 'A', text: '积极寻找解决方案' },
-          { value: 'B', text: '先放松一下再处理' },
-          { value: 'C', text: '寻求他人帮助' },
-          { value: 'D', text: '感到焦虑和无助' },
-        ],
-        selectedAnswer: '',
-      },
-    ],
-  },
-  {
-    id: 2,
-    title: '压力自测表',
-    icon: Timer,
-    iconClass: 'icon-orange',
-    desc: '评估你当前的压力水平',
-    duration: '3分钟',
-    questions_count: 10,
-    questions: [],
-  },
-  {
-    id: 3,
-    title: '依恋类型测试',
-    icon: Connection,
-    iconClass: 'icon-pink',
-    desc: '了解你在亲密关系中的依恋模式',
-    duration: '8分钟',
-    questions_count: 15,
-    questions: [],
-  },
-]
-
-const mockTopics = [
-  {
-    id: 1,
-    title: '考试季抗压指南',
-    status: '进行中',
-    statusClass: 'status-active',
-    desc: '帮助考生调整心态，发挥最佳水平',
-    content_count: 12,
-  },
-  {
-    id: 2,
-    title: '毕业季迷茫破解',
-    status: '即将开始',
-    statusClass: 'status-pending',
-    desc: '从校园到职场的心理过渡指南',
-    content_count: 8,
-  },
-  {
-    id: 3,
-    title: '求职季心理建设',
-    status: '规划中',
-    statusClass: 'status-planned',
-    desc: '在求职过程中保持良好心态',
-    content_count: 10,
-  },
-]
-
 // 格式化日期
 function formatDate() {
-  const options = { month: 'short', day: 'numeric', weekday: 'short' }
-  return new Date().toLocaleDateString('zh-CN', options)
+  const options = locale.value === 'zh-CN'
+    ? { month: 'short', day: 'numeric', weekday: 'short' }
+    : { month: 'short', day: 'numeric', weekday: 'short' }
+  return new Date().toLocaleDateString(locale.value === 'zh-CN' ? 'zh-CN' : 'en-US', options)
 }
 
 // 格式化时间
@@ -358,9 +382,9 @@ function formatTime(dateString) {
   const now = new Date()
   const diff = now - date
 
-  if (diff < 60000) return '刚刚'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`
+  if (diff < 60000) return locale.value === 'zh-CN' ? '刚刚' : 'Just now'
+  if (diff < 3600000) return locale.value === 'zh-CN' ? `${Math.floor(diff / 60000)}分钟前` : `${Math.floor(diff / 60000)}m ago`
+  if (diff < 86400000) return locale.value === 'zh-CN' ? `${Math.floor(diff / 3600000)}小时前` : `${Math.floor(diff / 3600000)}h ago`
   return date.toLocaleDateString()
 }
 
@@ -391,7 +415,7 @@ function submitTest() {
   // 检查是否所有问题都已回答
   const unanswered = currentTest.value.questions.filter(q => !q.selectedAnswer)
   if (unanswered.length > 0) {
-    ElMessage.warning('请完成所有问题再提交')
+    ElMessage.warning(locale.value === 'zh-CN' ? '请完成所有问题再提交' : 'Please answer all questions')
     return
   }
 
@@ -399,16 +423,20 @@ function submitTest() {
   const results = ['INTJ', 'INFJ', 'ISTJ', 'ISFJ', 'ENTP', 'ENFP', 'ESTP', 'ESFP']
   const randomResult = results[Math.floor(Math.random() * results.length)]
 
-  testResult.value = `您的性格类型是：${randomResult}`
-  testSuggestion.value = `${randomResult}型的人通常善于深度思考。建议你在面对压力时，给自己更多时间进行内省和规划。`
+  testResult.value = locale.value === 'zh-CN'
+    ? `您的性格类型是：${randomResult}`
+    : `Your personality type is: ${randomResult}`
+  testSuggestion.value = locale.value === 'zh-CN'
+    ? `${randomResult}型的人通常善于深度思考。建议你在面对压力时，给自己更多时间进行内省和规划。`
+    : `${randomResult} types are usually good at deep thinking. When facing stress, give yourself more time for introspection and planning.`
 
   testCompleted.value = true
-  ElMessage.success('测试完成！')
+  ElMessage.success(t('knowledge.testComplete'))
 }
 
 // 收藏内容
 function likeContent() {
-  ElMessage.success('已收藏到我的收藏夹')
+  ElMessage.success(locale.value === 'zh-CN' ? '已收藏到我的收藏夹' : 'Added to favorites')
   showContentDialog.value = false
 }
 
@@ -423,36 +451,29 @@ async function loadContent() {
 
     videoContent.value = videosResponse.data
     articles.value = articlesResponse.data
-
-    // 使用模拟数据补充测试和专题
-    tests.value = mockTests
-    topics.value = mockTopics
   } catch (error) {
     console.error('加载内容失败:', error)
     // 使用模拟数据
     videoContent.value = [
       {
         id: 1,
-        title: '什么是焦虑症',
+        title: locale.value === 'zh-CN' ? '什么是焦虑症' : 'What is Anxiety Disorder',
         content_type: 'video',
-        category: '心理健康',
-        content: '焦虑症是一种常见的心理健康问题...',
+        category: locale.value === 'zh-CN' ? '心理健康' : 'Mental Health',
+        content: locale.value === 'zh-CN' ? '焦虑症是一种常见的心理健康问题...' : 'Anxiety disorder is a common mental health issue...',
         view_count: 1234,
         created_at: new Date().toISOString(),
       },
       {
         id: 2,
-        title: '如何拒绝精神内耗',
+        title: locale.value === 'zh-CN' ? '如何拒绝精神内耗' : 'How to Stop Overthinking',
         content_type: 'video',
-        category: '情绪管理',
-        content: '精神内耗是现代人常见的心理困扰...',
+        category: locale.value === 'zh-CN' ? '情绪管理' : 'Emotional Management',
+        content: locale.value === 'zh-CN' ? '精神内耗是现代人常见的心理困扰...' : 'Overthinking is a common psychological issue...',
         view_count: 987,
         created_at: new Date(Date.now() - 86400000).toISOString(),
       },
     ]
-
-    tests.value = mockTests
-    topics.value = mockTopics
   } finally {
     loading.value = false
   }
@@ -529,10 +550,6 @@ onMounted(() => {
 
 /* 内容标签页 */
 .content-section {
-  padding: 0;
-}
-
-.content-tabs {
   padding: var(--spacing-md, 16px);
 }
 
@@ -679,16 +696,21 @@ onMounted(() => {
 }
 
 .article-item {
-  padding: var(--spacing-sm, 8px);
   border-radius: var(--radius-md, 12px);
-  background: var(--color-bg-tertiary, #f1f5f9);
+  border: 1px solid var(--color-border-light, #f1f5f9);
+  cursor: pointer;
+  transition: all var(--transition-base, 0.2s ease);
+}
+
+.article-item:hover {
+  border-color: var(--color-primary, #10b981);
 }
 
 .article-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: var(--spacing-xs, 4px);
+  padding: var(--spacing-sm, 8px);
 }
 
 .article-title {
@@ -709,9 +731,9 @@ onMounted(() => {
 }
 
 .article-preview {
-  font-size: var(--font-xs, 11px);
+  padding: 0 var(--spacing-sm, 8px);
   color: var(--color-text-secondary, #64748b);
-  margin: 0 0 var(--spacing-xs, 4px) 0;
+  font-size: var(--font-xs, 11px);
   line-height: 1.5;
 }
 
@@ -719,6 +741,8 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
+  border-top: 1px solid var(--color-border-light, #f1f5f9);
 }
 
 .article-time {
@@ -836,10 +860,9 @@ onMounted(() => {
 }
 
 .content-text {
-  font-size: var(--font-sm, 13px);
-  color: var(--color-text-primary, #1e293b);
   line-height: 1.7;
-  margin: 0;
+  color: var(--color-text-primary, #1e293b);
+  font-size: var(--font-sm, 13px);
 }
 
 .content-tags {
@@ -965,23 +988,7 @@ onMounted(() => {
   margin: var(--spacing-sm, 8px) 0;
 }
 
-/* 响应式 */
-@media (max-width: 360px) {
-  .video-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .test-item {
-    flex-wrap: wrap;
-  }
-
-  .test-item .el-button {
-    width: 100%;
-    margin-top: var(--spacing-xs, 4px);
-  }
-}
-
-/* 深色模式 - 温暖紫色系 */
+/* 深色模式 */
 .dark .quote-card {
   background: linear-gradient(135deg, rgba(167, 139, 250, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
 }
@@ -1008,7 +1015,7 @@ onMounted(() => {
 }
 
 .dark .article-item {
-  background: rgba(31, 28, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 .dark .article-tag {

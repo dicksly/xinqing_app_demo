@@ -4,7 +4,7 @@
     <section class="confess-card card">
       <header class="card-header">
         <component :is="ChatDotRound" class="header-icon" />
-        <h2 class="card-title">倾诉你的心声</h2>
+        <h2 class="card-title">{{ t('treehole.title') }}</h2>
       </header>
 
       <!-- 内容类型选择 -->
@@ -12,15 +12,15 @@
         <el-radio-group v-model="entryForm.contentType" class="type-group">
           <el-radio-button label="text">
             <component :is="Document" class="btn-icon" />
-            <span>文字</span>
+            <span>{{ t('treehole.contentType.text') }}</span>
           </el-radio-button>
           <el-radio-button label="voice">
             <component :is="Microphone" class="btn-icon" />
-            <span>语音</span>
+            <span>{{ t('treehole.contentType.voice') }}</span>
           </el-radio-button>
           <el-radio-button label="image">
             <component :is="Picture" class="btn-icon" />
-            <span>图片</span>
+            <span>{{ t('treehole.contentType.image') }}</span>
           </el-radio-button>
         </el-radio-group>
       </div>
@@ -31,7 +31,7 @@
           v-model="entryForm.content"
           type="textarea"
           :rows="5"
-          placeholder="把这里当作树洞，说出你的烦恼、痛苦或心事..."
+          :placeholder="t('treehole.placeholder')"
           maxlength="1000"
           show-word-limit
           resize="none"
@@ -51,13 +51,13 @@
           <div v-if="recordingTime > 0" class="recording-time">
             {{ recordingTime }}s
           </div>
-          <span class="record-hint">{{ isRecording ? '点击停止' : '点击开始录音' }}</span>
+          <span class="record-hint">{{ isRecording ? t('treehole.stopRecording') : t('treehole.startRecording') }}</span>
         </div>
 
         <div class="voice-option">
           <el-checkbox v-model="entryForm.hasVoiceChange">
             <component :is="Switch" class="check-icon" />
-            <span>变声处理（保护隐私）</span>
+            <span>{{ t('treehole.voiceChange') }}</span>
           </el-checkbox>
         </div>
       </div>
@@ -74,7 +74,7 @@
         >
           <div class="uploader-content">
             <component :is="Plus" class="uploader-icon" />
-            <span class="uploader-text">点击或拖拽上传图片</span>
+            <span class="uploader-text">{{ locale === 'zh-CN' ? '点击或拖拽上传图片' : 'Click or drag to upload' }}</span>
           </div>
         </el-upload>
       </div>
@@ -83,11 +83,11 @@
       <div class="publish-options">
         <el-checkbox v-model="entryForm.isAnonymous">
           <component :is="Lock" class="check-icon" />
-          <span>匿名发布</span>
+          <span>{{ t('treehole.anonymous') }}</span>
         </el-checkbox>
         <el-checkbox v-model="entryForm.isPublished">
           <component :is="Share" class="check-icon" />
-          <span>发布到广场</span>
+          <span>{{ t('treehole.publishToSquare') }}</span>
         </el-checkbox>
       </div>
 
@@ -100,7 +100,7 @@
         class="submit-btn"
         round
       >
-        发送到树洞
+        {{ t('treehole.sendToTreehole') }}
       </el-button>
     </section>
 
@@ -108,7 +108,7 @@
     <section v-if="aiResponse" class="ai-response-card card">
       <header class="card-header">
         <component :is="Promotion" class="header-icon ai-icon" />
-        <h2 class="card-title">AI 倾听回应</h2>
+        <h2 class="card-title">{{ t('treehole.aiResponse') }}</h2>
       </header>
 
       <div class="ai-response-content">
@@ -119,29 +119,29 @@
       <div v-if="riskLevel !== 'safe'" class="risk-alert" :class="riskLevel">
         <div class="alert-header">
           <component :is="riskLevel === 'severe' ? WarningFilled : InfoFilled" class="alert-icon" />
-          <span class="alert-title">{{ riskLevel === 'severe' ? '关心提醒' : '温馨提示' }}</span>
+          <span class="alert-title">{{ riskLevel === 'severe' ? t('treehole.caringReminder') : t('treehole.gentleReminder') }}</span>
         </div>
 
         <div v-if="riskLevel === 'severe'" class="severe-warning">
-          <p>如果您有危险的想法，请立即寻求帮助：</p>
+          <p>{{ locale === 'zh-CN' ? '如果您有危险的想法，请立即寻求帮助：' : 'If you have dangerous thoughts, please seek help immediately:' }}</p>
           <div class="help-links">
             <a href="tel:400-161-9995" class="help-link">
               <component :is="PhoneFilled" />
-              <span>全国心理援助热线：400-161-9995</span>
+              <span>{{ t('treehole.helpHotline') }}：400-161-9995</span>
             </a>
             <a href="tel:021-62798990" class="help-link">
               <component :is="PhoneFilled" />
-              <span>生命热线：021-62798990</span>
+              <span>{{ t('treehole.lifeHotline') }}：021-62798990</span>
             </a>
           </div>
         </div>
 
         <div v-else class="mild-warning">
-          <p>我感受到了你现在的痛苦。建议你：</p>
+          <p>{{ locale === 'zh-CN' ? '我感受到了你现在的痛苦。建议你：' : 'I feel your pain. Suggestions:' }}</p>
           <ul>
-            <li>深呼吸几次，让自己先平静下来</li>
-            <li>去"正念实验室"试试冥想练习</li>
-            <li>如果持续困扰，可以考虑找专业咨询师聊聊</li>
+            <li>{{ locale === 'zh-CN' ? '深呼吸几次，让自己先平静下来' : 'Take a few deep breaths to calm down' }}</li>
+            <li>{{ locale === 'zh-CN' ? '去"正念实验室"试试冥想练习' : 'Try meditation in the Mindfulness Lab' }}</li>
+            <li>{{ locale === 'zh-CN' ? '如果持续困扰，可以考虑找专业咨询师聊聊' : 'Consider talking to a professional counselor' }}</li>
           </ul>
         </div>
       </div>
@@ -151,11 +151,11 @@
     <section class="public-square-card card">
       <header class="card-header">
         <component :is="Reading" class="header-icon" />
-        <h2 class="card-title">树洞广场</h2>
+        <h2 class="card-title">{{ t('treehole.squareTitle') }}</h2>
       </header>
 
       <el-tabs v-model="activeTab" class="square-tabs">
-        <el-tab-pane label="最新" name="latest">
+        <el-tab-pane :label="t('treehole.latest')" name="latest">
           <div v-if="loading" class="loading">
             <div class="skeleton-list">
               <div v-for="i in 3" :key="i" class="skeleton-item">
@@ -165,7 +165,7 @@
               </div>
             </div>
           </div>
-          <el-empty v-else-if="entries.length === 0" description="暂无公开条目" :image-size="60" />
+          <el-empty v-else-if="entries.length === 0" :description="locale === 'zh-CN' ? '暂无公开条目' : 'No public entries'" :image-size="60" />
           <div v-else class="entries-list">
             <div
               v-for="entry in entries"
@@ -179,13 +179,13 @@
                 <span class="entry-time">{{ formatTime(entry.created_at) }}</span>
               </div>
               <p class="entry-text">
-                {{ entry.content ? entry.content.substring(0, 100) + '...' : '[媒体内容]' }}
+                {{ entry.content ? entry.content.substring(0, 100) + '...' : '[' + t('treehole.contentType.' + entry.content_type) + ']' }}
               </p>
             </div>
           </div>
         </el-tab-pane>
-        <el-tab-pane label="我的" name="mine">
-          <el-empty description="功能开发中..." :image-size="60" />
+        <el-tab-pane :label="t('treehole.mine')" name="mine">
+          <el-empty :description="locale === 'zh-CN' ? '功能开发中...' : 'Feature in development...'" :image-size="60" />
         </el-tab-pane>
       </el-tabs>
     </section>
@@ -193,7 +193,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   ChatDotRound,
   Document,
@@ -212,6 +213,8 @@ import {
 } from '@element-plus/icons-vue'
 import { treeholeApi } from '../../api'
 import { ElMessage } from 'element-plus'
+
+const { t, locale } = useI18n()
 
 // 表单数据
 const entryForm = ref({
@@ -252,9 +255,12 @@ function toggleRecording() {
     recordingTime.value = 0
     recordingTimer.value = setInterval(() => {
       recordingTime.value++
+      if (recordingTime.value >= 60) {
+        toggleRecording()
+      }
     }, 1000)
 
-    ElMessage.info('开始录音...')
+    ElMessage.info(locale === 'zh-CN' ? '开始录音...' : 'Recording started...')
   } else {
     if (recordingTimer.value) {
       clearInterval(recordingTimer.value)
@@ -262,24 +268,24 @@ function toggleRecording() {
     }
 
     if (recordingTime.value > 0) {
-      ElMessage.success(`录音完成，时长 ${recordingTime.value} 秒`)
+      ElMessage.success(locale === 'zh-CN' ? `录音完成，时长 ${recordingTime.value} 秒` : `Recording complete, ${recordingTime.value}s`)
     } else {
-      ElMessage.warning('录音时间太短，请重新录制')
+      ElMessage.warning(t('treehole.recordingTooShort'))
     }
   }
 }
 
 // 图片上传（模拟）
 function beforeUpload(file) {
-  ElMessage.success('图片上传成功（模拟）')
-  entryForm.value.content = `[图片：${file.name}]`
+  ElMessage.success(locale === 'zh-CN' ? '图片上传成功（模拟）' : 'Image uploaded (simulated)')
+  entryForm.value.content = `[${locale === 'zh-CN' ? '图片' : 'Image'}：${file.name}]`
   return false
 }
 
 // 提交倾诉
 async function handleSubmit() {
   if (entryForm.value.contentType === 'text' && !entryForm.value.content) {
-    ElMessage.warning('请输入内容')
+    ElMessage.warning(locale === 'zh-CN' ? '请输入内容' : 'Please enter content')
     return
   }
 
@@ -304,11 +310,11 @@ async function handleSubmit() {
       isPublished: false,
     }
 
-    ElMessage.success('发送成功！')
+    ElMessage.success(locale === 'zh-CN' ? '发送成功！' : 'Sent successfully!')
     loadEntries()
   } catch (error) {
     console.error('发送失败:', error)
-    ElMessage.error('发送失败，请重试')
+    ElMessage.error(locale === 'zh-CN' ? '发送失败，请重试' : 'Failed to send, please try again')
   } finally {
     submitting.value = false
   }
@@ -333,9 +339,9 @@ function formatTime(dateString) {
   const now = new Date()
   const diff = now - date
 
-  if (diff < 60000) return '刚刚'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`
+  if (diff < 60000) return locale === 'zh-CN' ? '刚刚' : 'Just now'
+  if (diff < 3600000) return locale === 'zh-CN' ? `${Math.floor(diff / 60000)}分钟前` : `${Math.floor(diff / 60000)}m ago`
+  if (diff < 86400000) return locale === 'zh-CN' ? `${Math.floor(diff / 3600000)}小时前` : `${Math.floor(diff / 3600000)}h ago`
   return date.toLocaleDateString()
 }
 
@@ -761,11 +767,10 @@ onMounted(() => {
   padding: var(--spacing-md, 16px) 0;
 }
 
-/* 深色模式 - 温暖紫色系 */
-.dark .confess-card,
-.dark .public-square-card {
+/* 深色模式 */
+.dark .ai-response-card {
   background: rgba(45, 42, 62, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(167, 139, 250, 0.2);
 }
 
 .dark .type-group :deep(.el-radio-button__inner) {
@@ -793,11 +798,6 @@ onMounted(() => {
 
 .dark .submit-btn {
   background: linear-gradient(135deg, var(--color-primary, #a78bfa) 0%, var(--color-primary-light, #c4b5fd) 100%);
-}
-
-.dark .ai-response-card {
-  background: rgba(45, 42, 62, 0.8);
-  border: 1px solid rgba(167, 139, 250, 0.2);
 }
 
 .dark .skeleton-item {

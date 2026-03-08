@@ -1,9 +1,17 @@
 <template>
   <div class="app-container">
-    <!-- 主题切换按钮 -->
-    <button class="theme-toggle" @click="toggleTheme" :title="themeStore.isDark ? '切换到亮色模式' : '切换到暗色模式'">
-      <component :is="themeStore.isDark ? Sunny : Moon" class="theme-icon" />
-    </button>
+    <!-- 顶部控制按钮 -->
+    <div class="top-controls">
+      <!-- 语言切换按钮 -->
+      <button class="control-btn lang-toggle" @click="toggleLanguage" :title="currentLangName">
+        <span class="lang-text">{{ currentLangCode }}</span>
+      </button>
+
+      <!-- 主题切换按钮 -->
+      <button class="control-btn theme-toggle" @click="toggleTheme" :title="themeStore.isDark ? t('theme.lightMode') : t('theme.darkMode')">
+        <component :is="themeStore.isDark ? Sunny : Moon" class="control-icon" />
+      </button>
+    </div>
 
     <!-- 主内容区域 -->
     <main class="main-content">
@@ -31,28 +39,43 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { Histogram, Moon, Sunny, ChatDotRound, Reading, User } from '@element-plus/icons-vue'
 import { useThemeStore } from './stores/theme'
+import { setLocale } from './locales'
 
+const { t, locale } = useI18n()
 const route = useRoute()
 const themeStore = useThemeStore()
 
 const activeTab = ref('/emotion')
 
-// 底部导航配置 - 5个标签
-const navItems = [
-  { path: '/emotion', label: '情绪', icon: Histogram },
-  { path: '/mindfulness', label: '正念', icon: Moon },
-  { path: '/treehole', label: '树洞', icon: ChatDotRound },
-  { path: '/knowledge', label: '充电站', icon: Reading },
-  { path: '/profile', label: '我的', icon: User },
-]
+// 当前语言代码显示
+const currentLangCode = computed(() => locale.value === 'zh-CN' ? 'EN' : '中')
+
+// 当前语言名称
+const currentLangName = computed(() => locale.value === 'zh-CN' ? 'Switch to English' : '切换到中文')
+
+// 底部导航配置
+const navItems = computed(() => [
+  { path: '/emotion', label: t('nav.emotion'), icon: Histogram },
+  { path: '/mindfulness', label: t('nav.mindfulness'), icon: Moon },
+  { path: '/treehole', label: t('nav.treehole'), icon: ChatDotRound },
+  { path: '/knowledge', label: t('nav.knowledge'), icon: Reading },
+  { path: '/profile', label: t('nav.profile'), icon: User },
+])
 
 // 切换主题
 function toggleTheme() {
   themeStore.toggleTheme()
+}
+
+// 切换语言
+function toggleLanguage() {
+  const newLocale = locale.value === 'zh-CN' ? 'en-US' : 'zh-CN'
+  setLocale(newLocale)
 }
 
 // 监听路由变化
@@ -80,7 +103,6 @@ onMounted(() => {
 </script>
 
 <style>
-/* 全局重置 */
 * {
   margin: 0;
   padding: 0;
@@ -110,11 +132,16 @@ html, body {
   transition: background 0.3s ease;
 }
 
-/* 主题切换按钮 */
-.theme-toggle {
+.top-controls {
   position: fixed;
   top: 16px;
   right: 16px;
+  display: flex;
+  gap: 8px;
+  z-index: 1001;
+}
+
+.control-btn {
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -125,28 +152,32 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1001;
   transition: all 0.3s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
-.theme-toggle:hover {
+.control-btn:hover {
   transform: scale(1.05);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
-.theme-toggle:active {
+.control-btn:active {
   transform: scale(0.95);
 }
 
-.theme-icon {
+.control-icon {
   width: 20px;
   height: 20px;
   color: #64748b;
   transition: all 0.3s ease;
 }
 
-/* 主内容区域 */
+.lang-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
 .main-content {
   flex: 1;
   overflow-y: auto;
@@ -157,7 +188,6 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* 底部导航栏 */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -207,7 +237,6 @@ html, body {
   transition: all 0.2s ease;
 }
 
-/* 激活状态 */
 .nav-item.active .nav-icon {
   color: #10b981;
   transform: scale(1.1);
@@ -218,12 +247,10 @@ html, body {
   font-weight: 600;
 }
 
-/* 点击反馈 */
 .nav-item:active {
   opacity: 0.7;
 }
 
-/* 页面切换动画 */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;
@@ -234,7 +261,6 @@ html, body {
   opacity: 0;
 }
 
-/* 响应式适配 */
 @media (min-width: 768px) {
   .app-container {
     max-width: 480px;
@@ -249,12 +275,11 @@ html, body {
     border-radius: 20px 20px 0 0;
   }
 
-  .theme-toggle {
+  .top-controls {
     right: calc(50% - 240px + 16px);
   }
 }
 
-/* 深色模式 - 温暖柔和的紫色系 */
 .dark .app-container {
   background: linear-gradient(180deg, #2d2a3e 0%, #252233 50%, #1f1c2a 100%);
 }
@@ -277,12 +302,16 @@ html, body {
   color: #a78bfa;
 }
 
-.dark .theme-toggle {
+.dark .control-btn {
   background: rgba(45, 42, 62, 0.95);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
 
-.dark .theme-icon {
+.dark .control-icon {
   color: #fbbf24;
+}
+
+.dark .lang-text {
+  color: #a78bfa;
 }
 </style>
