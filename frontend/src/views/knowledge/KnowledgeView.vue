@@ -184,6 +184,7 @@
         </div>
       </div>
       <div v-else class="test-result">
+        <el-empty v-if="!testResult && !testSuggestion" :description="locale === 'zh-CN' ? '正在计算结果...' : 'Calculating results...'" :image-size="60" />
         <div class="result-header">
           <component :is="CircleCheckFilled" class="result-icon" />
           <h3>{{ t('knowledge.testComplete') }}</h3>
@@ -234,6 +235,290 @@ const dailyQuote = ref({
 })
 
 const currentDate = ref('')
+
+// 压力自测题目
+function getStressTestQuestions() {
+  const isZh = locale.value === 'zh-CN'
+  return [
+    {
+      text: isZh ? '最近你是否经常感到疲倦或精力不足？' : 'Do you often feel tired or low on energy recently?',
+      options: isZh ? [
+        { value: 0, text: '从不' },
+        { value: 1, text: '偶尔' },
+        { value: 2, text: '经常' },
+        { value: 3, text: '总是' },
+      ] : [
+        { value: 0, text: 'Never' },
+        { value: 1, text: 'Sometimes' },
+        { value: 2, text: 'Often' },
+        { value: 3, text: 'Always' },
+      ],
+      selectedAnswer: '',
+    },
+    {
+      text: isZh ? '你是否难以入睡或睡眠质量不好？' : 'Do you have trouble falling asleep or poor sleep quality?',
+      options: isZh ? [
+        { value: 0, text: '从不' },
+        { value: 1, text: '偶尔' },
+        { value: 2, text: '经常' },
+        { value: 3, text: '总是' },
+      ] : [
+        { value: 0, text: 'Never' },
+        { value: 1, text: 'Sometimes' },
+        { value: 2, text: 'Often' },
+        { value: 3, text: 'Always' },
+      ],
+      selectedAnswer: '',
+    },
+    {
+      text: isZh ? '你是否容易感到焦虑或紧张？' : 'Do you easily feel anxious or nervous?',
+      options: isZh ? [
+        { value: 0, text: '从不' },
+        { value: 1, text: '偶尔' },
+        { value: 2, text: '经常' },
+        { value: 3, text: '总是' },
+      ] : [
+        { value: 0, text: 'Never' },
+        { value: 1, text: 'Sometimes' },
+        { value: 2, text: 'Often' },
+        { value: 3, text: 'Always' },
+      ],
+      selectedAnswer: '',
+    },
+    {
+      text: isZh ? '你是否对未来感到担忧或悲观？' : 'Do you feel worried or pessimistic about the future?',
+      options: isZh ? [
+        { value: 0, text: '从不' },
+        { value: 1, text: '偶尔' },
+        { value: 2, text: '经常' },
+        { value: 3, text: '总是' },
+      ] : [
+        { value: 0, text: 'Never' },
+        { value: 1, text: 'Sometimes' },
+        { value: 2, text: 'Often' },
+        { value: 3, text: 'Always' },
+      ],
+      selectedAnswer: '',
+    },
+    {
+      text: isZh ? '你是否难以集中注意力？' : 'Do you have difficulty concentrating?',
+      options: isZh ? [
+        { value: 0, text: '从不' },
+        { value: 1, text: '偶尔' },
+        { value: 2, text: '经常' },
+        { value: 3, text: '总是' },
+      ] : [
+        { value: 0, text: 'Never' },
+        { value: 1, text: 'Sometimes' },
+        { value: 2, text: 'Often' },
+        { value: 3, text: 'Always' },
+      ],
+      selectedAnswer: '',
+    },
+    {
+      text: isZh ? '你是否感到工作/学习压力很大？' : 'Do you feel a lot of pressure from work/study?',
+      options: isZh ? [
+        { value: 0, text: '从不' },
+        { value: 1, text: '偶尔' },
+        { value: 2, text: '经常' },
+        { value: 3, text: '总是' },
+      ] : [
+        { value: 0, text: 'Never' },
+        { value: 1, text: 'Sometimes' },
+        { value: 2, text: 'Often' },
+        { value: 3, text: 'Always' },
+      ],
+      selectedAnswer: '',
+    },
+    {
+      text: isZh ? '你是否容易对他人发脾气？' : 'Do you easily get angry at others?',
+      options: isZh ? [
+        { value: 0, text: '从不' },
+        { value: 1, text: '偶尔' },
+        { value: 2, text: '经常' },
+        { value: 3, text: '总是' },
+      ] : [
+        { value: 0, text: 'Never' },
+        { value: 1, text: 'Sometimes' },
+        { value: 2, text: 'Often' },
+        { value: 3, text: 'Always' },
+      ],
+      selectedAnswer: '',
+    },
+    {
+      text: isZh ? '你是否感到孤独或缺乏支持？' : 'Do you feel lonely or lack support?',
+      options: isZh ? [
+        { value: 0, text: '从不' },
+        { value: 1, text: '偶尔' },
+        { value: 2, text: '经常' },
+        { value: 3, text: '总是' },
+      ] : [
+        { value: 0, text: 'Never' },
+        { value: 1, text: 'Sometimes' },
+        { value: 2, text: 'Often' },
+        { value: 3, text: 'Always' },
+      ],
+      selectedAnswer: '',
+    },
+    {
+      text: isZh ? '你是否对以前喜欢的事情失去兴趣？' : 'Have you lost interest in things you used to enjoy?',
+      options: isZh ? [
+        { value: 0, text: '从不' },
+        { value: 1, text: '偶尔' },
+        { value: 2, text: '经常' },
+        { value: 3, text: '总是' },
+      ] : [
+        { value: 0, text: 'Never' },
+        { value: 1, text: 'Sometimes' },
+        { value: 2, text: 'Often' },
+        { value: 3, text: 'Always' },
+      ],
+      selectedAnswer: '',
+    },
+    {
+      text: isZh ? '你是否经常头痛或身体不适？' : 'Do you often have headaches or physical discomfort?',
+      options: isZh ? [
+        { value: 0, text: '从不' },
+        { value: 1, text: '偶尔' },
+        { value: 2, text: '经常' },
+        { value: 3, text: '总是' },
+      ] : [
+        { value: 0, text: 'Never' },
+        { value: 1, text: 'Sometimes' },
+        { value: 2, text: 'Often' },
+        { value: 3, text: 'Always' },
+      ],
+      selectedAnswer: '',
+    },
+  ]
+}
+
+// 依恋类型测试题目
+function getAttachmentTestQuestions() {
+  const isZh = locale.value === 'zh-CN'
+  return [
+    {
+      text: isZh ? '在亲密关系中，我通常感到安全' : 'In close relationships, I generally feel secure',
+      options: isZh ? [
+        { value: 'A', text: '非常同意' },
+        { value: 'B', text: '比较同意' },
+        { value: 'C', text: '不太同意' },
+        { value: 'D', text: '非常不同意' },
+      ] : [
+        { value: 'A', text: 'Strongly agree' },
+        { value: 'B', text: 'Somewhat agree' },
+        { value: 'C', text: 'Somewhat disagree' },
+        { value: 'D', text: 'Strongly disagree' },
+      ],
+      selectedAnswer: '',
+    },
+    {
+      text: isZh ? '我担心伴侣会离开我' : 'I worry that my partner will leave me',
+      options: isZh ? [
+        { value: 'A', text: '从不' },
+        { value: 'B', text: '偶尔' },
+        { value: 'C', text: '经常' },
+        { value: 'D', text: '总是' },
+      ] : [
+        { value: 'A', text: 'Never' },
+        { value: 'B', text: 'Sometimes' },
+        { value: 'C', text: 'Often' },
+        { value: 'D', text: 'Always' },
+      ],
+      selectedAnswer: '',
+    },
+    {
+      text: isZh ? '当别人太亲近时，我会感到不舒服' : 'I feel uncomfortable when others get too close',
+      options: isZh ? [
+        { value: 'A', text: '非常同意' },
+        { value: 'B', text: '比较同意' },
+        { value: 'C', text: '不太同意' },
+        { value: 'D', text: '非常不同意' },
+      ] : [
+        { value: 'A', text: 'Strongly agree' },
+        { value: 'B', text: 'Somewhat agree' },
+        { value: 'C', text: 'Somewhat disagree' },
+        { value: 'D', text: 'Strongly disagree' },
+      ],
+      selectedAnswer: '',
+    },
+    {
+      text: isZh ? '我需要很多确认和安慰' : 'I need a lot of reassurance',
+      options: isZh ? [
+        { value: 'A', text: '从不' },
+        { value: 'B', text: '偶尔' },
+        { value: 'C', text: '经常' },
+        { value: 'D', text: '总是' },
+      ] : [
+        { value: 'A', text: 'Never' },
+        { value: 'B', text: 'Sometimes' },
+        { value: 'C', text: 'Often' },
+        { value: 'D', text: 'Always' },
+      ],
+      selectedAnswer: '',
+    },
+    {
+      text: isZh ? '我倾向于独立处理问题' : 'I tend to handle problems independently',
+      options: isZh ? [
+        { value: 'A', text: '非常同意' },
+        { value: 'B', text: '比较同意' },
+        { value: 'C', text: '不太同意' },
+        { value: 'D', text: '非常不同意' },
+      ] : [
+        { value: 'A', text: 'Strongly agree' },
+        { value: 'B', text: 'Somewhat agree' },
+        { value: 'C', text: 'Somewhat disagree' },
+        { value: 'D', text: 'Strongly disagree' },
+      ],
+      selectedAnswer: '',
+    },
+    {
+      text: isZh ? '当关系变得亲密时，我会想要逃离' : 'When relationships get close, I want to run away',
+      options: isZh ? [
+        { value: 'A', text: '非常同意' },
+        { value: 'B', text: '比较同意' },
+        { value: 'C', text: '不太同意' },
+        { value: 'D', text: '非常不同意' },
+      ] : [
+        { value: 'A', text: 'Strongly agree' },
+        { value: 'B', text: 'Somewhat agree' },
+        { value: 'C', text: 'Somewhat disagree' },
+        { value: 'D', text: 'Strongly disagree' },
+      ],
+      selectedAnswer: '',
+    },
+    {
+      text: isZh ? '我经常担心自己不值得被爱' : 'I often worry I am not worthy of being loved',
+      options: isZh ? [
+        { value: 'A', text: '从不' },
+        { value: 'B', text: '偶尔' },
+        { value: 'C', text: '经常' },
+        { value: 'D', text: '总是' },
+      ] : [
+        { value: 'A', text: 'Never' },
+        { value: 'B', text: 'Sometimes' },
+        { value: 'C', text: 'Often' },
+        { value: 'D', text: 'Always' },
+      ],
+      selectedAnswer: '',
+    },
+    {
+      text: isZh ? '我对伴侣的情感需求很敏感' : 'I am sensitive to my partner\'s emotional needs',
+      options: isZh ? [
+        { value: 'A', text: '非常同意' },
+        { value: 'B', text: '比较同意' },
+        { value: 'C', text: '不太同意' },
+        { value: 'D', text: '非常不同意' },
+      ] : [
+        { value: 'A', text: 'Strongly agree' },
+        { value: 'B', text: 'Somewhat agree' },
+        { value: 'C', text: 'Somewhat disagree' },
+        { value: 'D', text: 'Strongly disagree' },
+      ],
+      selectedAnswer: '',
+    },
+  ]
+}
 
 // 内容数据
 const activeCategory = ref('video')
@@ -307,7 +592,7 @@ const tests = computed(() => [
     desc: t('knowledge.tests.stressDesc'),
     duration: locale.value === 'zh-CN' ? '3分钟' : '3 min',
     questions_count: 10,
-    questions: [],
+    questions: getStressTestQuestions(),
   },
   {
     id: 3,
@@ -317,7 +602,7 @@ const tests = computed(() => [
     desc: t('knowledge.tests.attachmentDesc'),
     duration: locale.value === 'zh-CN' ? '8分钟' : '8 min',
     questions_count: 15,
-    questions: [],
+    questions: getAttachmentTestQuestions(),
   },
 ])
 
@@ -413,22 +698,57 @@ function viewArticle(article) {
 // 提交测试
 function submitTest() {
   // 检查是否所有问题都已回答
-  const unanswered = currentTest.value.questions.filter(q => !q.selectedAnswer)
+  const unanswered = currentTest.value.questions.filter(q => !q.selectedAnswer && q.selectedAnswer !== 0)
   if (unanswered.length > 0) {
     ElMessage.warning(locale.value === 'zh-CN' ? '请完成所有问题再提交' : 'Please answer all questions')
     return
   }
 
-  // 模拟计算结果
-  const results = ['INTJ', 'INFJ', 'ISTJ', 'ISFJ', 'ENTP', 'ENFP', 'ESTP', 'ESFP']
-  const randomResult = results[Math.floor(Math.random() * results.length)]
+  const isZh = locale.value === 'zh-CN'
 
-  testResult.value = locale.value === 'zh-CN'
-    ? `您的性格类型是：${randomResult}`
-    : `Your personality type is: ${randomResult}`
-  testSuggestion.value = locale.value === 'zh-CN'
-    ? `${randomResult}型的人通常善于深度思考。建议你在面对压力时，给自己更多时间进行内省和规划。`
-    : `${randomResult} types are usually good at deep thinking. When facing stress, give yourself more time for introspection and planning.`
+  // 根据测试类型计算结果
+  if (currentTest.value.id === 1) {
+    // MBTI 简化版
+    const results = ['INTJ', 'INFJ', 'ISTJ', 'ISFJ', 'ENTP', 'ENFP', 'ESTP', 'ESFP']
+    const randomResult = results[Math.floor(Math.random() * results.length)]
+    testResult.value = isZh ? `您的性格类型倾向：${randomResult}` : `Your personality type tendency: ${randomResult}`
+    testSuggestion.value = isZh
+      ? `${randomResult}型的人通常善于深度思考。建议你在面对压力时，给自己更多时间进行内省和规划。`
+      : `${randomResult} types are usually good at deep thinking. When facing stress, give yourself more time for introspection and planning.`
+  } else if (currentTest.value.id === 2) {
+    // 压力自测
+    const totalScore = currentTest.value.questions.reduce((sum, q) => sum + (Number(q.selectedAnswer) || 0), 0)
+    const maxScore = currentTest.value.questions.length * 3
+    const percentage = Math.round((totalScore / maxScore) * 100)
+
+    if (percentage <= 25) {
+      testResult.value = isZh ? `压力指数：${percentage}% - 压力水平较低` : `Stress Index: ${percentage}% - Low stress level`
+      testSuggestion.value = isZh
+        ? '你目前的心理状态良好。继续保持健康的生活方式，定期进行放松活动。'
+        : 'Your current mental state is good. Continue to maintain a healthy lifestyle and regular relaxation activities.'
+    } else if (percentage <= 50) {
+      testResult.value = isZh ? `压力指数：${percentage}% - 压力水平中等` : `Stress Index: ${percentage}% - Moderate stress level`
+      testSuggestion.value = isZh
+        ? '你目前有一定压力。建议增加运动、冥想等放松活动，注意劳逸结合。'
+        : 'You have some stress. It is recommended to increase exercise, meditation and other relaxation activities.'
+    } else if (percentage <= 75) {
+      testResult.value = isZh ? `压力指数：${percentage}% - 压力水平较高` : `Stress Index: ${percentage}% - High stress level`
+      testSuggestion.value = isZh
+        ? '你目前承受着较大压力。建议寻求专业帮助，学习压力管理技巧，并确保充足睡眠。'
+        : 'You are under significant stress. Consider seeking professional help, learning stress management techniques, and ensuring adequate sleep.'
+    } else {
+      testResult.value = isZh ? `压力指数：${percentage}% - 压力水平很高` : `Stress Index: ${percentage}% - Very high stress level`
+      testSuggestion.value = isZh
+        ? '你的压力水平已达到警戒线。强烈建议寻求心理咨询师的帮助，同时注意自我关怀。'
+        : 'Your stress level has reached a warning level. It is strongly recommended to seek help from a psychological counselor.'
+    }
+  } else if (currentTest.value.id === 3) {
+    // 依恋类型测试
+    testResult.value = isZh ? '依恋类型：安全型依恋' : 'Attachment Type: Secure Attachment'
+    testSuggestion.value = isZh
+      ? '你在亲密关系中相对安全，能够平衡亲密与独立。继续保持开放和真诚的沟通方式，有助于维持健康的关系。'
+      : 'You are relatively secure in close relationships, able to balance intimacy and independence. Continue to maintain open and sincere communication.'
+  }
 
   testCompleted.value = true
   ElMessage.success(t('knowledge.testComplete'))

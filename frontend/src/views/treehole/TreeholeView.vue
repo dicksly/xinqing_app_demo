@@ -62,21 +62,29 @@
         </div>
       </div>
 
-      <!-- 图片输入（模拟） -->
+      <!-- 图片输入 -->
       <div v-if="entryForm.contentType === 'image'" class="image-input">
-        <el-upload
-          class="image-uploader"
-          action="#"
-          :show-file-list="false"
-          :before-upload="beforeUpload"
-          accept="image/*"
-          drag
-        >
-          <div class="uploader-content">
-            <component :is="Plus" class="uploader-icon" />
-            <span class="uploader-text">{{ locale === 'zh-CN' ? '点击或拖拽上传图片' : 'Click or drag to upload' }}</span>
-          </div>
-        </el-upload>
+        <div v-if="!uploadedImage" class="image-upload-area">
+          <el-upload
+            class="image-uploader"
+            action="#"
+            :show-file-list="false"
+            :before-upload="beforeUpload"
+            accept="image/*"
+            drag
+          >
+            <div class="uploader-content">
+              <component :is="Plus" class="uploader-icon" />
+              <span class="uploader-text">{{ locale === 'zh-CN' ? '点击或拖拽上传图片' : 'Click or drag to upload' }}</span>
+            </div>
+          </el-upload>
+        </div>
+        <div v-else class="image-preview">
+          <img :src="uploadedImage" alt="preview" />
+          <el-button size="small" type="danger" @click="removeImage" circle class="remove-btn">
+            <component :is="CircleClose" />
+          </el-button>
+        </div>
       </div>
 
       <!-- 发布选项 -->
@@ -185,7 +193,35 @@
           </div>
         </el-tab-pane>
         <el-tab-pane :label="t('treehole.mine')" name="mine">
-          <el-empty :description="locale === 'zh-CN' ? '功能开发中...' : 'Feature in development...'" :image-size="60" />
+          <el-empty v-if="myEntries.length === 0" :description="locale === 'zh-CN' ? '暂无记录' : 'No records'" :image-size="60" />
+          <div v-else class="entries-list">
+            <div
+              v-for="entry in myEntries"
+              :key="entry.id"
+              class="entry-item"
+            >
+              <div class="entry-header">
+                <div class="entry-type" :class="'type-' + entry.content_type">
+                  <component :is="getTypeIcon(entry.content_type)" />
+                </div>
+                <span class="entry-time">{{ formatTime(entry.created_at) }}</span>
+                <el-tag v-if="entry.is_published" size="small" type="success">{{ locale === 'zh-CN' ? '已公开' : 'Public' }}</el-tag>
+              </div>
+              <p v-if="entry.content_type === 'text'" class="entry-text">
+                {{ entry.content?.substring(0, 100) }}{{ entry.content?.length > 100 ? '...' : '' }}
+              </p>
+              <p v-else-if="entry.content_type === 'voice'" class="entry-text">
+                {{ locale === 'zh-CN' ? '语音记录' : 'Voice recording' }} ({{ entry.duration }}s)
+              </p>
+              <div v-else-if="entry.content_type === 'image'" class="entry-image">
+                <img :src="entry.image_data" alt="entry image" />
+              </div>
+              <div v-if="entry.ai_response" class="entry-ai-response">
+                <component :is="Promotion" class="ai-icon-small" />
+                <span>{{ entry.ai_response?.substring(0, 50) }}...</span>
+              </div>
+            </div>
+          </div>
         </el-tab-pane>
       </el-tabs>
     </section>
@@ -209,7 +245,9 @@ import {
   Switch,
   WarningFilled,
   InfoFilled,
-  PhoneFilled
+  PhoneFilled,
+  CircleClose,
+  Delete
 } from '@element-plus/icons-vue'
 import { treeholeApi } from '../../api'
 import { ElMessage } from 'element-plus'
@@ -231,9 +269,11 @@ const recordingTime = ref(0)
 const recordingTimer = ref(null)
 const aiResponse = ref('')
 const riskLevel = ref('safe')
+const uploadedImage = ref(null)
 
 // 公开广场
 const entries = ref([])
+const myEntries = ref([])
 const loading = ref(false)
 const activeTab = ref('latest')
 
@@ -275,31 +315,78 @@ function toggleRecording() {
   }
 }
 
-// 图片上传（模拟）
+// 图片上传
 function beforeUpload(file) {
-  ElMessage.success(locale === 'zh-CN' ? '图片上传成功（模拟）' : 'Image uploaded (simulated)')
-  entryForm.value.content = `[${locale === 'zh-CN' ? '图片' : 'Image'}：${file.name}]`
+  const isImage = file.type.startsWith('image/')
+  const isLt5M = file.size / 1024 / 1024 < 5
+
+  if (!isImage) {
+    ElMessage.error(locale.value === 'zh-CN' ? '只能上传图片文件' : 'Only image files allowed')
+    return false
+  }
+  if (!isLt5M) {
+    ElMessage.error(locale.value === 'zh-CN' ? '图片大小不能超过 5MB' : 'Image size cannot exceed 5MB')
+    return false
+  }
+
+  // 读取并预览图片
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    uploadedImage.value = e.target.result
+    entryForm.value.content = `[${locale.value === 'zh-CN' ? '图片' : 'Image'}：${file.name}]`
+    entryForm.value.image_data = e.target.result
+  }
+  reader.readAsDataURL(file)
+
   return false
+}
+
+// 移除图片
+function removeImage() {
+  uploadedImage.value = null
+  entryForm.value.content = ''
+  entryForm.value.image_data = null
 }
 
 // 提交倾诉
 async function handleSubmit() {
   if (entryForm.value.contentType === 'text' && !entryForm.value.content) {
-    ElMessage.warning(locale === 'zh-CN' ? '请输入内容' : 'Please enter content')
+    ElMessage.warning(locale.value === 'zh-CN' ? '请输入内容' : 'Please enter content')
+    return
+  }
+
+  if (entryForm.value.contentType === 'voice' && recordingTime.value === 0) {
+    ElMessage.warning(locale.value === 'zh-CN' ? '请先录音' : 'Please record first')
+    return
+  }
+
+  if (entryForm.value.contentType === 'image' && !uploadedImage.value) {
+    ElMessage.warning(locale.value === 'zh-CN' ? '请先上传图片' : 'Please upload an image first')
     return
   }
 
   submitting.value = true
   try {
-    const response = await treeholeApi.create({
+    const entryData = {
       ...entryForm.value,
-    })
+      duration: entryForm.value.contentType === 'voice' ? recordingTime.value : 0,
+      created_at: new Date().toISOString(),
+      id: Date.now(),
+    }
+
+    const response = await treeholeApi.create(entryData)
 
     // 显示 AI 响应和风险等级
-    if (response.data.ai_response) {
+    if (response.data?.ai_response) {
       aiResponse.value = response.data.ai_response
       riskLevel.value = response.data.risk_level
+      entryData.ai_response = response.data.ai_response
     }
+
+    // 保存到本地存储
+    const savedEntries = JSON.parse(localStorage.getItem('xinqing_treehole_records') || '[]')
+    savedEntries.unshift(entryData)
+    localStorage.setItem('xinqing_treehole_records', JSON.stringify(savedEntries))
 
     // 重置表单
     entryForm.value = {
@@ -308,13 +395,29 @@ async function handleSubmit() {
       hasVoiceChange: false,
       isAnonymous: true,
       isPublished: false,
+      image_data: null,
     }
+    uploadedImage.value = null
+    recordingTime.value = 0
 
-    ElMessage.success(locale === 'zh-CN' ? '发送成功！' : 'Sent successfully!')
+    ElMessage.success(locale.value === 'zh-CN' ? '发送成功！' : 'Sent successfully!')
     loadEntries()
+    loadMyEntries()
   } catch (error) {
     console.error('发送失败:', error)
-    ElMessage.error(locale === 'zh-CN' ? '发送失败，请重试' : 'Failed to send, please try again')
+    // 即使API失败也保存到本地
+    const entryData = {
+      ...entryForm.value,
+      duration: entryForm.value.contentType === 'voice' ? recordingTime.value : 0,
+      created_at: new Date().toISOString(),
+      id: Date.now(),
+    }
+    const savedEntries = JSON.parse(localStorage.getItem('xinqing_treehole_records') || '[]')
+    savedEntries.unshift(entryData)
+    localStorage.setItem('xinqing_treehole_records', JSON.stringify(savedEntries))
+
+    ElMessage.success(locale.value === 'zh-CN' ? '已保存到本地！' : 'Saved locally!')
+    loadMyEntries()
   } finally {
     submitting.value = false
   }
