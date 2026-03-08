@@ -74,7 +74,6 @@
         type="primary"
         size="large"
         @click="startMeditation"
-        :loading="isPlaying"
         class="start-btn"
         round
       >
@@ -189,7 +188,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Moon,
@@ -216,6 +215,31 @@ import BubbleGame from './games/BubbleGame.vue'
 const { t, locale } = useI18n()
 const authStore = useAuthStore()
 const gamesStore = useGamesStore()
+
+// ============ 音频资源配置 ============
+// 可以是本地路径或远程 URL
+const audioResources = {
+  // 背景音乐
+  bgMusic: {
+    'white-noise': '/audio/meditation/white-noise.mp3',
+    'rain': '/audio/meditation/rain.mp3',
+    'forest': '/audio/meditation/forest.mp3',
+    'alpha-wave': '/audio/meditation/alpha-wave.mp3',
+  },
+  // 引导语音（按冥想类型）
+  voiceGuide: {
+    'sleep': '/audio/meditation/voice/sleep.mp3',
+    'wake': '/audio/meditation/voice/wake.mp3',
+    'stress': '/audio/meditation/voice/stress.mp3',
+    'emergency': '/audio/meditation/voice/emergency.mp3',
+  }
+}
+
+// 音频播放器实例
+let bgAudioPlayer = ref(null)
+let voiceAudioPlayer = ref(null)
+const meditationTimer = ref(null)
+const elapsedTime = ref(0)
 
 // 冥想类型 - 使用 SVG 图标
 const meditationTypes = computed(() => [
@@ -263,7 +287,17 @@ const breathingTexts = computed(() => ({
 // 初始化呼吸文本
 onMounted(() => {
   breathingText.value = breathingTexts.value.ready
+  initAudioPlayers()
 })
+
+// 初始化音频播放器
+function initAudioPlayers() {
+  bgAudioPlayer.value = new Audio()
+  bgAudioPlayer.value.loop = true
+
+  voiceAudioPlayer.value = new Audio()
+  voiceAudioPlayer.value.loop = false
+}
 
 // 开始冥想
 async function startMeditation() {
@@ -276,6 +310,16 @@ async function startMeditation() {
 
   if (isPlaying.value) {
     try {
+      // 播放背景音乐
+      await playBgMusic()
+
+      // 播放引导语音
+      await playVoiceGuide()
+
+      // 开始计时
+      startMeditationTimer()
+
+      // 记录到后端
       await mindfulnessApi.create({
         session_type: selectedType.value,
         duration_minutes: selectedDuration.value,
@@ -284,12 +328,119 @@ async function startMeditation() {
 
       ElMessage.success(locale.value === 'zh-CN' ? '开始冥想！' : 'Meditation started!')
     } catch (error) {
-      console.error('记录冥想失败:', error)
+      console.error('冥想启动失败:', error)
+      ElMessage.error(locale.value === 'zh-CN' ? '音频加载失败，请检查资源' : 'Audio failed to load')
     }
   } else {
+    // 暂停冥想
+    stopAllAudio()
+    stopMeditationTimer()
     ElMessage.info(locale.value === 'zh-CN' ? '冥想已暂停' : 'Meditation paused')
   }
 }
+
+// 播放背景音乐
+async function playBgMusic() {
+  const audioSrc = audioResources.bgMusic[bgMusicType.value]
+  if (!audioSrc) return
+
+  bgAudioPlayer.value.src = audioSrc
+  bgAudioPlayer.value.volume = bgVolume.value / 100
+
+  try {
+    await bgAudioPlayer.value.play()
+  } catch (e) {
+    console.warn('背景音乐播放失败:', e)
+    // 如果本地文件不存在，可以尝试使用在线资源或忽略
+  }
+}
+
+// 播放引导语音
+async function playVoiceGuide() {
+  const audioSrc = audioResources.voiceGuide[selectedType.value]
+  if (!audioSrc) return
+
+  voiceAudioPlayer.value.src = audioSrc
+  voiceAudioPlayer.value.volume = voiceVolume.value / 100
+
+  try {
+    await voiceAudioPlayer.value.play()
+  } catch (e) {
+    console.warn('引导语音播放失败:', e)
+  }
+}
+
+// 开始冥想计时器
+function startMeditationTimer() {
+  elapsedTime.value = 0
+  const durationInSeconds = selectedDuration.value * 60
+
+  meditationTimer.value = setInterval(() => {
+    elapsedTime.value++
+
+    // 时间到了自动停止
+    if (elapsedTime.value >= durationInSeconds) {
+      stopMeditation()
+      ElMessage.success(locale.value === 'zh-CN' ? '冥想完成！' : 'Meditation complete!')
+    }
+  }, 1000)
+}
+
+// 停止冥想计时器
+function stopMeditationTimer() {
+  if (meditationTimer.value) {
+    clearInterval(meditationTimer.value)
+    meditationTimer.value = null
+  }
+}
+
+// 停止所有音频
+function stopAllAudio() {
+  if (bgAudioPlayer.value) {
+    bgAudioPlayer.value.pause()
+    bgAudioPlayer.value.currentTime = 0
+  }
+  if (voiceAudioPlayer.value) {
+    voiceAudioPlayer.value.pause()
+    voiceAudioPlayer.value.currentTime = 0
+  }
+}
+
+// 完全停止冥想
+function stopMeditation() {
+  isPlaying.value = false
+  stopAllAudio()
+  stopMeditationTimer()
+}
+
+// 监听音量变化
+watch(bgVolume, (newVal) => {
+  if (bgAudioPlayer.value) {
+    bgAudioPlayer.value.volume = newVal / 100
+  }
+})
+
+watch(voiceVolume, (newVal) => {
+  if (voiceAudioPlayer.value) {
+    voiceAudioPlayer.value.volume = newVal / 100
+  }
+})
+
+// 监听背景音乐类型变化
+watch(bgMusicType, async (newType) => {
+  if (isPlaying.value) {
+    // 切换背景音乐
+    if (bgAudioPlayer.value) {
+      bgAudioPlayer.value.pause()
+    }
+    await playBgMusic()
+  }
+})
+
+// 组件卸载时清理
+onUnmounted(() => {
+  stopMeditation()
+})
 
 // 切换呼吸训练
 function toggleBreathing() {
