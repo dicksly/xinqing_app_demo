@@ -85,14 +85,31 @@ class MindfulnessSessionResponse(MindfulnessSessionBase):
 
 class TreeholeEntryBase(BaseModel):
     """秘密树洞基础 Schema"""
-    content_type: str = Field(..., description="内容类型：text/voice/image")
+    content_type: str = Field(
+        ...,
+        description="内容类型：text/voice/image",
+        validation_alias=AliasChoices("content_type", "contentType"),
+    )
     content: Optional[str] = Field(None, description="文字内容")
-    has_voice_change: Optional[bool] = Field(False, description="是否变声处理")
+    has_voice_change: Optional[bool] = Field(
+        False,
+        description="是否变声处理",
+        validation_alias=AliasChoices("has_voice_change", "hasVoiceChange"),
+    )
 
 
 class TreeholeEntryCreate(TreeholeEntryBase):
     """创建树洞条目"""
-    pass
+    is_anonymous: Optional[bool] = Field(
+        True,
+        description="是否匿名发布",
+        validation_alias=AliasChoices("is_anonymous", "isAnonymous"),
+    )
+    is_published: Optional[bool] = Field(
+        False,
+        description="是否发布到广场",
+        validation_alias=AliasChoices("is_published", "isPublished"),
+    )
 
 
 class TreeholeEntryResponse(TreeholeEntryBase):
@@ -142,7 +159,7 @@ class WeeklyReportResponse(BaseModel):
 class UserCreate(BaseModel):
     """用户注册"""
     username: str = Field(..., min_length=3, max_length=50, description="用户名")
-    email: str = Field(..., description="邮箱")
+    email: Optional[str] = Field(None, description="邮箱（可选）")
     password: str = Field(..., min_length=6, max_length=100, description="密码")
 
 

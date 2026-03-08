@@ -189,8 +189,9 @@ async def register(
             detail="用户名已被使用"
         )
 
-    # 检查邮箱是否已存在
-    if db.query(User).filter(User.email == user_data.email).first():
+    # 如果提供了邮箱，检查是否已存在
+    email = user_data.email or f"{user_data.username}@local"
+    if db.query(User).filter(User.email == email).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="邮箱已被注册"
@@ -199,7 +200,7 @@ async def register(
     # 创建用户
     db_user = User(
         username=user_data.username,
-        email=user_data.email,
+        email=email,
         password_hash=get_password_hash(user_data.password)
     )
     db.add(db_user)
