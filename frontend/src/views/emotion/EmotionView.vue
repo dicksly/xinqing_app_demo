@@ -160,7 +160,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useEmotionStore } from '../../stores/emotion'
 import { ElMessage } from 'element-plus'
-import { Histogram, MagicStick, DataLine, Warning, CircleClose, Remove, SmileFilled, Sunny } from '@element-plus/icons-vue'
+import { Histogram, MagicStick, DataLine, Warning, CircleClose, Remove, StarFilled, Sunny } from '@element-plus/icons-vue'
 
 const emotionStore = useEmotionStore()
 const currentRecord = ref(emotionStore.currentRecord)
@@ -172,7 +172,7 @@ const moods = [
   { value: 'anxious', label: '焦虑', icon: Warning, iconClass: 'icon-anxious' },
   { value: 'sad', label: '丧', icon: CircleClose, iconClass: 'icon-sad' },
   { value: 'calm', label: '平静', icon: Remove, iconClass: 'icon-calm' },
-  { value: 'happy', label: '开心', icon: SmileFilled, iconClass: 'icon-happy' },
+  { value: 'happy', label: '开心', icon: StarFilled, iconClass: 'icon-happy' },
   { value: 'energetic', label: '元气', icon: Sunny, iconClass: 'icon-energetic' },
 ]
 
@@ -489,5 +489,41 @@ onMounted(() => {
   .report-stats {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* 深色模式 - 温暖紫色系 */
+.dark .checkin-card,
+.dark .report-card {
+  background: rgba(45, 42, 62, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dark .mood-item {
+  background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .mood-item.active {
+  background: rgba(167, 139, 250, 0.15);
+  box-shadow: 0 0 0 2px var(--color-primary, #a78bfa);
+}
+
+.dark .mood-item.active .mood-label {
+  color: var(--color-primary, #a78bfa);
+}
+
+.dark .slider-value {
+  color: var(--color-primary, #a78bfa);
+}
+
+.dark .stat-item {
+  background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .stress-chart {
+  background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .stress-rank-tag {
+  background: rgba(45, 42, 62, 0.8);
 }
 </style>

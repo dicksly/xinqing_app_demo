@@ -760,4 +760,64 @@ onMounted(() => {
 .loading {
   padding: var(--spacing-md, 16px) 0;
 }
+
+/* 深色模式 - 温暖紫色系 */
+.dark .confess-card,
+.dark .public-square-card {
+  background: rgba(45, 42, 62, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dark .type-group :deep(.el-radio-button__inner) {
+  background: rgba(31, 28, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .voice-recorder {
+  background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .record-btn {
+  background: linear-gradient(135deg, var(--color-primary, #a78bfa) 0%, var(--color-primary-light, #c4b5fd) 100%);
+}
+
+.dark .image-uploader :deep(.el-upload-dragger) {
+  background: rgba(31, 28, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .image-uploader :deep(.el-upload-dragger:hover) {
+  border-color: var(--color-primary, #a78bfa);
+  background: rgba(167, 139, 250, 0.1);
+}
+
+.dark .submit-btn {
+  background: linear-gradient(135deg, var(--color-primary, #a78bfa) 0%, var(--color-primary-light, #c4b5fd) 100%);
+}
+
+.dark .ai-response-card {
+  background: rgba(45, 42, 62, 0.8);
+  border: 1px solid rgba(167, 139, 250, 0.2);
+}
+
+.dark .skeleton-item {
+  background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .skeleton-line {
+  background: linear-gradient(90deg, #3d3a4e 25%, #4a4658 50%, #3d3a4e 75%);
+  background-size: 200% 100%;
+}
+
+.dark .entry-item {
+  background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .help-link {
+  background: rgba(45, 42, 62, 0.8);
+}
+
+.dark .help-link svg {
+  color: var(--color-primary, #a78bfa);
+}
 </style>

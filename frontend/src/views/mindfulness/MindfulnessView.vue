@@ -201,7 +201,7 @@ import {
   Trophy,
   FirstAidKit,
   Grid as GridIcon,
-  Knife,
+  Scissor,
   Box,
   Brush
 } from '@element-plus/icons-vue'
@@ -240,7 +240,7 @@ const breathingTimer = ref(null)
 // 解压游戏 - 使用 SVG 图标
 const games = [
   { id: 'bubble', title: '捏泡泡纸', icon: GridIcon, iconClass: 'icon-primary', desc: '释放压力', implemented: true },
-  { id: 'soap', title: '切肥皂', icon: Knife, iconClass: 'icon-secondary', desc: '看着泡沫破裂', implemented: false },
+  { id: 'soap', title: '切肥皂', icon: Scissor, iconClass: 'icon-secondary', desc: '看着泡沫破裂', implemented: false },
   { id: 'organize', title: '整理收纳', icon: Box, iconClass: 'icon-warm', desc: '秩序感带来平静', implemented: false },
   { id: 'mandala', title: '曼陀罗涂色', icon: Brush, iconClass: 'icon-pink', desc: '专注当下', implemented: false },
 ]
@@ -762,5 +762,55 @@ onMounted(() => {
   .steps {
     grid-template-columns: 1fr;
   }
+}
+
+/* 深色模式 - 温暖紫色系 */
+.dark .meditation-card,
+.dark .breathing-card,
+.dark .games-card {
+  background: rgba(45, 42, 62, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dark .type-item {
+  background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .type-item.active {
+  background: rgba(167, 139, 250, 0.15);
+  box-shadow: 0 0 0 2px var(--color-primary, #a78bfa);
+}
+
+.dark .start-btn {
+  background: linear-gradient(135deg, var(--color-primary, #a78bfa) 0%, var(--color-primary-light, #c4b5fd) 100%);
+}
+
+.dark .breathing-circle {
+  background: linear-gradient(135deg, var(--color-primary, #a78bfa) 0%, var(--color-primary-light, #c4b5fd) 100%);
+  box-shadow: 0 4px 20px rgba(167, 139, 250, 0.3);
+}
+
+.dark .breathing-circle.inhaling {
+  box-shadow: 0 8px 30px rgba(167, 139, 250, 0.4);
+}
+
+.dark .step {
+  background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .step-num {
+  background: var(--color-primary, #a78bfa);
+}
+
+.dark .breathing-btn {
+  background: linear-gradient(135deg, var(--color-secondary, #8b5cf6) 0%, #a78bfa 100%);
+}
+
+.dark .game-item {
+  background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .coming-soon {
+  background: rgba(45, 42, 62, 0.8);
 }
 </style>

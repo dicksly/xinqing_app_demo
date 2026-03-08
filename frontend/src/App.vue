@@ -1,5 +1,10 @@
 <template>
   <div class="app-container">
+    <!-- 主题切换按钮 -->
+    <button class="theme-toggle" @click="toggleTheme" :title="themeStore.isDark ? '切换到亮色模式' : '切换到暗色模式'">
+      <component :is="themeStore.isDark ? Sunny : Moon" class="theme-icon" />
+    </button>
+
     <!-- 主内容区域 -->
     <main class="main-content">
       <router-view v-slot="{ Component }">
@@ -11,37 +16,44 @@
 
     <!-- 底部导航栏 -->
     <nav class="bottom-nav">
-      <div
+      <router-link
         v-for="item in navItems"
         :key="item.path"
+        :to="item.path"
         class="nav-item"
         :class="{ active: activeTab === item.path }"
-        @click="navigateTo(item.path)"
       >
         <component :is="item.icon" class="nav-icon" />
         <span class="nav-label">{{ item.label }}</span>
-      </div>
+      </router-link>
     </nav>
   </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { Histogram, Moon, ChatDotRound, Reading } from '@element-plus/icons-vue'
+import { ref, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { Histogram, Moon, Sunny, ChatDotRound, Reading, User } from '@element-plus/icons-vue'
+import { useThemeStore } from './stores/theme'
 
 const route = useRoute()
-const router = useRouter()
+const themeStore = useThemeStore()
 
 const activeTab = ref('/emotion')
 
-// 底部导航配置
+// 底部导航配置 - 5个标签
 const navItems = [
   { path: '/emotion', label: '情绪', icon: Histogram },
   { path: '/mindfulness', label: '正念', icon: Moon },
   { path: '/treehole', label: '树洞', icon: ChatDotRound },
   { path: '/knowledge', label: '充电站', icon: Reading },
+  { path: '/profile', label: '我的', icon: User },
 ]
+
+// 切换主题
+function toggleTheme() {
+  themeStore.toggleTheme()
+}
 
 // 监听路由变化
 watch(
@@ -55,15 +67,16 @@ watch(
       activeTab.value = '/treehole'
     } else if (newPath.startsWith('/knowledge')) {
       activeTab.value = '/knowledge'
+    } else if (newPath.startsWith('/profile')) {
+      activeTab.value = '/profile'
     }
   },
   { immediate: true }
 )
 
-// 导航到指定页面
-function navigateTo(path) {
-  router.push(path)
-}
+onMounted(() => {
+  themeStore.init()
+})
 </script>
 
 <style>
@@ -89,11 +102,48 @@ html, body {
 <style scoped>
 .app-container {
   min-height: 100vh;
-  min-height: 100dvh; /* 动态视口高度，更好支持移动端 */
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #f8fafb 0%, #f0f4f8 50%, #e8f0f4 100%);
+  background: linear-gradient(180deg, #fefefe 0%, #f8f6f4 50%, #f2eeea 100%);
   position: relative;
+  transition: background 0.3s ease;
+}
+
+/* 主题切换按钮 */
+.theme-toggle {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  transition: all 0.3s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+
+.theme-icon {
+  width: 20px;
+  height: 20px;
+  color: #64748b;
+  transition: all 0.3s ease;
 }
 
 /* 主内容区域 */
@@ -102,7 +152,8 @@ html, body {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 16px;
-  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)); /* 为底部导航留空间 */
+  padding-top: 60px;
+  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
 }
 
@@ -113,7 +164,7 @@ html, body {
   left: 0;
   right: 0;
   height: 60px;
-  padding-bottom: env(safe-area-inset-bottom, 0px); /* 适配刘海屏 */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -123,6 +174,7 @@ html, body {
   align-items: center;
   z-index: 1000;
   box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
 }
 
 .nav-item {
@@ -131,24 +183,25 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 8px 0;
+  gap: 2px;
+  padding: 6px 0;
   cursor: pointer;
   transition: all 0.2s ease;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
-  min-height: 44px; /* 触摸目标最小尺寸 */
+  min-height: 44px;
+  text-decoration: none;
 }
 
 .nav-icon {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   color: #94a3b8;
   transition: all 0.2s ease;
 }
 
 .nav-label {
-  font-size: 11px;
+  font-size: 10px;
   color: #94a3b8;
   font-weight: 500;
   transition: all 0.2s ease;
@@ -195,27 +248,41 @@ html, body {
     transform: translateX(-50%);
     border-radius: 20px 20px 0 0;
   }
+
+  .theme-toggle {
+    right: calc(50% - 240px + 16px);
+  }
 }
 
-/* 深色模式支持 */
-@media (prefers-color-scheme: dark) {
-  .app-container {
-    background: linear-gradient(180deg, #1a1f2e 0%, #151922 50%, #0f1318 100%);
-  }
+/* 深色模式 - 温暖柔和的紫色系 */
+.dark .app-container {
+  background: linear-gradient(180deg, #2d2a3e 0%, #252233 50%, #1f1c2a 100%);
+}
 
-  .bottom-nav {
-    background: rgba(30, 35, 50, 0.95);
-    border-top-color: rgba(255, 255, 255, 0.08);
-  }
+.dark .bottom-nav {
+  background: rgba(45, 42, 62, 0.95);
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
 
-  .nav-icon,
-  .nav-label {
-    color: #64748b;
-  }
+.dark .nav-icon,
+.dark .nav-label {
+  color: #9ca3af;
+}
 
-  .nav-item.active .nav-icon,
-  .nav-item.active .nav-label {
-    color: #34d399;
-  }
+.dark .nav-item.active .nav-icon {
+  color: #a78bfa;
+}
+
+.dark .nav-item.active .nav-label {
+  color: #a78bfa;
+}
+
+.dark .theme-toggle {
+  background: rgba(45, 42, 62, 0.95);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+.dark .theme-icon {
+  color: #fbbf24;
 }
 </style>

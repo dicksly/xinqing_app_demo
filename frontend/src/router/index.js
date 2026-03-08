@@ -26,6 +26,11 @@ const routes = [
     component: () => import('../views/knowledge/KnowledgeView.vue')
   },
   {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('../views/profile/ProfileView.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/emotion'
   }

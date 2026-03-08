@@ -74,26 +74,30 @@
   --transition-slow: 0.3s ease;
 }
 
-/* 深色模式 */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-text-primary: #f1f5f9;
-    --color-text-secondary: #94a3b8;
-    --color-text-muted: #64748b;
-    --color-text-light: #475569;
+/* 深色模式 - 温暖柔和的紫色系 */
+.dark {
+  --color-text-primary: #f0edf5;
+  --color-text-secondary: #b8b3c7;
+  --color-text-muted: #8b8699;
+  --color-text-light: #6b6778;
 
-    --color-bg-primary: #1e293b;
-    --color-bg-secondary: #151922;
-    --color-bg-tertiary: #0f1318;
-    --color-bg-card: #1e293b;
+  --color-bg-primary: #2d2a3e;
+  --color-bg-secondary: #252233;
+  --color-bg-tertiary: #1f1c2a;
+  --color-bg-card: #2d2a3e;
 
-    --color-border: #334155;
-    --color-border-light: #1e293b;
+  --color-border: #3d3a4e;
+  --color-border-light: #2d2a3e;
 
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
-  }
+  /* 深色模式下使用紫色作为主色调 */
+  --color-primary: #a78bfa;
+  --color-primary-light: #c4b5fd;
+  --color-primary-lighter: #ddd6fe;
+  --color-primary-dark: #8b5cf6;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 
 /* 基础卡片样式 */

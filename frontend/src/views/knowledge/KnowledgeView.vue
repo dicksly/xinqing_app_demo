@@ -214,7 +214,7 @@ import {
   CircleCheckFilled,
   Cpu,
   Timer,
-  Heart
+  Connection
 } from '@element-plus/icons-vue'
 import { knowledgeApi } from '../../api'
 import { ElMessage } from 'element-plus'
@@ -310,7 +310,7 @@ const mockTests = [
   {
     id: 3,
     title: '依恋类型测试',
-    icon: Heart,
+    icon: Connection,
     iconClass: 'icon-pink',
     desc: '了解你在亲密关系中的依恋模式',
     duration: '8分钟',
@@ -979,5 +979,60 @@ onMounted(() => {
     width: 100%;
     margin-top: var(--spacing-xs, 4px);
   }
+}
+
+/* 深色模式 - 温暖紫色系 */
+.dark .quote-card {
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+}
+
+.dark .content-section {
+  background: rgba(45, 42, 62, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dark .video-item {
+  background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .video-thumb {
+  background: linear-gradient(135deg, var(--color-primary, #a78bfa) 0%, var(--color-primary-light, #c4b5fd) 100%);
+}
+
+.dark .test-item {
+  background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .meta-tag {
+  background: rgba(45, 42, 62, 0.8);
+}
+
+.dark .article-item {
+  background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .article-tag {
+  background: rgba(167, 139, 250, 0.15);
+  color: var(--color-primary, #a78bfa);
+}
+
+.dark .topic-item {
+  background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .content-tag {
+  background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .question-item {
+  background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .result-detail {
+  background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .result-icon {
+  color: var(--color-primary, #a78bfa);
 }
 </style>
