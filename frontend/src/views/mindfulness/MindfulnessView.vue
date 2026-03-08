@@ -118,8 +118,21 @@
     <el-card class="games-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <el-icon><Grid /></el-icon>
-          <span>解压小游戏</span>
+          <div class="card-header-left">
+            <el-icon><Grid /></el-icon>
+            <span>解压小游戏</span>
+          </div>
+          <div class="card-header-right">
+            <template v-if="authStore.isAuthenticated">
+              <span class="user-name">{{ authStore.user?.username }}</span>
+              <el-button size="small" @click="handleLogout">退出</el-button>
+            </template>
+            <template v-else>
+              <el-button size="small" type="primary" @click="showAuthDialog = true">
+                登录
+              </el-button>
+            </template>
+          </div>
         </div>
       </template>
 
@@ -161,7 +174,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Moon, DataLine, Grid } from '@element-plus/icons-vue'
+import { Moon, DataLine, Grid, User } from '@element-plus/icons-vue'
 import { mindfulnessApi } from '../../api'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '../../stores/auth'
@@ -330,6 +343,12 @@ function onAuthSuccess() {
   ElMessage.success('登录成功，游戏数据已同步')
 }
 
+// 登出
+function handleLogout() {
+  authStore.logout()
+  ElMessage.success('已退出登录')
+}
+
 // 初始化
 onMounted(() => {
   // 检查登录状态
@@ -353,6 +372,7 @@ onMounted(() => {
 .card-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   font-size: 18px;
   font-weight: bold;
   color: #8b7e74;
@@ -361,6 +381,23 @@ onMounted(() => {
 .card-header .el-icon {
   font-size: 22px;
   margin-right: 8px;
+}
+
+.card-header-left {
+  display: flex;
+  align-items: center;
+}
+
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: normal;
+}
+
+.user-section .username {
+  color: #6b5e54;
 }
 
 .meditation-types {
