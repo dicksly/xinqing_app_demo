@@ -1,0 +1,455 @@
+============================================================
+  📄 论文摘要分析
+============================================================
+
+【标题】
+WORLDVQA: MEASURING ATOMIC WORLD KNOWLEDGE IN
+
+【摘要】
+We introduce WorldVQA, a benchmark designed to evaluate the atomic visual world knowledge of
+Multimodal Large Language Models (MLLMs). Unlike current evaluations, which often conflate
+visual knowledge retrieval with reasoning, WorldVQA decouples these capabilities to strictly measure
+"what the model memorizes." The benchmark assesses the atomic capability of grounding and naming
+visual entities across a stratified taxonomy, spanning from common head-class objects to long-tail
+rarities. We expect WorldVQA to serve as a rigorous test for visual factuality, thereby establishing a
+standard for assessing the encyclopedic breadth and hallucination rates of current and next-generation
+frontier models. The dataset can be found in WorldVQA Homepage.
+1
+
+【论文结构】
+总页数: 1
+章节列表:
+  - LARGE LANGUAGE MODELS
+  - Zhou1∗
+  - Shao1∗
+  - Lu1∗‡
+  - Xing1
+  - Bai1
+  - Chen1
+  - Zhao1
+  - Sui1
+  - Yao1
+  - Yang1
+  - Wu1
+  - Zhou1
+  - Zhu1
+  - Huang1
+  - Bao1
+  - Liu1
+  - Moonshot AI
+  - We introduce WorldVQA, a benchmark designed to evaluate the atomic visual world knowledge of
+  - Large Language Models (MLLMs). Unlike current evaluations, which often conflate
+  - knowledge retrieval with reasoning, WorldVQA decouples these capabilities to strictly measure
+  - entities across a stratified taxonomy, spanning from common head-class objects to long-tail
+  - for assessing the encyclopedic breadth and hallucination rates of current and next-generation
+  - models. The dataset can be found in WorldVQA Homepage.
+  - Introduction
+  - 10
+  - 30
+  - 50
+  - 28
+  - 20
+  - 19
+  - 1: Overall Model Accuracy on WorldVQA. While the Gemini-3-pro (47.4%) and Kimi K2.5 (46.3%) currently
+  - the field, no evaluated model surpasses the 50% accuracy threshold, underscoring the significant challenge of
+  - atomic visual knowledge.
+  - PREPRINT
+  - 2: A visual overview of the WorldVQA dataset. The benchmark is organized into nine categories: Nature &
+  - (Nature); Locations & Architecture (Geography); Culture, Arts & Crafts (Culture); Objects & Products
+  - & Graphic Design (Brands); Sports, Gear & Venues (Sports); Notable People & Public Figures (People). The
+  - entities curated to evaluate atomic world knowledge range from globally recognized "head-class" landmarks and
+  - to specific "long-tail" biological species and artisanal artifacts. To maintain atomic isolation, each image serves
+  - an unambiguous visual stimulus for entity naming, strictly decoupled from complex reasoning or OCR dependencies.
+  - advancement of MLLMs is contingent upon two distinct capabilities: reasoning (processing logic and relationships)
+  - knowledge grounding (mapping sensory inputs to factual reality). While recent frontier models have demonstrated
+  - mastery in the textual domain, their ability to maintain factual reliability in the visual domain remains
+  - maps raw pixel data to specific entity identities. Without this precise image grounding, MLLMs function
+  - descriptive engines rather than knowledgeable observers, resulting in a propensity for visual hallucinations where
+  - fabricate plausible but incorrect details.
+  - quantifying a model’s internal visual knowledge is difficult because current evaluation methods fail to isolate
+  - recognition from high-level cognitive reasoning. Existing Visual-Question-Answering (VQA) benchmarks,
+  - as MMMU (Yue, Ni, et al. 2024) and MMStar (Lin Chen et al. 2024), prioritize complex, multi-step reasoning.
+  - benchmarks conflate visual knowledge with logical deduction, making it difficult to isolate the source of error.
+  - dependencies, such as language knowledge or optical character recognition (OCR). For instance, a failure to
+  - a question about a company’s founding date may stem from a lack of textual historical knowledge rather than a
+  - to visually identify the company’s logo. This entanglement prevents researchers from determining whether a
+  - lies in the model’s visual perception (the "eyes") or its semantic memory (the "brain").
+  - address this gap, we introduce WorldVQA, a targeted evaluation suite comprising 3,500 VQA pairs across 9 semantic
+  - (see Figure 2). Unlike existing visual knowledge benchmarks that couple visual knowledge and reasoning,
+  - is engineered to assess atomic world knowledge, the direct, unassisted association between a visual
+  - and its specific proper noun or taxonomic name. To provide a clearer contrast, Table 1 summarizes the key
+  - between WorldVQA and these representative benchmarks in multiple dimensions, highlighting our focus on
+  - atomic vision concepts.
+  - follows four technical design principles:
+  - A PREPRINT
+  - Atomic Isolation. To eliminate confounding variables, we strictly isolate the target task of entity naming. The
+  - evaluates the most fundamental unit of visual knowledge by decoupling visual identification from external
+  - on visual grounding (e.g., “What is the specific scientific name of this species?”), we isolate the model’s
+  - recognition capabilities from its reasoning engine.
+  - Taxonomic Diversity. To rigorously test knowledge breadth, we synthesized a classification framework covering 9
+  - categories (as visualized in Figure 2): Nature & Environment (Nature); Locations & Architecture (Geography);
+  - balanced distribution that tests both high-frequency "head" entities and the "long-tail" of rare instances. This structure
+  - us to profile the "encyclopedic boundary" of a model’s visual memory.
+  - Data Integrity & Verification. We implement a multi-stage curation pipeline to ensure WorldVQA serves as a gold
+  - oracle. To prevent contamination, we perform rigorous deduplication against common large-scale pre-training
+  - with human-in-the-loop validation, minimizing label noise and ensuring high-fidelity evaluation.
+  - High Performance Headroom. The benchmark is calibrated to challenge current frontier models. As illustrated
+  - Figure 1, even advanced systems exhibit performance ceilings, often failing to exceed 50% accuracy across all
+  - performance lags significantly behind text-only equivalents. This demonstrates that WorldVQA provides
+  - isolating atomic knowledge retrieval from reasoning, WorldVQA provides a precise metric for visual hallucination
+  - knowledge grounding. We release this benchmark to the community as a standard for assessing the factual reliability
+  - next-generation MLLMs.
+  - Data Size
+  - Question Type
+  - Domain
+  - MMMU-Pro
+  - Multiple-Choice
+  - Understanding
+  - expert-level academic knowledge, often conflat-
+  - factual recall with complex logical reasoning.
+  - 2.4k
+  - & EN
+  - Multi-modal
+  - Assesses various multimodal abilities by using perception
+  - reasoning as its primary evaluation pillars.
+  - 765
+  - & Physical
+  - Measures understanding of physical environments and
+  - relationships through situational queries.
+  - 2.0k
+  - Vision Knowledge &
+  - Probes the factuality ability of MLLMs to answer natural
+  - short questions.
+  - 3.5k
+  - Atomic Vision
+  - Isolates atomic world knowledge with stratified, encyclo-
+  - taxonomy.
+  - 1: Comparison of WorldVQA with existing Multimodal Benchmarks. While existing suites conflate factual recall
+  - reasoning or secondary dependencies , WorldVQA stands apart by strictly isolating atomic visual knowledge
+  - the principle of decoupling.
+  - Data Collection and Verification
+  - construction of WorldVQA follows a rigorous pipeline designed to ensure atomic factuality and taxonomic breadth.
+  - process comprises two primary phases. First, 10 expert annotators with over one year of experience in MLLMs
+  - curated the atomic entities and VQA pairs according to strict taxonomic and granularity standards. Second,
+  - samples underwent a dual-verification process, including automated fact-checking by frontier MLLMs to assess
+  - clarity and independent blind validation by expert annotators to ensure absolute ground-truth reliability. Only
+  - passing all verification stages were included in the final benchmark.
+  - Principles and Criteria
+  - is strictly anchored by the principle of Atomic Isolation. Unlike benchmarks that conflate visual recognition
+  - multi-hop reasoning, WorldVQA isolates the model’s ability to ground specific visual entities. Beyond this core
+  - strict criteria:
+  - Isolation To evaluate world knowledge ability, we strictly decouple knowledge retrieval from multi-step
+  - attributes. Tasks involving OCR, arithmetic, or external logical deduction are excluded to ensure the evaluation
+  - the model’s internal parametric memory.
+  - Knowledge Coverage To ensure the benchmark serves as a global standard, data composition is governed
+  - rigorous distribution rules rather than random sampling. First, each category maintains a sufficient volume of data to
+  - statistical significance. Second, we prioritize cultural diversity by capping region-specific entities; specifically,
+  - proportion of entities unique to the Chinese context is limited to under 50% for each individual category, resulting
+  - a final aggregate of 36% Chinese-specific entities across the entire benchmark. Third, rather than selecting entities at
+  - distribution rules ensure that WorldVQAcaptures the natural distribution of encyclopedic knowledge, spanning
+  - globally ubiquitous head-class concepts to highly specialized long-tail rarities, as empirically validated by our
+  - alignment analysis in Section 3.3.
+  - Alignment To guarantee the validity of knowledge, we enforce a strict alignment between the specificity
+  - the question and the granularity of the answer. Correctness is defined by taxonomic precision: for example, if an
+  - depicts a Bichon Frise, the answer must identify the specific breed, whereas generic hypernyms such as dog are
+  - incorrect. This constraint serves two critical functions: it prevents models from bypassing the knowledge
+  - through safe but vague generalizations, and it aligns the difficulty level with the true complexity of the
+  - signal.
+  - Reliability Images must serve as authentic, definitive evidence for the atomic fact being tested. We strictly
+  - two standards for visual selection:
+  - from using OCR-based shortcuts to "read" the answer.
+  - support the ground truth while ruling out reasonable alternatives or confusing distractors. If an entity cannot
+  - uniquely identified from the visual features alone, it is discarded.
+  - Quality
+  - integrity of a benchmark is determined by the precision of its data. To ensure WorldVQA serves as a definitive
+  - of atomic world knowledge, we implemented a rigorous curation and verification pipeline.
+  - Curation Pipeline
+  - employed a three-step pipeline to collect raw taxonomic entities and convert entities into high-quality VQA triplets:
+  - 1: Seed Entity Collection. 10 annotators gathered initial data based on the taxonomy. Seed entities were sourced
+  - internal lexicons. Adhering to the Encyclopedic Knowledge Coverage criteria, annotators selected appropriate
+  - and retrieved corresponding images from trusted web sources (following the Visual Reliability criteria), finally
+  - QAs according to the Granularity Alignment criteria.
+  - 2: Distributional Balancing and Global Expansion. To ensure the benchmark’s international generalizability,
+  - perform contextual labeling to identify and partition region-specific entities. We enforce a 50% per-category cap on
+  - unique to the Chinese context. For categories falling below our global representation threshold, we utilize an
+  - 3: Visual Deduplication. To eliminate redundancy and mitigate data leakage from common pre-training corpora,
+  - employed the Instance-level Semantic Content (ISC, Yokoo 2021) descriptor to detect near-duplicate images. For
+  - candidate image, we calculated the cosine similarity of ISC embeddings for each candidate image against massive
+  - 0.95, any images identified as duplicates or leaked from these sources were discarded. To maintain data volume
+  - duplication, we performed targeted re-collection for these entities by capturing new visual assets from video
+  - ensures that correct responses reflect the model’s genuine internal encyclopedia rather than simple pattern
+  - from its training history.
+  - Composition
+  - Taxonomy
+  - Value
+  - Ratio
+  - Samples
+  - Locations & Architecture
+  - Culture, Arts & Crafts
+  - People & Public Figures
+  - & Products
+  - Nature & Environment
+  - & Transportation
+  - 2: WorldVQA statistics. Left: Core dataset composition including language split and difficulty stratification.
+  - ensure high discriminative capacity and mitigate the ceiling effect observed in existing benchmarks, we applied a
+  - evaluated all candidate samples using an ensemble of five frontier MLLMs. To maximize the benchmark’s utility
+  - discriminative power, we discarded trivial samples correctly answered by all five models. The remaining samples
+  - stratified into three difficulty levels based on model performance: Easy (>3 models correct), Medium (1–2 models
+  - a focus on challenging long-tail knowledge, we performed random downsampling on the Easy category. We
+  - the final proportions of each difficulty tier in Table 2.
+  - on Bias. This stratification is not intended to "trap" specific models, but rather to counteract the ceiling
+  - prevalent in current benchmarks. By intentionally downsampling from the model-defined Easy tier, we ensure
+  - remains a challenging probe for next-generation frontier systems. Meanwhile, all Hard samples underwent
+  - mandatory secondary human review to confirm that the difficulty stems from the rarity of the knowledge, not from
+  - ambiguity or annotation error.
+  - ensure maximum ground-truth fidelity, we implement a rigorous dual-gate verification protocol consisting of
+  - model-based auditing and independent human validation. This multi-stage process is designed to filter out
+  - noise and visual ambiguity.
+  - Based Visual Auditing. We utilize few-shot prompted Gemini-3-Pro as automated fact-checker to evaluate each
+  - triplet (see Visual Audit Prompt in Appendix A). The models enforce three non-negotiable requirements for data
+  - alternative interpretations or distractors.
+  - Blind Validation. Parallel to automated checks, we conducted independent human validation. An annotator,
+  - of the ground truth, was required to answer the question. Any sample where the human prediction diverged
+  - the ground truth was flagged for manual audit. Cases involving factual errors or visual ambiguity were permanently
+  - from the dataset.
+  - and Metrics
+  - facilitate a standardized comparison, we utilize Accuracy as our primary single-number metric to measure overall
+  - reliability. For a more granular experimental analysis, we also report Correct Given Attempted (CGA) and
+  - (attempt rate) and precision (CGA) into a single harmonic mean, penalizing both over-conservative refusal
+  - over-aggressive guessing.
+  - Statistics
+  - the curation protocols described above, we present a high-level overview of the WorldVQA dataset. As
+  - in Table 2, the benchmark consists of 3,500 pairs with a balanced linguistic and categorical spread. Importantly,
+  - establish a global evaluation standard, we maintain a 1:1.78 Chinese-to-English ratio.
+  - Experiments
+  - To ensure a rigorous and fair evaluation across the diverse landscape of MLLMs, we maintained strict consistency
+  - our experimental protocols. All models evaluated with unified prompts and official inference parameters. For the
+  - process, we employed GPT-oss-120b (OpenAI et al. 2025) as our primary judge model (see Appendix A for the
+  - prompt). To validate this automated grading, a manual audit of 160 random samples reveals a 98.1% alignment
+  - with human expertise (only 3 disagreements).
+  - Results
+  - Overall results
+  - Not
+  - Correct
+  - Attempted
+  - Culture Objects
+  - Entertain-
+  - Brands Sports People
+  - K2.5
+  - 3: Performance of frontier MLLMs on WorldVQA. Hyphen entries (-) denote scores omitted due to excessive
+  - rates. Overall Results aggregate the first eight categories. "Notable People & Public Figures" (People) is
+  - from the overall average to ensure a fair comparison, as systematic refusals in closed-source models, driven by
+  - and safety guardrails, do not necessarily reflect underlying knowledge deficits.
+  - on WorldVQA reveal a substantial gap between frontier MLLMs and true encyclopedic proficiency.
+  - detailed in Table 3, Gemini-3-pro leads with an F-score of 47.5%, followed closely by Kimi K2.5 (46.8%, the
+  - the long-tail entities in our benchmark.
+  - in web-scale pre-training data. For instance, Gemini-3-pro achieves an F-score of 59.4 in Sports.
+  - (e.g., "flower" instead of specific species), which are penalized under our Granularity Alignment criteria.
+  - suggests that while MLLMs are "pop-culture savvy," their grasp of the natural world and diverse human heritage
+  - shallow, necessitating more diverse data sourcing.
+  - Nature
+  - Culture
+  - Transportation
+  - Brands
+  - 100
+  - 3: Category-wise F-score comparison on WorldVQA. This radar chart illustrates the performance profiles
+  - frontier close-source and open-source MLLMs across the 8 semantic categories. The visualization highlights the
+  - proficiency in high-frequency domains like Sports and Brands, while revealing significant performance troughs
+  - specialized domains such as Nature and Culture.
+  - discrepancy between Correct Given Attempted (CGA) and F-score serves as a probe for model honesty. GPT-5.1
+  - a high CGA (29.3%) but a low F-score (26.7%), indicating a conservative strategy where the model answers
+  - when certain. In contrast, many smaller models show low CGA, reflecting a tendency to hallucinate names
+  - obscure entities rather than admitting ignorance. This misalignment between a model’s propensity to attempt an
+  - and its actual accuracy suggests that current MLLMs lack a reliable internal barometer of their own knowledge
+  - of Difficulty Stratification
+  - validate whether our Model-Performance-Based Stratification accurately reflects real-world knowledge distribution,
+  - utilize the rank frequency of entity terms in the MetaCLIP vocabulary (Hu Xu et al. 2025, Chuang et al. 2025) as a
+  - for real-world prevalence. Figure 4 illustrates the density distributions of entity difficulties mapped against their
+  - rank percentile.
+  - quantitative results demonstrate a distinct positive correlation between real-world rarity and benchmark difficulty.
+  - shown by the fitted curves, Trivial and Easy samples concentrate heavily near the zeroth percentile, indicating
+  - current MLLMs primarily master high-frequency head entities. As difficulty escalates to Medium and Hard, the
+  - peaks progressively shift rightward toward higher rank percentiles. This systematic migration confirms that
+  - difficulty in WorldVQA stems from genuine knowledge scarcity (long-tail entities) rather than confounding factors
+  - visual ambiguity or annotation artifacts.
+  - the high-frequency head, Medium and Hard categories successfully extend into critical long-tail regions often
+  - in standard evaluations. Although minor variations exist, e.g., Brands and People skew slightly
+  - higher frequencies due to dense web coverage, the overarching trend of difficulty correlating with rarity remains
+  - 25
+  - 75
+  - 1
+  - 10k
+  - 100M
+  - 0
+  - 1000
+  - Easy
+  - Hard
+  - Geography
+  - Objects
+  - Entertainment
+  - Sports
+  - Figure 4: Entity Difficulty Distribution vs. MetaCLIP Frequency Rank Percentile across Categories. These plots
+  - the relationship between real-world entity frequency (proxied by MetaCLIP vocabulary rank percentile)
+  - their assigned difficulty in WorldVQA. The x-axis represents the percentile rank of the entity’s frequency in the
+  - vocabulary, where values closer to 0 indicate high-frequency (common) entities, and higher values indicate
+  - of MetaCLIP word frequencies, highlighting the long-tail nature of real-world knowledge. The right y-axis
+  - the probability density for the fitted normal distributions of the four difficulty tiers: Trivial, Easy, Medium, and
+  - knowledge.
+  - Analysis
+  - evaluate whether MLLMs possess a reliable sense of their own knowledge boundaries, we adopt the calibration
+  - a scale of 0 to 100 (see Prompt Question with Confidence in Appendix A for prompt details). We evaluate calibration
+  - using two primary metrics calculated over M confidence-ordered bins:
+  - |acc(Bm) −conf(Bm)|
+  - shown in Figure 5, all models exhibit severe overconfidence. Kimi K2.5 achieves the best calibration (ECE: 37.9%,
+  - GPT and Gemini series.
+  - 70
+  - 90
+  - Stated Confidence (%)
+  - Actual Accuracy (%)
+  - Calibration
+  - (%)
+  - 5: Calibration and Confidence Distribution Analysis. Left: Reliability diagrams plotting Actual Accuracy
+  - Stated Confidence. To ensure statistical significance, only bins containing more than 20 samples are visualized.
+  - size of each data point is proportional to the number of samples in that bin. The black dashed diagonal (y=x)
+  - perfect calibration, while colored dashed lines indicate the weighted average slope for each model. Right:
+  - distribution of stated confidence scores across the full dataset (without sample thresholding). The plots reveal a
+  - overconfidence trend, with most models concentrating their predictions in the 90-100% confidence range.
+  - confidence distribution (Figure 5 Right), most models lack self-awareness. Gemini-3-pro shows binary
+  - low confidence, offering more honest uncertainty estimates despite a slightly higher ECE. This pervasive
+  - likely stems from a lack of uncertainty samples in training data and alignment strategies favoring
+  - Related Work and Discussion
+  - this paper, we propose a specialized benchmark for measuring atomic visual factuality. WorldVQA sits within
+  - extensive evaluation landscape for MLLMs. A detailed comparison between WorldVQA and other representative
+  - is provided in Table 1. Comprehensive suites such as MME Fu et al. 2025, MMBench Yuan Liu et al.
+  - is often an implicit prerequisite for tasks ranging from mathematical reasoning Lu et al. 2023 and text
+  - Yuliang Liu et al. 2024 to diagram interpretation Hiippala et al. 2021 and spatial localization L. Yu et al.
+  - While expert-level benchmarks like MMMU Yue, Ni, et al. 2024 and MMMU-Pro Yue, T. Zheng, et al. 2025
+  - deep disciplinary knowledge, their emphasis on complex reasoning chains often obscures purely factual deficits.
+  - to our aim are recent factuality probes like SimpleVQA Cheng et al. 2025 and VisualSimpleQA Yanling Wang
+  - al. 2025; however, WorldVQA differentiates itself by focusing on the atomic recognition of entities across a stratified
+  - also examine reliability through the lens of calibration and hallucination, drawing on methodologies established in
+  - language domain Joshi et al. 2017; Kwiatkowski et al. 2019; S. Lin et al. 2022b; Junyi Li et al. 2023; Wei et al. 2024.
+  - et al. 2022a, this signal is likely distorted by post-training alignment Achiam et al. 2023. In the multimodal setting,
+  - has largely focused on existential or perceptual hallucination—checking for object presence Rohrbach et al.
+  - isolating encyclopedic hallucination, we aim to disentangle the complex interplay between visual perception and
+  - knowledge Hanchao Liu et al. 2024, offering a granular view of model trustworthiness distinct from previous
+  - main limitation of WorldVQA is that it measures factuality in a highly atomic setting. While this isolation allows for
+  - diagnosis of recognition failures, it remains an open research question whether the ability to correctly name
+  - entities correlates strongly with performance on complex, downstream multimodal tasks. Furthermore, we have
+  - yet fully quantified how different Reinforcement Learning (RL) strategies specifically impact this atomic visual
+  - dynamics and develop alignment techniques that enhance factuality without compromising uncertainty estimation.
+  - Achiam, Josh et al. “Gpt-4 technical report”. In: arXiv preprint arXiv:2303.08774 (2023).
+  - Processing Systems 37 (2024), pp. 27056–27087.
+  - of the IEEE/CVF International Conference on Computer Vision. 2025, pp. 4637–4646.
+  - pattern recognition. Ieee. 2009, pp. 248–255.
+  - in large vision-language models”. In: Proceedings of the IEEE/CVF Conference on Computer Vision and
+  - Recognition. 2024, pp. 14375–14385.
+  - of the IEEE/CVF conference on computer vision and pattern recognition. 2019, pp. 5356–5364.
+  - and Evaluation 55.3 (2021), pp. 661–688.
+  - preprint arXiv:1705.03551 (2017).
+  - for Computational Linguistics 7 (2019), pp. 453–466.
+  - arXiv:2305.11747 (2023).
+  - arXiv:2205.14334 (2022).
+  - for computational linguistics (volume 1: long papers). 2022, pp. 3214–3252.
+  - 67.12 (2024), p. 220102.
+  - arXiv:2310.02255 (2023).
+  - et al. gpt-oss-120b & gpt-oss-20b Model Card. 2025. arXiv: 2508.10925 [cs.CL]. URL: https://arxiv.
+  - arXiv: 2210.08402 [cs.CV]. URL: https://arxiv.org/abs/2210.08402.
+  - Computational Linguistics: ACL 2024. 2024, pp. 13088–13110.
+  - arXiv:2311.07397 (2023).
+  - Yokoo, Shuhei. Contrastive Learning with Large Memory Bank and Negative Embedding Subtraction for Accurate
+  - Detection. 2021. arXiv: 2112.04323 [cs.CV]. URL: https://arxiv.org/abs/2112.04323.
+  - for expert agi”. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition.
+  - A
+  - Question Prompt
+  - provide as much detail as possible in your answer. {question}
+  - with Confidence Prompt
+  - provide as much detail as possible in your answer and give your best guess. {question}
+  - the end, please provide a confidence score (0-100%).
+  - Audit Prompt
+  - are a strict "Visual Fact-Checker." Your task is to determine whether the provided original image can serve
+  - the sole, conclusive evidence to support the given answer to a question. Your core principle is: "Believe only
+  - is seen; reject all speculation." You must judge if the image provides unique, conclusive, and exclusive
+  - to validate the answer.
+  - input format is:
+  - Truth Answer: {ground_truth_answer}
+  - Steps and Guidelines:
+  - Analyze Question and Answer: Carefully read the Question (Q) and Answer (A) to understand the core
+  - or facts involved.
+  - Verify Visual Evidence: Closely examine the image. Search for direct visual evidence that confirms the
+  - made in Answer (A).
+  - could it support other reasonable alternatives?
+  - Write Reasoning (Mandatory): Detail how you arrived at your conclusion based on specific image details.
+  - list the key visual evidence that supports or refutes the answer.
+  - Conclusion Format Requirements:
+  - on your reasoning, you must select exactly one of the following three options as your judge_result:
+  - Prompt
+  - You are an expert judge specialized in evaluating the correctness of answers. Your task is to assess whether
+  - model-generated answer is correct based on a given question, the model’s response, and the ground truth
+  - classify the model’s response into one of the following three categories. Ignore differences in formatting,
+  - the level of detail (granularity):
+  - Correct:
+  - Incorrect:
+  - specific information.
+  - it’s B" when the truth is A), it is considered Incorrect.
+  - Unattempted:
+  - information.
+  - Format
+  - strictly follow this two-line format for your output:
+  - Evaluation: [A brief explanation of your reasoning]
+  - Label: [Final classification: "Correct", "Incorrect", or "Unattempted"]
+  - Input:
+  - 1 (Correct - Finer Granularity)
+  - Answer: Based on the visual evidence in the image, the weather phenomenon shown is a severe storm
+  - extremely high winds, most likely a tornado or a very powerful hurricane/typhoon.
+  - Truth Answer: High winds
+  - semantics are correct and the detail is finer.
+  - Task
+  - Answer: {model_answer}
+  - WorldVQA Showcases
+  - & Environment
+  - bird is in the picture?
+  - & Architecture
+  - is the name of the natural landmark shown in the image?
+  - is the title of the dance performance shown in the picture?
+  - Answer: 战国水晶杯
+  - style of bag is shown in the picture?
+  - electronic consumer product is shown in the image?
+  - the exact name and model number.
+  - specific attachment or accessory is this for the vehicle?
+  - is the name of the character in the picture?
+  - film or TV series is this image from?
+  - is the medium (carrier) of the advertisement in this
+  - is the name of the trademark or logo shown in the image?
+  - track-and-field or gymnastics event is shown in the
+  - ABSTRACT
+  - References
+  - Related Work
+
+【主要思路和观点】
+1. WORLDVQA: MEASURING ATOMIC WORLD KNOWLEDGE IN
+MULTIMODAL LARGE LANGUAGE MODELS
+Runjie Zhou1∗
+Youbo Shao1∗
+Haoyu Lu1∗‡
+Bowei Xing1
+Tongtong Bai1
+Yujie Chen1
+Jie Zhao1
+Lin Sui1
+Haotian Yao1
+Zijia Zhao1
+Hao Yang1
+Haoning Wu1
+Zaida Zhou1
+Jinguo Zhu1
+Zhiqi Huang1
+Yiping Bao1
+Yangyang Liu1
+Y.Charles1
+Xinyu Zhou1
+1 Moonshot AI
+ABSTRACT
+We introduce WorldVQA, a benchmark designed to evaluate the atomic visual world knowledge of
+Multimodal Large Language Models (MLLMs). Unlike current evaluations, which ...
+
