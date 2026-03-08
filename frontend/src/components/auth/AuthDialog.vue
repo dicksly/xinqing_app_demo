@@ -6,26 +6,12 @@
     :close-on-click-modal="false"
     @close="resetForm"
   >
-    <el-form
-      ref="formRef"
-      :model="formData"
-      :rules="rules"
-      label-width="0"
-    >
+    <el-form ref="formRef" :model="formData" :rules="rules" label-width="0">
       <el-form-item prop="username">
         <el-input
           v-model="formData.username"
           placeholder="用户名"
           prefix-icon="User"
-          size="large"
-        />
-      </el-form-item>
-
-      <el-form-item v-if="!isLogin" prop="email">
-        <el-input
-          v-model="formData.email"
-          placeholder="邮箱"
-          prefix-icon="Message"
           size="large"
         />
       </el-form-item>
@@ -55,7 +41,7 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="switchMode" text>
+        <el-button @click="switchMode" text type="primary">
           {{ isLogin ? '没有账号？去注册' : '已有账号？去登录' }}
         </el-button>
         <el-button @click="handleCancel">取消</el-button>
@@ -68,7 +54,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '../../stores/auth'
 import { useGamesStore } from '../../stores/games'
@@ -96,20 +82,17 @@ const formRef = ref(null)
 
 const formData = reactive({
   username: '',
-  email: '',
   password: '',
   confirmPassword: '',
 })
 
 const validateConfirmPassword = (rule, value, callback) => {
-  if (!isLogin.value) {
-    if (value === '') {
-      callback(new Error('请再次输入密码'))
-    } else if (value !== formData.password) {
-      callback(new Error('两次输入密码不一致'))
-    } else {
-      callback()
-    }
+  if (isLogin.value) {
+    callback()
+  } else if (value === '') {
+    callback(new Error('请确认密码'))
+  } else if (value !== formData.password) {
+    callback(new Error('两次输入密码不一致'))
   } else {
     callback()
   }
@@ -119,10 +102,6 @@ const rules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
     { min: 3, max: 20, message: '用户名长度为 3-20 个字符', trigger: 'blur' },
-  ],
-  email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' },
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
@@ -140,7 +119,6 @@ const switchMode = () => {
 
 const resetForm = () => {
   formData.username = ''
-  formData.email = ''
   formData.password = ''
   formData.confirmPassword = ''
   formRef.value?.clearValidate()
@@ -160,7 +138,7 @@ const handleSubmit = async () => {
       await authStore.login(formData.username, formData.password)
       ElMessage.success('登录成功')
     } else {
-      await authStore.register(formData.username, formData.email, formData.password)
+      await authStore.register(formData.username, formData.password)
       ElMessage.success('注册成功')
     }
 
@@ -177,6 +155,16 @@ const handleSubmit = async () => {
     loading.value = false
   }
 }
+
+// 监听登录状态变化
+watch(
+  () => authStore.isAuthenticated,
+  (newVal) => {
+    if (newVal) {
+      gamesStore.syncLocalToServer()
+    }
+  }
+)
 </script>
 
 <style scoped>
@@ -184,5 +172,9 @@ const handleSubmit = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+:deep(.el-dialog__footer) {
+  padding-top: 0;
 }
 </style>
