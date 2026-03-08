@@ -26,7 +26,8 @@ class Settings(BaseSettings):
     # 加密密钥
     ENCRYPTION_KEY: str = "your-encryption-key-change-in-production"
     
-    # AI 服务配置（可选）
+    # CORS 配置（生产环境必须配置）
+    ALLOWED_ORIGINS: str = "*"  # 默认允许所有来源，生产环境应设置为前端域名
     AI_API_KEY: Optional[str] = None
     AI_API_BASE: Optional[str] = None
     

@@ -1,8 +1,13 @@
 import axios from 'axios'
 
+// 从环境变量获取 API 基础 URL
+// 开发环境：/api/v1（相对路径，代理到后端）
+// 生产环境：完整的后端 URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
+
 const api = axios.create({
-  baseURL: '/api/v1',
-  timeout: 10000,
+  baseURL: API_BASE_URL,
+  timeout: import.meta.env.VITE_API_TIMEOUT || 10000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -98,3 +103,10 @@ export const gamesApi = {
 }
 
 export default api
+
+// 导出 API 基础 URL，用于调试
+if (import.meta.env.DEV) {
+  console.log('🔧 开发环境：使用相对路径', API_BASE_URL)
+} else {
+  console.log('🚀 生产环境：使用完整 URL', API_BASE_URL)
+}
