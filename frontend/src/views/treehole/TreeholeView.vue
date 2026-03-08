@@ -1,28 +1,26 @@
 <template>
   <div class="treehole-view">
     <!-- 倾诉卡片 -->
-    <el-card class="倾诉卡片" shadow="hover">
-      <template #header>
-          <div class="card-header">
-            <el-icon><ChatDotRound /></el-icon>
-            <span>倾诉你的心声</span>
-          </div>
-      </template>
+    <section class="confess-card card">
+      <header class="card-header">
+        <component :is="ChatDotRound" class="header-icon" />
+        <h2 class="card-title">倾诉你的心声</h2>
+      </header>
 
       <!-- 内容类型选择 -->
       <div class="content-type-selector">
-        <el-radio-group v-model="entryForm.contentType">
+        <el-radio-group v-model="entryForm.contentType" class="type-group">
           <el-radio-button label="text">
-            <el-icon><Document /></el-icon>
-            文字
+            <component :is="Document" class="btn-icon" />
+            <span>文字</span>
           </el-radio-button>
           <el-radio-button label="voice">
-            <el-icon><Microphone /></el-icon>
-            语音
+            <component :is="Microphone" class="btn-icon" />
+            <span>语音</span>
           </el-radio-button>
           <el-radio-button label="image">
-            <el-icon><Picture /></el-icon>
-            图片
+            <component :is="Picture" class="btn-icon" />
+            <span>图片</span>
           </el-radio-button>
         </el-radio-group>
       </div>
@@ -32,34 +30,36 @@
         <el-input
           v-model="entryForm.content"
           type="textarea"
-          :rows="6"
+          :rows="5"
           placeholder="把这里当作树洞，说出你的烦恼、痛苦或心事..."
           maxlength="1000"
           show-word-limit
+          resize="none"
         />
       </div>
 
       <!-- 语音输入（模拟） -->
       <div v-if="entryForm.contentType === 'voice'" class="voice-input">
         <div class="voice-recorder">
-          <el-button
-            :icon="isRecording ? 'VideoPause' : 'Microphone'"
-            :type="isRecording ? 'danger' : 'primary'"
-            circle
-            size="large"
+          <div
+            class="record-btn touchable"
+            :class="{ recording: isRecording }"
             @click="toggleRecording"
           >
-            {{ isRecording ? '停止' : '开始' }}录音
-          </el-button>
+            <component :is="isRecording ? VideoPause : Microphone" class="record-icon" />
+          </div>
           <div v-if="recordingTime > 0" class="recording-time">
             {{ recordingTime }}s
           </div>
+          <span class="record-hint">{{ isRecording ? '点击停止' : '点击开始录音' }}</span>
         </div>
-        
-        <el-checkbox v-model="entryForm.hasVoiceChange" class="voice-change">
-          <el-icon><Switch /></el-icon>
-          变声处理（保护隐私）
-        </el-checkbox>
+
+        <div class="voice-option">
+          <el-checkbox v-model="entryForm.hasVoiceChange">
+            <component :is="Switch" class="check-icon" />
+            <span>变声处理（保护隐私）</span>
+          </el-checkbox>
+        </div>
       </div>
 
       <!-- 图片输入（模拟） -->
@@ -70,21 +70,24 @@
           :show-file-list="false"
           :before-upload="beforeUpload"
           accept="image/*"
+          drag
         >
-          <el-icon class="uploader-icon"><Plus /></el-icon>
-          <div class="uploader-text">点击上传图片</div>
+          <div class="uploader-content">
+            <component :is="Plus" class="uploader-icon" />
+            <span class="uploader-text">点击或拖拽上传图片</span>
+          </div>
         </el-upload>
       </div>
 
       <!-- 发布选项 -->
       <div class="publish-options">
         <el-checkbox v-model="entryForm.isAnonymous">
-          <el-icon><Lock /></el-icon>
-          匿名发布
+          <component :is="Lock" class="check-icon" />
+          <span>匿名发布</span>
         </el-checkbox>
         <el-checkbox v-model="entryForm.isPublished">
-          <el-icon><Share /></el-icon>
-          发布到广场（脱敏后）
+          <component :is="Share" class="check-icon" />
+          <span>发布到广场</span>
         </el-checkbox>
       </div>
 
@@ -95,102 +98,118 @@
         :loading="submitting"
         @click="handleSubmit"
         class="submit-btn"
+        round
       >
         发送到树洞
       </el-button>
-    </el-card>
+    </section>
 
     <!-- AI 响应卡片 -->
-    <el-card v-if="aiResponse" class="ai-response-card" shadow="hover">
-      <template #header>
-          <div class="card-header ai-header">
-            <el-icon><Promotion /></el-icon>
-            <span>AI 倾听回应</span>
-          </div>
-      </template>
+    <section v-if="aiResponse" class="ai-response-card card">
+      <header class="card-header">
+        <component :is="Promotion" class="header-icon ai-icon" />
+        <h2 class="card-title">AI 倾听回应</h2>
+      </header>
 
       <div class="ai-response-content">
         {{ aiResponse }}
       </div>
 
       <!-- 风险预警 -->
-      <el-alert
-        v-if="riskLevel !== 'safe'"
-        :title="riskLevel === 'severe' ? '⚠️ 关心提醒' : '💚 温馨提示'"
-        :type="riskLevel === 'severe' ? 'error' : 'warning'"
-        :description="riskDescription"
-        :closable="false"
-        class="risk-alert"
-      >
-        <template #default>
-          <div v-if="riskLevel === 'severe'" class="severe-warning">
-            <p>如果您有危险的想法，请立即寻求帮助：</p>
-            <ul class="help-links">
-              <li>📞 全国24小时心理援助热线：<strong>400-161-9995</strong></li>
-              <li>📞 生命热线：<strong>021-62798990</strong></li>
-              <li>🏥 当地危机干预中心</li>
-            </ul>
+      <div v-if="riskLevel !== 'safe'" class="risk-alert" :class="riskLevel">
+        <div class="alert-header">
+          <component :is="riskLevel === 'severe' ? WarningFilled : InfoFilled" class="alert-icon" />
+          <span class="alert-title">{{ riskLevel === 'severe' ? '关心提醒' : '温馨提示' }}</span>
+        </div>
+
+        <div v-if="riskLevel === 'severe'" class="severe-warning">
+          <p>如果您有危险的想法，请立即寻求帮助：</p>
+          <div class="help-links">
+            <a href="tel:400-161-9995" class="help-link">
+              <component :is="PhoneFilled" />
+              <span>全国心理援助热线：400-161-9995</span>
+            </a>
+            <a href="tel:021-62798990" class="help-link">
+              <component :is="PhoneFilled" />
+              <span>生命热线：021-62798990</span>
+            </a>
           </div>
-          <div v-else class="mild-warning">
-            <p>我感受到了你现在的痛苦。建议你：</p>
-            <ul>
-              <li>深呼吸几次，让自己先平静下来</li>
-              <li>去"正念与放松实验室"试试冥想练习</li>
-              <li>如果觉得持续困扰，可以考虑找专业的心理咨询师聊聊</li>
-            </ul>
-          </div>
-        </template>
-      </el-alert>
-    </el-card>
+        </div>
+
+        <div v-else class="mild-warning">
+          <p>我感受到了你现在的痛苦。建议你：</p>
+          <ul>
+            <li>深呼吸几次，让自己先平静下来</li>
+            <li>去"正念实验室"试试冥想练习</li>
+            <li>如果持续困扰，可以考虑找专业咨询师聊聊</li>
+          </ul>
+        </div>
+      </div>
+    </section>
 
     <!-- 公开树洞广场 -->
-    <el-card class="public-square-card" shadow="hover">
-      <template #header>
-          <div class="card-header">
-            <el-icon><Reading /></el-icon>
-            <span>树洞广场 - 匿名倾诉</span>
-          </div>
-      </template>
+    <section class="public-square-card card">
+      <header class="card-header">
+        <component :is="Reading" class="header-icon" />
+        <h2 class="card-title">树洞广场</h2>
+      </header>
 
       <el-tabs v-model="activeTab" class="square-tabs">
         <el-tab-pane label="最新" name="latest">
           <div v-if="loading" class="loading">
-            <el-skeleton :rows="3" animated />
+            <div class="skeleton-list">
+              <div v-for="i in 3" :key="i" class="skeleton-item">
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line medium"></div>
+              </div>
+            </div>
           </div>
-          <div v-else-if="entries.length === 0" class="empty">
-            <el-empty description="暂无公开条目" />
-          </div>
+          <el-empty v-else-if="entries.length === 0" description="暂无公开条目" :image-size="60" />
           <div v-else class="entries-list">
             <div
               v-for="entry in entries"
               :key="entry.id"
               class="entry-item"
             >
-              <div class="entry-content-type">
-                <el-icon v-if="entry.content_type === 'text'"><Document /></el-icon>
-                <el-icon v-else-if="entry.content_type === 'voice'"><Microphone /></el-icon>
-                <el-icon v-else><Picture /></el-icon>
-              </div>
-              <div class="entry-text">
-                {{ entry.content ? entry.content.substring(0, 100) + '...' : '[媒体内容]' }}
-              </div>
-              <div class="entry-footer">
+              <div class="entry-header">
+                <div class="entry-type" :class="'type-' + entry.content_type">
+                  <component :is="getTypeIcon(entry.content_type)" />
+                </div>
                 <span class="entry-time">{{ formatTime(entry.created_at) }}</span>
               </div>
+              <p class="entry-text">
+                {{ entry.content ? entry.content.substring(0, 100) + '...' : '[媒体内容]' }}
+              </p>
             </div>
           </div>
         </el-tab-pane>
         <el-tab-pane label="我的" name="mine">
-          <el-empty description="功能开发中..." />
+          <el-empty description="功能开发中..." :image-size="60" />
         </el-tab-pane>
       </el-tabs>
-    </el-card>
+    </section>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { ChatDotRound, Document, Microphone, Picture, Plus, Lock, Share, Promotion, Reading } from '@element-plus/icons-vue'
+import {
+  ChatDotRound,
+  Document,
+  Microphone,
+  Picture,
+  Plus,
+  Lock,
+  Share,
+  Promotion,
+  Reading,
+  VideoPause,
+  Switch,
+  WarningFilled,
+  InfoFilled,
+  PhoneFilled
+} from '@element-plus/icons-vue'
 import { treeholeApi } from '../../api'
 import { ElMessage } from 'element-plus'
 
@@ -215,35 +234,33 @@ const entries = ref([])
 const loading = ref(false)
 const activeTab = ref('latest')
 
-// 计算属性
-const riskDescription = computed(() => {
-  if (riskLevel.value === 'severe') {
-    return '我们检测到您可能处于危险的状况，请不要独自承受。'
-  } else if (riskLevel.value === 'mild') {
-    return '我们注意到您情绪有些低落，这是可以理解的。'
+// 获取类型图标
+function getTypeIcon(type) {
+  const icons = {
+    text: Document,
+    voice: Microphone,
+    image: Picture
   }
-  return ''
-})
+  return icons[type] || Document
+}
 
 // 切换录音状态
 function toggleRecording() {
   isRecording.value = !isRecording.value
 
   if (isRecording.value) {
-    // 开始录音
     recordingTime.value = 0
     recordingTimer.value = setInterval(() => {
       recordingTime.value++
     }, 1000)
-    
+
     ElMessage.info('开始录音...')
   } else {
-    // 停止录音
     if (recordingTimer.value) {
       clearInterval(recordingTimer.value)
       recordingTimer.value = null
     }
-    
+
     if (recordingTime.value > 0) {
       ElMessage.success(`录音完成，时长 ${recordingTime.value} 秒`)
     } else {
@@ -315,7 +332,7 @@ function formatTime(dateString) {
   const date = new Date(dateString)
   const now = new Date()
   const diff = now - date
-  
+
   if (diff < 60000) return '刚刚'
   if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`
@@ -331,209 +348,416 @@ onMounted(() => {
 .treehole-view {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--spacing-md, 16px);
 }
 
+/* 卡片头部 */
 .card-header {
   display: flex;
   align-items: center;
-  font-size: 18px;
-  font-weight: bold;
-  color: #8b7e74;
+  gap: var(--spacing-sm, 8px);
+  margin-bottom: var(--spacing-md, 16px);
+  padding-bottom: var(--spacing-sm, 8px);
+  border-bottom: 1px solid var(--color-border-light, #f1f5f9);
 }
 
-.card-header .el-icon {
-  font-size: 22px;
-  margin-right: 8px;
+.header-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--color-primary, #10b981);
 }
 
-.ai-header {
-  color: #d4a373;
+.ai-icon {
+  color: var(--color-secondary, #8b5cf6);
 }
 
+.card-title {
+  font-size: var(--font-lg, 17px);
+  font-weight: 600;
+  color: var(--color-text-primary, #1e293b);
+  margin: 0;
+}
+
+/* 内容类型选择 */
 .content-type-selector {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-md, 16px);
 }
 
-.content-type-selector .el-radio-button {
-  margin-right: 12px;
+.type-group {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-xs, 4px);
 }
 
+.type-group :deep(.el-radio-button) {
+  margin: 0;
+}
+
+.type-group :deep(.el-radio-button__inner) {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs, 4px);
+  padding: var(--spacing-sm, 8px);
+}
+
+.btn-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* 内容输入 */
 .content-input {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-md, 16px);
 }
 
+/* 语音输入 */
 .voice-input {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-md, 16px);
 }
 
 .voice-recorder {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 40px 0;
-  background: #faf8f6;
-  border-radius: 12px;
+  gap: var(--spacing-sm, 8px);
+  padding: var(--spacing-lg, 24px);
+  background: var(--color-bg-tertiary, #f1f5f9);
+  border-radius: var(--radius-lg, 16px);
+}
+
+.record-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary, #10b981) 0%, var(--color-primary-light, #34d399) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-base, 0.2s ease);
+}
+
+.record-btn.recording {
+  background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.record-icon {
+  width: 28px;
+  height: 28px;
+  color: white;
 }
 
 .recording-time {
-  font-size: 24px;
-  font-weight: bold;
-  color: #6b5e54;
+  font-size: var(--font-xl, 20px);
+  font-weight: 600;
+  color: var(--color-text-primary, #1e293b);
 }
 
-.voice-change {
-  margin-top: 16px;
-  color: #8b7e74;
+.record-hint {
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-muted, #94a3b8);
 }
 
+.voice-option {
+  margin-top: var(--spacing-sm, 8px);
+}
+
+.check-icon {
+  width: 14px;
+  height: 14px;
+  margin-right: var(--spacing-xs, 4px);
+}
+
+/* 图片上传 */
 .image-input {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-md, 16px);
 }
 
 .image-uploader {
   width: 100%;
-  height: 200px;
-  border: 2px dashed #e8dcd4;
-  border-radius: 8px;
-  cursor: pointer;
+}
+
+.image-uploader :deep(.el-upload-dragger) {
+  width: 100%;
+  height: 140px;
+  border: 2px dashed var(--color-border, #e2e8f0);
+  border-radius: var(--radius-lg, 16px);
+  background: var(--color-bg-tertiary, #f1f5f9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-base, 0.2s ease);
+}
+
+.image-uploader :deep(.el-upload-dragger:hover) {
+  border-color: var(--color-primary, #10b981);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.uploader-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  transition: all 0.3s;
-}
-
-.image-uploader:hover {
-  border-color: #d4a373;
-  background: #f8f4f0;
+  gap: var(--spacing-xs, 4px);
 }
 
 .uploader-icon {
-  font-size: 48px;
-  color: #d4a373;
-  margin-bottom: 12px;
+  width: 32px;
+  height: 32px;
+  color: var(--color-primary, #10b981);
 }
 
 .uploader-text {
-  font-size: 14px;
-  color: #8b7e74;
+  font-size: var(--font-sm, 13px);
+  color: var(--color-text-muted, #94a3b8);
 }
 
+/* 发布选项 */
 .publish-options {
-  margin: 20px 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-sm, 8px);
+  margin-bottom: var(--spacing-md, 16px);
 }
 
-.publish-options .el-checkbox {
-  margin: 0;
+.publish-options :deep(.el-checkbox__label) {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+  font-size: var(--font-sm, 13px);
+  color: var(--color-text-secondary, #64748b);
 }
 
+/* 提交按钮 */
 .submit-btn {
   width: 100%;
-  height: 48px;
-  font-size: 16px;
-  background: linear-gradient(135deg, #d4a373 0%, #e6ccb2 100%);
+  background: linear-gradient(135deg, var(--color-primary, #10b981) 0%, var(--color-primary-light, #34d399) 100%);
   border: none;
+  font-weight: 500;
 }
 
-.submit-btn:hover {
-  background: linear-gradient(135deg, #c59463 0%, #d6bca2 100%);
-}
-
+/* AI 响应卡片 */
 .ai-response-card {
-  border-color: #d4a373;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.03) 0%, rgba(16, 185, 129, 0.03) 100%);
 }
 
 .ai-response-content {
-  padding: 16px 0;
-  color: #6b5e54;
-  line-height: 1.8;
-  font-size: 15px;
+  padding: var(--spacing-sm, 8px) 0;
+  color: var(--color-text-primary, #1e293b);
+  line-height: 1.7;
+  font-size: var(--font-sm, 13px);
 }
 
+/* 风险预警 */
 .risk-alert {
-  margin-top: 16px;
+  margin-top: var(--spacing-md, 16px);
+  padding: var(--spacing-md, 16px);
+  border-radius: var(--radius-md, 12px);
 }
 
-.severe-warning {
-  padding: 16px;
+.risk-alert.severe {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
-.severe-warning p {
-  margin: 8px 0;
-  font-weight: bold;
+.risk-alert.mild {
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+.alert-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+  margin-bottom: var(--spacing-sm, 8px);
+}
+
+.alert-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.severe .alert-icon {
+  color: #ef4444;
+}
+
+.mild .alert-icon {
+  color: #fbbf24;
+}
+
+.alert-title {
+  font-size: var(--font-sm, 13px);
+  font-weight: 500;
+  color: var(--color-text-primary, #1e293b);
+}
+
+.severe-warning p,
+.mild-warning p {
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-secondary, #64748b);
+  margin: 0 0 var(--spacing-sm, 8px) 0;
 }
 
 .help-links {
-  list-style: none;
-  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 4px);
 }
 
-.help-links li {
-  margin: 8px 0;
-  padding: 8px 12px;
-  background: #fef9f3;
-  border-left: 4px solid #d4a373;
-  border-radius: 4px;
+.help-link {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+  padding: var(--spacing-sm, 8px);
+  background: var(--color-bg-card, #ffffff);
+  border-radius: var(--radius-sm, 8px);
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-primary, #1e293b);
+  text-decoration: none;
+}
+
+.help-link svg {
+  width: 14px;
+  height: 14px;
+  color: var(--color-primary, #10b981);
 }
 
 .mild-warning ul {
-  margin: 8px 0;
-  padding-left: 20px;
+  margin: 0;
+  padding-left: var(--spacing-md, 16px);
 }
 
+.mild-warning li {
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-secondary, #64748b);
+  line-height: 1.8;
+}
+
+/* 标签页 */
 .square-tabs {
-  margin-top: 24px;
+  margin-top: var(--spacing-sm, 8px);
 }
 
+.square-tabs :deep(.el-tabs__header) {
+  margin-bottom: var(--spacing-md, 16px);
+}
+
+/* 骨架屏 */
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 8px);
+}
+
+.skeleton-item {
+  padding: var(--spacing-sm, 8px);
+  background: var(--color-bg-tertiary, #f1f5f9);
+  border-radius: var(--radius-md, 12px);
+}
+
+.skeleton-line {
+  height: 12px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm, 8px);
+  margin-bottom: var(--spacing-xs, 4px);
+}
+
+.skeleton-line.short {
+  width: 30%;
+}
+
+.skeleton-line.medium {
+  width: 60%;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 条目列表 */
 .entries-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-sm, 8px);
 }
 
 .entry-item {
-  padding: 16px;
-  border: 1px solid #e8dcd4;
-  border-radius: 8px;
-  transition: all 0.3s;
+  padding: var(--spacing-sm, 8px);
+  border-radius: var(--radius-md, 12px);
+  background: var(--color-bg-tertiary, #f1f5f9);
 }
 
-.entry-item:hover {
-  border-color: #d4a373;
-  background: #faf8f6;
-}
-
-.entry-content-type {
-  font-size: 20px;
-  margin-bottom: 8px;
-}
-
-.entry-text {
-  color: #6b5e54;
-  line-height: 1.6;
-  margin-bottom: 8px;
-}
-
-.entry-footer {
+.entry-header {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xs, 4px);
+}
+
+.entry-type {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm, 8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.entry-type svg {
+  width: 14px;
+  height: 14px;
+}
+
+.type-text {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.type-text svg {
+  color: var(--color-primary, #10b981);
+}
+
+.type-voice {
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.type-voice svg {
+  color: var(--color-secondary, #8b5cf6);
+}
+
+.type-image {
+  background: rgba(251, 191, 36, 0.15);
+}
+
+.type-image svg {
+  color: var(--color-warm, #fbbf24);
 }
 
 .entry-time {
-  font-size: 12px;
-  color: #8b7e74;
+  font-size: 10px;
+  color: var(--color-text-muted, #94a3b8);
+}
+
+.entry-text {
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-secondary, #64748b);
+  line-height: 1.6;
+  margin: 0;
 }
 
 .loading {
-  padding: 20px 0;
-}
-
-.empty {
-  padding: 40px 0;
+  padding: var(--spacing-md, 16px) 0;
 }
 </style>

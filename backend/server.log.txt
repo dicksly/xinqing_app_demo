@@ -1,0 +1,18 @@
+/Users/rosengong/workspace/xinqing_app_demo/backend/main.py:53: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+/Users/rosengong/workspace/xinqing_app_demo/backend/main.py:53: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Will watch for changes in these directories: ['/Users/rosengong/workspace/xinqing_app_demo/backend']
+INFO:     Will watch for changes in these directories: ['/Users/rosengong/workspace/xinqing_app_demo/backend']
+ERROR:    [Errno 48] Address already in use
+ERROR:    [Errno 48] Address already in use

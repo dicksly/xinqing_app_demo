@@ -1,154 +1,154 @@
 <template>
   <div class="knowledge-view">
     <!-- 每日金句卡片 -->
-    <el-card class="daily-quote-card" shadow="hover">
-      <template #header>
-        <div class="card-header">
-          <el-icon><Trophy /></el-icon>
-          <span>每日金句</span>
-          <el-tag type="success" size="small">{{ currentDate }}</el-tag>
-        </div>
-      </template>
+    <section class="quote-card card">
+      <header class="card-header">
+        <component :is="Trophy" class="header-icon" />
+        <h2 class="card-title">每日金句</h2>
+        <span class="date-tag">{{ currentDate }}</span>
+      </header>
 
       <div class="quote-content">
         <p class="quote-text">"{{ dailyQuote.text }}"</p>
         <p class="quote-author">— {{ dailyQuote.author }}</p>
       </div>
-    </el-card>
+    </section>
 
-    <!-- 内容分类 -->
-    <el-tabs v-model="activeCategory" class="content-tabs">
-      <!-- 短视频/条漫 -->
-      <el-tab-pane label="短视频/条漫" name="video">
-        <div v-loading="loading" class="video-grid">
-          <div
-            v-for="item in videoContent"
-            :key="item.id"
-            class="video-item"
-            @click="viewContent(item)"
-          >
-            <div class="video-thumb">
-              <span class="video-type-icon">📺</span>
-            </div>
-            <div class="video-info">
-              <h3 class="video-title">{{ item.title }}</h3>
-              <p class="video-desc">{{ item.category }}</p>
-              <div class="video-meta">
-                <el-icon><View /></el-icon>
-                <span>{{ item.view_count }} 次浏览</span>
+    <!-- 内容分类标签页 -->
+    <section class="content-section card">
+      <el-tabs v-model="activeCategory" class="content-tabs">
+        <!-- 短视频/条漫 -->
+        <el-tab-pane label="视频" name="video">
+          <div v-loading="loading" class="video-grid">
+            <div
+              v-for="item in videoContent"
+              :key="item.id"
+              class="video-item touchable"
+              @click="viewContent(item)"
+            >
+              <div class="video-thumb">
+                <component :is="VideoPlay" class="play-icon" />
+              </div>
+              <div class="video-info">
+                <h3 class="video-title">{{ item.title }}</h3>
+                <span class="video-category">{{ item.category }}</span>
+                <div class="video-meta">
+                  <component :is="View" />
+                  <span>{{ item.view_count }}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <el-empty v-if="!loading && videoContent.length === 0" description="暂无内容" />
-      </el-tab-pane>
+          <el-empty v-if="!loading && videoContent.length === 0" description="暂无内容" :image-size="60" />
+        </el-tab-pane>
 
-      <!-- 心理测试 -->
-      <el-tab-pane label="心理测试" name="test">
-        <div v-loading="loading" class="test-grid">
-          <div
-            v-for="test in tests"
-            :key="test.id"
-            class="test-item"
-            @click="startTest(test)"
-          >
-            <div class="test-icon">{{ test.icon }}</div>
-            <div class="test-info">
-              <h3 class="test-title">{{ test.title }}</h3>
-              <p class="test-desc">{{ test.desc }}</p>
-              <div class="test-meta">
-                <el-tag size="small">{{ test.duration }}</el-tag>
-                <el-tag size="small" type="info">{{ test.questions_count }}题</el-tag>
+        <!-- 心理测试 -->
+        <el-tab-pane label="测试" name="test">
+          <div v-loading="loading" class="test-list">
+            <div
+              v-for="test in tests"
+              :key="test.id"
+              class="test-item touchable"
+              @click="startTest(test)"
+            >
+              <div class="test-icon" :class="test.iconClass">
+                <component :is="test.icon" />
               </div>
-            </div>
-            <el-button type="primary" round>开始测试</el-button>
-          </div>
-        </div>
-      </el-tab-pane>
-
-      <!-- 知识文章 -->
-      <el-tab-pane label="知识文章" name="article">
-        <div v-loading="loading" class="article-list">
-          <el-card
-            v-for="article in articles"
-            :key="article.id"
-            class="article-item"
-            shadow="hover"
-            @click="viewArticle(article)"
-          >
-            <div class="article-header">
-              <h3 class="article-title">{{ article.title }}</h3>
-              <el-tag>{{ article.category }}</el-tag>
-            </div>
-            <div class="article-preview">
-              {{ article.content.substring(0, 100) }}...
-            </div>
-            <div class="article-footer">
-              <span class="article-time">{{ formatTime(article.created_at) }}</span>
-              <el-icon><View /></el-icon>
-              <span>{{ article.view_count }}</span>
-            </div>
-          </el-card>
-        </div>
-        <el-empty v-if="!loading && articles.length === 0" description="暂无文章" />
-      </el-tab-pane>
-
-      <!-- 专题策划 -->
-      <el-tab-pane label="专题策划" name="topic">
-        <div class="topic-list">
-          <div
-            v-for="topic in topics"
-            :key="topic.id"
-            class="topic-item"
-          >
-            <div class="topic-header">
-              <div class="topic-title">
-                <el-icon><FolderOpened /></el-icon>
-                <span>{{ topic.title }}</span>
+              <div class="test-info">
+                <h3 class="test-title">{{ test.title }}</h3>
+                <p class="test-desc">{{ test.desc }}</p>
+                <div class="test-meta">
+                  <span class="meta-tag">{{ test.duration }}</span>
+                  <span class="meta-tag">{{ test.questions_count }}题</span>
+                </div>
               </div>
-              <el-tag type="warning">{{ topic.status }}</el-tag>
-            </div>
-            <div class="topic-cover">
-              {{ topic.cover }}
-            </div>
-            <div class="topic-desc">{{ topic.desc }}</div>
-            <div class="topic-content">
-              <span class="topic-count">{{ topic.content_count }}个内容</span>
+              <el-button type="primary" size="small" round>开始</el-button>
             </div>
           </div>
-        </div>
-      </el-tab-pane>
-    </el-tabs>
+        </el-tab-pane>
+
+        <!-- 知识文章 -->
+        <el-tab-pane label="文章" name="article">
+          <div v-loading="loading" class="article-list">
+            <div
+              v-for="article in articles"
+              :key="article.id"
+              class="article-item touchable"
+              @click="viewArticle(article)"
+            >
+              <div class="article-header">
+                <h3 class="article-title">{{ article.title }}</h3>
+                <span class="article-tag">{{ article.category }}</span>
+              </div>
+              <p class="article-preview">{{ article.content?.substring(0, 80) }}...</p>
+              <div class="article-footer">
+                <span class="article-time">{{ formatTime(article.created_at) }}</span>
+                <div class="article-views">
+                  <component :is="View" />
+                  <span>{{ article.view_count }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <el-empty v-if="!loading && articles.length === 0" description="暂无文章" :image-size="60" />
+        </el-tab-pane>
+
+        <!-- 专题策划 -->
+        <el-tab-pane label="专题" name="topic">
+          <div class="topic-list">
+            <div
+              v-for="topic in topics"
+              :key="topic.id"
+              class="topic-item"
+            >
+              <div class="topic-header">
+                <div class="topic-title">
+                  <component :is="FolderOpened" class="topic-icon" />
+                  <span>{{ topic.title }}</span>
+                </div>
+                <span class="topic-status" :class="topic.statusClass">{{ topic.status }}</span>
+              </div>
+              <p class="topic-desc">{{ topic.desc }}</p>
+              <div class="topic-footer">
+                <span class="topic-count">{{ topic.content_count }}个内容</span>
+              </div>
+            </div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+    </section>
 
     <!-- 内容详情对话框 -->
     <el-dialog
       v-model="showContentDialog"
       :title="currentContent.title"
-      width="70%"
+      width="90%"
+      :style="{ maxWidth: '400px' }"
       :close-on-click-modal="false"
       class="content-dialog"
     >
       <div class="content-detail">
-        <div class="content-category">
-          <el-tag>{{ currentContent.category }}</el-tag>
-        </div>
+        <span class="content-category">{{ currentContent.category }}</span>
         <div class="content-body">
           <p v-html="currentContent.content" class="content-text"></p>
         </div>
         <div class="content-tags" v-if="currentContent.tags">
-          <el-tag
-            v-for="(tag, index) in JSON.parse(currentContent.tags)"
+          <span
+            v-for="(tag, index) in parsedTags"
             :key="index"
-            size="small"
+            class="content-tag"
           >
             {{ tag }}
-          </el-tag>
+          </span>
         </div>
       </div>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="showContentDialog = false">关闭</el-button>
-          <el-button type="primary" @click="likeContent">👍 收藏</el-button>
+          <el-button type="primary" @click="likeContent">
+            <component :is="StarFilled" />
+            <span>收藏</span>
+          </el-button>
         </div>
       </template>
     </el-dialog>
@@ -157,7 +157,8 @@
     <el-dialog
       v-model="showTestDialog"
       :title="currentTest.title"
-      width="60%"
+      width="90%"
+      :style="{ maxWidth: '400px' }"
       :close-on-click-modal="false"
       class="test-dialog"
     >
@@ -168,7 +169,7 @@
           class="question-item"
         >
           <h4 class="question-title">问题 {{ index + 1 }}: {{ question.text }}</h4>
-          <el-radio-group v-model="question.selectedAnswer">
+          <el-radio-group v-model="question.selectedAnswer" class="question-options">
             <el-radio
               v-for="option in question.options"
               :key="option.value"
@@ -180,15 +181,14 @@
         </div>
       </div>
       <div v-else class="test-result">
-        <el-result
-          icon="success"
-          title="测试完成"
-          sub-title="您的测试结果已生成"
-        />
+        <div class="result-header">
+          <component :is="CircleCheckFilled" class="result-icon" />
+          <h3>测试完成</h3>
+        </div>
         <div class="result-detail">
           <h4>测试结果分析</h4>
           <p>{{ testResult }}</p>
-          <el-divider />
+          <div class="divider"></div>
           <h4>建议</h4>
           <p>{{ testSuggestion }}</p>
         </div>
@@ -204,8 +204,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { Trophy, View, FolderOpened, Star } from '@element-plus/icons-vue'
+import { ref, computed, onMounted } from 'vue'
+import {
+  Trophy,
+  View,
+  FolderOpened,
+  VideoPlay,
+  StarFilled,
+  CircleCheckFilled,
+  Cpu,
+  Timer,
+  Heart
+} from '@element-plus/icons-vue'
 import { knowledgeApi } from '../../api'
 import { ElMessage } from 'element-plus'
 
@@ -234,12 +244,23 @@ const testCompleted = ref(false)
 const testResult = ref('')
 const testSuggestion = ref('')
 
-// 模拟数据
+// 解析标签
+const parsedTags = computed(() => {
+  if (!currentContent.value.tags) return []
+  try {
+    return JSON.parse(currentContent.value.tags)
+  } catch {
+    return []
+  }
+})
+
+// 模拟数据 - 使用 SVG 图标
 const mockTests = [
   {
     id: 1,
     title: 'MBTI 人格类型简化版',
-    icon: '🧠',
+    icon: Cpu,
+    iconClass: 'icon-blue',
     desc: '探索你的性格类型，了解自己',
     duration: '5分钟',
     questions_count: 12,
@@ -279,7 +300,8 @@ const mockTests = [
   {
     id: 2,
     title: '压力自测表',
-    icon: '🌡️',
+    icon: Timer,
+    iconClass: 'icon-orange',
     desc: '评估你当前的压力水平',
     duration: '3分钟',
     questions_count: 10,
@@ -288,7 +310,8 @@ const mockTests = [
   {
     id: 3,
     title: '依恋类型测试',
-    icon: '❤️',
+    icon: Heart,
+    iconClass: 'icon-pink',
     desc: '了解你在亲密关系中的依恋模式',
     duration: '8分钟',
     questions_count: 15,
@@ -301,7 +324,7 @@ const mockTopics = [
     id: 1,
     title: '考试季抗压指南',
     status: '进行中',
-    cover: '📚',
+    statusClass: 'status-active',
     desc: '帮助考生调整心态，发挥最佳水平',
     content_count: 12,
   },
@@ -309,7 +332,7 @@ const mockTopics = [
     id: 2,
     title: '毕业季迷茫破解',
     status: '即将开始',
-    cover: '🎓',
+    statusClass: 'status-pending',
     desc: '从校园到职场的心理过渡指南',
     content_count: 8,
   },
@@ -317,7 +340,7 @@ const mockTopics = [
     id: 3,
     title: '求职季心理建设',
     status: '规划中',
-    cover: '💼',
+    statusClass: 'status-planned',
     desc: '在求职过程中保持良好心态',
     content_count: 10,
   },
@@ -325,7 +348,7 @@ const mockTopics = [
 
 // 格式化日期
 function formatDate() {
-  const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }
+  const options = { month: 'short', day: 'numeric', weekday: 'short' }
   return new Date().toLocaleDateString('zh-CN', options)
 }
 
@@ -334,7 +357,7 @@ function formatTime(dateString) {
   const date = new Date(dateString)
   const now = new Date()
   const diff = now - date
-  
+
   if (diff < 60000) return '刚刚'
   if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`
@@ -375,10 +398,10 @@ function submitTest() {
   // 模拟计算结果
   const results = ['INTJ', 'INFJ', 'ISTJ', 'ISFJ', 'ENTP', 'ENFP', 'ESTP', 'ESFP']
   const randomResult = results[Math.floor(Math.random() * results.length)]
-  
+
   testResult.value = `您的性格类型是：${randomResult}`
   testSuggestion.value = `${randomResult}型的人通常善于深度思考。建议你在面对压力时，给自己更多时间进行内省和规划。`
-  
+
   testCompleted.value = true
   ElMessage.success('测试完成！')
 }
@@ -397,10 +420,10 @@ async function loadContent() {
       knowledgeApi.getList({ content_type: 'video' }),
       knowledgeApi.getList({ content_type: 'article' }),
     ])
-    
+
     videoContent.value = videosResponse.data
     articles.value = articlesResponse.data
-    
+
     // 使用模拟数据补充测试和专题
     tests.value = mockTests
     topics.value = mockTopics
@@ -427,7 +450,7 @@ async function loadContent() {
         created_at: new Date(Date.now() - 86400000).toISOString(),
       },
     ]
-    
+
     tests.value = mockTests
     topics.value = mockTopics
   } finally {
@@ -445,337 +468,516 @@ onMounted(() => {
 .knowledge-view {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--spacing-md, 16px);
 }
 
+/* 卡片头部 */
 .card-header {
   display: flex;
   align-items: center;
-  font-size: 18px;
-  font-weight: bold;
-  color: #8b7e74;
+  gap: var(--spacing-sm, 8px);
+  margin-bottom: var(--spacing-md, 16px);
+  padding-bottom: var(--spacing-sm, 8px);
+  border-bottom: 1px solid var(--color-border-light, #f1f5f9);
 }
 
-.card-header .el-icon {
-  font-size: 22px;
-  margin-right: 8px;
+.header-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--color-primary, #10b981);
 }
 
-.daily-quote-card {
-  background: linear-gradient(135deg, #fef9f3 0%, #f8f4f0 100%);
+.card-title {
+  font-size: var(--font-lg, 17px);
+  font-weight: 600;
+  color: var(--color-text-primary, #1e293b);
+  margin: 0;
+  flex: 1;
+}
+
+.date-tag {
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-muted, #94a3b8);
+  background: var(--color-bg-tertiary, #f1f5f9);
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 9999px);
+}
+
+/* 金句卡片 */
+.quote-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
 }
 
 .quote-content {
   text-align: center;
-  padding: 20px;
+  padding: var(--spacing-sm, 8px) 0;
 }
 
 .quote-text {
-  font-size: 18px;
-  color: #6b5e54;
-  line-height: 1.8;
+  font-size: var(--font-base, 15px);
+  color: var(--color-text-primary, #1e293b);
+  line-height: 1.6;
   font-style: italic;
-  margin: 16px 0;
+  margin: 0 0 var(--spacing-sm, 8px) 0;
 }
 
 .quote-author {
-  font-size: 14px;
-  color: #8b7e74;
+  font-size: var(--font-sm, 13px);
+  color: var(--color-text-muted, #94a3b8);
+  margin: 0;
+}
+
+/* 内容标签页 */
+.content-section {
+  padding: 0;
 }
 
 .content-tabs {
-  margin-top: 24px;
+  padding: var(--spacing-md, 16px);
 }
 
+.content-tabs :deep(.el-tabs__header) {
+  margin-bottom: var(--spacing-md, 16px);
+}
+
+/* 视频网格 */
 .video-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm, 8px);
 }
 
 .video-item {
-  border-radius: 12px;
+  border-radius: var(--radius-md, 12px);
   overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s;
-  background: #ffffff;
-  border: 2px solid #e8dcd4;
-}
-
-.video-item:hover {
-  border-color: #d4a373;
-  transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(212, 163, 115, 0.15);
+  background: var(--color-bg-tertiary, #f1f5f9);
 }
 
 .video-thumb {
-  height: 160px;
-  background: linear-gradient(135deg, #d4a373 0%, #e6ccb2 100%);
+  height: 100px;
+  background: linear-gradient(135deg, var(--color-primary, #10b981) 0%, var(--color-primary-light, #34d399) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
 }
 
-.video-type-icon {
-  font-size: 48px;
-  opacity: 0.8;
+.play-icon {
+  width: 32px;
+  height: 32px;
+  color: white;
+  opacity: 0.9;
 }
 
 .video-info {
-  padding: 16px;
+  padding: var(--spacing-sm, 8px);
 }
 
 .video-title {
-  font-size: 16px;
-  font-weight: bold;
-  color: #6b5e54;
-  margin: 8px 0;
+  font-size: var(--font-sm, 13px);
+  font-weight: 500;
+  color: var(--color-text-primary, #1e293b);
+  margin: 0 0 var(--spacing-xs, 4px) 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.video-desc {
-  font-size: 13px;
-  color: #8b7e74;
-  margin-bottom: 8px;
+.video-category {
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-muted, #94a3b8);
+  display: block;
+  margin-bottom: var(--spacing-xs, 4px);
 }
 
 .video-meta {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: #8b7e74;
+  gap: var(--spacing-xs, 4px);
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-muted, #94a3b8);
 }
 
-.test-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+.video-meta svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* 测试列表 */
+.test-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 8px);
 }
 
 .test-item {
-  padding: 24px;
-  border-radius: 12px;
-  border: 2px solid #e8dcd4;
-  background: #ffffff;
-  text-align: center;
-  transition: all 0.3s;
-}
-
-.test-item:hover {
-  border-color: #d4a373;
-  box-shadow: 0 4px 12px rgba(212, 163, 115, 0.15);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 8px);
+  padding: var(--spacing-sm, 8px);
+  border-radius: var(--radius-md, 12px);
+  background: var(--color-bg-tertiary, #f1f5f9);
 }
 
 .test-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md, 12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.test-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.icon-blue { background: rgba(59, 130, 246, 0.15); }
+.icon-blue svg { color: #3b82f6; }
+.icon-orange { background: rgba(251, 191, 36, 0.15); }
+.icon-orange svg { color: #fbbf24; }
+.icon-pink { background: rgba(244, 114, 182, 0.15); }
+.icon-pink svg { color: #f472b6; }
+
+.test-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .test-title {
-  font-size: 18px;
-  font-weight: bold;
-  color: #6b5e54;
-  margin: 8px 0;
+  font-size: var(--font-sm, 13px);
+  font-weight: 500;
+  color: var(--color-text-primary, #1e293b);
+  margin: 0 0 var(--spacing-xs, 4px) 0;
 }
 
 .test-desc {
-  font-size: 14px;
-  color: #8b7e74;
-  margin-bottom: 16px;
-  line-height: 1.6;
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-muted, #94a3b8);
+  margin: 0 0 var(--spacing-xs, 4px) 0;
 }
 
 .test-meta {
   display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: var(--spacing-xs, 4px);
 }
 
+.meta-tag {
+  font-size: 10px;
+  color: var(--color-text-muted, #94a3b8);
+  background: var(--color-bg-card, #ffffff);
+  padding: 2px 6px;
+  border-radius: var(--radius-full, 9999px);
+}
+
+/* 文章列表 */
 .article-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-sm, 8px);
 }
 
 .article-item {
-  border-radius: 12px;
-  border: 1px solid #e8dcd4;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.article-item:hover {
-  border-color: #d4a373;
-  box-shadow: 0 4px 12px rgba(212, 163, 115, 0.1);
+  padding: var(--spacing-sm, 8px);
+  border-radius: var(--radius-md, 12px);
+  background: var(--color-bg-tertiary, #f1f5f9);
 }
 
 .article-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 16px;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-xs, 4px);
 }
 
 .article-title {
-  font-size: 18px;
-  font-weight: bold;
-  color: #6b5e54;
+  font-size: var(--font-sm, 13px);
+  font-weight: 500;
+  color: var(--color-text-primary, #1e293b);
   margin: 0;
+  flex: 1;
+}
+
+.article-tag {
+  font-size: 10px;
+  color: var(--color-primary, #10b981);
+  background: rgba(16, 185, 129, 0.1);
+  padding: 2px 6px;
+  border-radius: var(--radius-full, 9999px);
+  flex-shrink: 0;
 }
 
 .article-preview {
-  padding: 0 16px 16px;
-  color: #6b5e54;
-  line-height: 1.6;
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-secondary, #64748b);
+  margin: 0 0 var(--spacing-xs, 4px) 0;
+  line-height: 1.5;
 }
 
 .article-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  border-top: 1px solid #f5f5f5;
 }
 
 .article-time {
-  font-size: 12px;
-  color: #8b7e74;
+  font-size: 10px;
+  color: var(--color-text-muted, #94a3b8);
 }
 
+.article-views {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+  font-size: 10px;
+  color: var(--color-text-muted, #94a3b8);
+}
+
+.article-views svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* 专题列表 */
 .topic-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 8px);
 }
 
 .topic-item {
-  border-radius: 12px;
-  border: 2px solid #e8dcd4;
-  background: #ffffff;
-  padding: 20px;
-  transition: all 0.3s;
-}
-
-.topic-item:hover {
-  border-color: #d4a373;
-  box-shadow: 0 4px 12px rgba(212, 163, 115, 0.1);
+  padding: var(--spacing-sm, 8px);
+  border-radius: var(--radius-md, 12px);
+  background: var(--color-bg-tertiary, #f1f5f9);
 }
 
 .topic-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-xs, 4px);
 }
 
 .topic-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 18px;
-  font-weight: bold;
-  color: #6b5e54;
+  gap: var(--spacing-xs, 4px);
+  font-size: var(--font-sm, 13px);
+  font-weight: 500;
+  color: var(--color-text-primary, #1e293b);
 }
 
-.topic-cover {
-  font-size: 32px;
-  margin: 16px 0;
-  text-align: center;
+.topic-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-secondary, #8b5cf6);
+}
+
+.topic-status {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: var(--radius-full, 9999px);
+}
+
+.status-active {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-primary, #10b981);
+}
+
+.status-pending {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--color-warm, #fbbf24);
+}
+
+.status-planned {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--color-text-muted, #94a3b8);
 }
 
 .topic-desc {
-  color: #8b7e74;
-  line-height: 1.6;
-  margin-bottom: 12px;
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-secondary, #64748b);
+  margin: 0 0 var(--spacing-xs, 4px) 0;
 }
 
-.topic-content {
+.topic-footer {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 12px;
-  border-top: 1px solid #f5f5f5;
+  justify-content: flex-end;
 }
 
 .topic-count {
-  font-size: 14px;
-  color: #6b5e54;
+  font-size: 10px;
+  color: var(--color-text-muted, #94a3b8);
+}
+
+/* 内容详情对话框 */
+.content-dialog :deep(.el-dialog__body) {
+  padding: var(--spacing-md, 16px);
 }
 
 .content-detail {
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 8px);
 }
 
 .content-category {
-  margin-bottom: 16px;
+  font-size: var(--font-xs, 11px);
+  color: var(--color-primary, #10b981);
+  background: rgba(16, 185, 129, 0.1);
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 9999px);
+  align-self: flex-start;
 }
 
 .content-body {
-  margin-bottom: 20px;
+  margin: var(--spacing-xs, 4px) 0;
 }
 
 .content-text {
-  line-height: 1.8;
-  color: #6b5e54;
+  font-size: var(--font-sm, 13px);
+  color: var(--color-text-primary, #1e293b);
+  line-height: 1.7;
+  margin: 0;
 }
 
 .content-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--spacing-xs, 4px);
+}
+
+.content-tag {
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-muted, #94a3b8);
+  background: var(--color-bg-tertiary, #f1f5f9);
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 9999px);
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: var(--spacing-sm, 8px);
+}
+
+.dialog-footer .el-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+}
+
+.dialog-footer .el-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 测试对话框 */
+.test-dialog :deep(.el-dialog__body) {
+  padding: var(--spacing-md, 16px);
 }
 
 .test-questions {
-  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 16px);
 }
 
 .question-item {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: #faf8f6;
-  border-radius: 8px;
+  padding: var(--spacing-sm, 8px);
+  background: var(--color-bg-tertiary, #f1f5f9);
+  border-radius: var(--radius-md, 12px);
 }
 
 .question-title {
-  margin: 0 0 12px 0;
-  color: #6b5e54;
+  font-size: var(--font-sm, 13px);
+  font-weight: 500;
+  color: var(--color-text-primary, #1e293b);
+  margin: 0 0 var(--spacing-sm, 8px) 0;
 }
 
+.question-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 4px);
+}
+
+.question-options :deep(.el-radio) {
+  margin-right: 0;
+  height: auto;
+}
+
+.question-options :deep(.el-radio__label) {
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-secondary, #64748b);
+}
+
+/* 测试结果 */
 .test-result {
   text-align: center;
 }
 
+.result-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm, 8px);
+  margin-bottom: var(--spacing-md, 16px);
+}
+
+.result-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--color-primary, #10b981);
+}
+
+.result-header h3 {
+  font-size: var(--font-lg, 17px);
+  color: var(--color-text-primary, #1e293b);
+  margin: 0;
+}
+
 .result-detail {
   text-align: left;
-  padding: 20px 40px;
+  padding: var(--spacing-md, 16px);
+  background: var(--color-bg-tertiary, #f1f5f9);
+  border-radius: var(--radius-md, 12px);
 }
 
 .result-detail h4 {
-  color: #6b5e54;
-  margin: 16px 0 8px 0;
+  font-size: var(--font-sm, 13px);
+  font-weight: 500;
+  color: var(--color-text-primary, #1e293b);
+  margin: 0 0 var(--spacing-xs, 4px) 0;
 }
 
 .result-detail p {
-  color: #8b7e74;
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-secondary, #64748b);
+  margin: 0 0 var(--spacing-sm, 8px) 0;
   line-height: 1.6;
 }
 
-.loading {
-  padding: 40px 0;
+.divider {
+  height: 1px;
+  background: var(--color-border, #e2e8f0);
+  margin: var(--spacing-sm, 8px) 0;
 }
 
-.empty {
-  padding: 40px 0;
+/* 响应式 */
+@media (max-width: 360px) {
+  .video-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .test-item {
+    flex-wrap: wrap;
+  }
+
+  .test-item .el-button {
+    width: 100%;
+    margin-top: var(--spacing-xs, 4px);
+  }
 }
 </style>

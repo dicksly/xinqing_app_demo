@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+venv/
+dist/
+
+# Logs
+*.log
+logs/
+server.log*
+server_error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.db
+*.db-shm
+*.db-wal
+
+# OpenClaw workspace files (not part of this project)
+AGENTS.md
+BOOTSTRAP.md
+HEARTBEAT.md
+IDENTITY.md
+SOUL.md
+TOOLS.md
+USER.md
+.clawhub/
+.openclaw/
+skills/
+temp_photos/
+vibe_coding_test/
+macos-web-ui/

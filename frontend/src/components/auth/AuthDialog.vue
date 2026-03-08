@@ -2,18 +2,24 @@
   <el-dialog
     v-model="visible"
     :title="isLogin ? '登录' : '注册'"
-    width="400px"
+    width="90%"
+    :style="{ maxWidth: '360px' }"
     :close-on-click-modal="false"
     @close="resetForm"
+    class="auth-dialog"
   >
     <el-form ref="formRef" :model="formData" :rules="rules" label-width="0">
       <el-form-item prop="username">
         <el-input
           v-model="formData.username"
           placeholder="用户名"
-          prefix-icon="User"
           size="large"
-        />
+          class="auth-input"
+        >
+          <template #prefix>
+            <component :is="User" class="input-icon" />
+          </template>
+        </el-input>
       </el-form-item>
 
       <el-form-item prop="password">
@@ -21,10 +27,14 @@
           v-model="formData.password"
           type="password"
           placeholder="密码"
-          prefix-icon="Lock"
           size="large"
           show-password
-        />
+          class="auth-input"
+        >
+          <template #prefix>
+            <component :is="Lock" class="input-icon" />
+          </template>
+        </el-input>
       </el-form-item>
 
       <el-form-item v-if="!isLogin" prop="confirmPassword">
@@ -32,22 +42,28 @@
           v-model="formData.confirmPassword"
           type="password"
           placeholder="确认密码"
-          prefix-icon="Lock"
           size="large"
           show-password
-        />
+          class="auth-input"
+        >
+          <template #prefix>
+            <component :is="Lock" class="input-icon" />
+          </template>
+        </el-input>
       </el-form-item>
     </el-form>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="switchMode" text type="primary">
+        <el-button @click="switchMode" text type="primary" class="switch-btn">
           {{ isLogin ? '没有账号？去注册' : '已有账号？去登录' }}
         </el-button>
-        <el-button @click="handleCancel">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">
-          {{ isLogin ? '登录' : '注册' }}
-        </el-button>
+        <div class="action-btns">
+          <el-button @click="handleCancel">取消</el-button>
+          <el-button type="primary" :loading="loading" @click="handleSubmit">
+            {{ isLogin ? '登录' : '注册' }}
+          </el-button>
+        </div>
       </div>
     </template>
   </el-dialog>
@@ -56,6 +72,7 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { User, Lock } from '@element-plus/icons-vue'
 import { useAuthStore } from '../../stores/auth'
 import { useGamesStore } from '../../stores/games'
 
@@ -168,13 +185,63 @@ watch(
 </script>
 
 <style scoped>
+.auth-dialog :deep(.el-dialog__header) {
+  padding: var(--spacing-md, 16px);
+  padding-bottom: 0;
+}
+
+.auth-dialog :deep(.el-dialog__title) {
+  font-size: var(--font-lg, 17px);
+  font-weight: 600;
+  color: var(--color-text-primary, #1e293b);
+}
+
+.auth-dialog :deep(.el-dialog__body) {
+  padding: var(--spacing-md, 16px);
+}
+
+.auth-input :deep(.el-input__wrapper) {
+  border-radius: var(--radius-md, 12px);
+  box-shadow: none;
+  border: 1px solid var(--color-border, #e2e8f0);
+  padding: 4px 12px;
+}
+
+.auth-input :deep(.el-input__wrapper:focus-within) {
+  border-color: var(--color-primary, #10b981);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+}
+
+.input-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-muted, #94a3b8);
+}
+
 .dialog-footer {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: var(--spacing-sm, 8px);
+}
+
+.switch-btn {
+  align-self: flex-start;
+  padding: 0;
+  font-size: var(--font-sm, 13px);
+}
+
+.action-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm, 8px);
+}
+
+.action-btns .el-button:last-child {
+  background: linear-gradient(135deg, var(--color-primary, #10b981) 0%, var(--color-primary-light, #34d399) 100%);
+  border: none;
 }
 
 :deep(.el-dialog__footer) {
-  padding-top: 0;
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 16px) var(--spacing-md, 16px);
 }
 </style>
