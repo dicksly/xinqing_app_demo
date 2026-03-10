@@ -176,13 +176,15 @@
       v-model="showGameModal"
       :title="currentGame?.title"
       width="90%"
-      :style="{ maxWidth: '400px' }"
+      :style="{ maxWidth: '450px' }"
       :close-on-click-modal="false"
       destroy-on-close
       class="game-dialog"
     >
       <BubbleGame v-if="currentGame?.id === 'bubble'" @close="closeGame" />
       <SoapGame v-else-if="currentGame?.id === 'soap'" @close="closeGame" />
+      <OrganizeGame v-else-if="currentGame?.id === 'organize'" @close="closeGame" />
+      <MandalaGame v-else-if="currentGame?.id === 'mandala'" @close="closeGame" />
       <div v-else class="game-placeholder">
         <p>{{ locale === 'zh-CN' ? '游戏开发中，敬请期待...' : 'Game in development, coming soon...' }}</p>
       </div>
@@ -215,9 +217,11 @@ import { mindfulnessApi } from '../../api'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '../../stores/auth'
 import { useGamesStore } from '../../stores/games'
-import AuthDialog from '../../components/auth/AuthDialog.vue'
-import BubbleGame from './games/BubbleGame.vue'
-import SoapGame from './games/SoapGame.vue'
+    import AuthDialog from '../../components/auth/AuthDialog.vue'
+    import BubbleGame from './games/BubbleGame.vue'
+    import SoapGame from './games/SoapGame.vue'
+    import OrganizeGame from './games/OrganizeGame.vue'
+    import MandalaGame from './games/MandalaGame.vue'
 
 const { t, locale } = useI18n()
 const authStore = useAuthStore()
@@ -260,8 +264,8 @@ const meditationTypes = computed(() => [
 const games = computed(() => [
   { id: 'bubble', title: t('mindfulness.games.bubble'), icon: GridIcon, iconClass: 'icon-primary', desc: t('mindfulness.games.bubbleDesc'), implemented: true },
   { id: 'soap', title: t('mindfulness.games.soap'), icon: Scissor, iconClass: 'icon-secondary', desc: t('mindfulness.games.soapDesc'), implemented: true },
-  { id: 'organize', title: t('mindfulness.games.organize'), icon: Box, iconClass: 'icon-warm', desc: t('mindfulness.games.organizeDesc'), implemented: false },
-  { id: 'mandala', title: t('mindfulness.games.mandala'), icon: Brush, iconClass: 'icon-pink', desc: t('mindfulness.games.mandalaDesc'), implemented: false },
+  { id: 'organize', title: t('mindfulness.games.organize'), icon: Box, iconClass: 'icon-warm', desc: t('mindfulness.games.organizeDesc'), implemented: true },
+  { id: 'mandala', title: t('mindfulness.games.mandala'), icon: Brush, iconClass: 'icon-pink', desc: t('mindfulness.games.mandalaDesc'), implemented: true },
 ])
 
 const selectedType = ref('')

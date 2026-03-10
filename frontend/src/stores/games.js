@@ -18,6 +18,17 @@ const SKIN_UNLOCK_CONDITIONS = {
     { name: 'mint', condition: 80 },
     { name: 'rose', condition: 150 },
   ],
+  organize: [
+    { name: 'default', condition: 0 },
+    { name: 'retro', condition: 20 },
+    { name: 'neon', condition: 50 },
+  ],
+  mandala: [
+    { name: 'default', condition: 0 },
+    { name: 'geometric', condition: 30 },
+    { name: 'floral', condition: 80 },
+    { name: 'complex', condition: 150 },
+  ],
 }
 
 // 默认进度模板
@@ -37,6 +48,22 @@ const defaultProgress = {
     unlockedSkins: ['default'],
     currentSkin: 'default',
     stats: { totalCuts: 0, maxCombo: 0 },
+  },
+  organize: {
+    gameType: 'organize',
+    totalPlayCount: 0,
+    totalPlayTime: 0,
+    unlockedSkins: ['default'],
+    currentSkin: 'default',
+    stats: { totalOrganized: 0, completedRounds: 0 },
+  },
+  mandala: {
+    gameType: 'mandala',
+    totalPlayCount: 0,
+    totalPlayTime: 0,
+    unlockedSkins: ['default'],
+    currentSkin: 'default',
+    stats: { totalColored: 0, completedWorks: 0 },
   },
 }
 
@@ -177,6 +204,60 @@ export const useGamesStore = defineStore('games', () => {
     return newSkins.length > progress.unlockedSkins.length
   }
 
+  // 整理收纳游戏：记录整理
+  function recordOrganize(itemsCount = 0) {
+    const gameType = 'organize'
+    const progress = getProgress(gameType)
+    if (!progress) return
+
+    const newTotalOrganized = (progress.stats.totalOrganized || 0) + itemsCount
+    const newCompletedRounds = (progress.stats.completedRounds || 0) + 1
+    const newPlayCount = (progress.totalPlayCount || 0) + 1
+
+    // 检查解锁皮肤
+    const newSkins = checkUnlocks(gameType, newTotalOrganized, progress.unlockedSkins)
+
+    updateProgress(gameType, {
+      totalPlayCount: newPlayCount,
+      stats: {
+        ...progress.stats,
+        totalOrganized: newTotalOrganized,
+        completedRounds: newCompletedRounds,
+      },
+      unlockedSkins: newSkins,
+    })
+
+    // 返回是否有新解锁
+    return newSkins.length > progress.unlockedSkins.length
+  }
+
+  // 曼陀罗涂色游戏：记录涂色
+  function recordColoring(regionsColored = 0) {
+    const gameType = 'mandala'
+    const progress = getProgress(gameType)
+    if (!progress) return
+
+    const newTotalColored = (progress.stats.totalColored || 0) + regionsColored
+    const newCompletedWorks = (progress.stats.completedWorks || 0) + 1
+    const newPlayCount = (progress.totalPlayCount || 0) + 1
+
+    // 检查解锁皮肤
+    const newSkins = checkUnlocks(gameType, newTotalColored, progress.unlockedSkins)
+
+    updateProgress(gameType, {
+      totalPlayCount: newPlayCount,
+      stats: {
+        ...progress.stats,
+        totalColored: newTotalColored,
+        completedWorks: newCompletedWorks,
+      },
+      unlockedSkins: newSkins,
+    })
+
+    // 返回是否有新解锁
+    return newSkins.length > progress.unlockedSkins.length
+  }
+
   // 检查皮肤解锁
   function checkUnlocks(gameType, totalPops, currentSkins) {
     const conditions = SKIN_UNLOCK_CONDITIONS[gameType] || []
@@ -253,6 +334,8 @@ export const useGamesStore = defineStore('games', () => {
     updateProgress,
     recordPop,
     recordCut,
+    recordOrganize,
+    recordColoring,
     setCurrentSkin,
     syncLocalToServer,
     recordSession,

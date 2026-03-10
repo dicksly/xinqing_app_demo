@@ -257,6 +257,169 @@ class SoundGenerator {
     oscillator.start(ctx.currentTime)
     oscillator.stop(ctx.currentTime + 0.2)
   }
+
+  // 播放物品放置成功声（清脆的叮声）
+  playPlaceCorrect() {
+    if (!this.enabled) return
+    const ctx = this.init()
+    if (ctx.state === 'suspended') {
+      ctx.resume()
+    }
+
+    const oscillator = ctx.createOscillator()
+    const gainNode = ctx.createGain()
+
+    oscillator.connect(gainNode)
+    gainNode.connect(ctx.destination)
+
+    oscillator.frequency.setValueAtTime(880, ctx.currentTime) // A5
+    oscillator.type = 'sine'
+
+    gainNode.gain.setValueAtTime(this.volume * 0.25, ctx.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15)
+
+    oscillator.start(ctx.currentTime)
+    oscillator.stop(ctx.currentTime + 0.15)
+  }
+
+  // 播放物品放置错误声（低沉的提示音）
+  playPlaceWrong() {
+    if (!this.enabled) return
+    const ctx = this.init()
+    if (ctx.state === 'suspended') {
+      ctx.resume()
+    }
+
+    const oscillator = ctx.createOscillator()
+    const gainNode = ctx.createGain()
+
+    oscillator.connect(gainNode)
+    gainNode.connect(ctx.destination)
+
+    oscillator.frequency.setValueAtTime(200, ctx.currentTime)
+    oscillator.type = 'sine'
+
+    gainNode.gain.setValueAtTime(this.volume * 0.15, ctx.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2)
+
+    oscillator.start(ctx.currentTime)
+    oscillator.stop(ctx.currentTime + 0.2)
+  }
+
+  // 播放整理完成声（欢快的音效）
+  playOrganizeComplete() {
+    if (!this.enabled) return
+    const ctx = this.init()
+    if (ctx.state === 'suspended') {
+      ctx.resume()
+    }
+
+    // 播放上升的琶音
+    const notes = [523.25, 659.25, 783.99, 1046.50] // C5, E5, G5, C6
+
+    notes.forEach((freq, index) => {
+      const oscillator = ctx.createOscillator()
+      const gainNode = ctx.createGain()
+
+      oscillator.connect(gainNode)
+      gainNode.connect(ctx.destination)
+
+      const startTime = ctx.currentTime + index * 0.1
+
+      oscillator.frequency.setValueAtTime(freq, startTime)
+      oscillator.type = 'sine'
+
+      gainNode.gain.setValueAtTime(0, startTime)
+      gainNode.gain.linearRampToValueAtTime(this.volume * 0.2, startTime + 0.02)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3)
+
+      oscillator.start(startTime)
+      oscillator.stop(startTime + 0.3)
+    })
+  }
+
+  // 播放拖拽拾取声
+  playPickup() {
+    if (!this.enabled) return
+    const ctx = this.init()
+    if (ctx.state === 'suspended') {
+      ctx.resume()
+    }
+
+    const oscillator = ctx.createOscillator()
+    const gainNode = ctx.createGain()
+
+    oscillator.connect(gainNode)
+    gainNode.connect(ctx.destination)
+
+    oscillator.frequency.setValueAtTime(600, ctx.currentTime)
+    oscillator.type = 'sine'
+
+    gainNode.gain.setValueAtTime(this.volume * 0.1, ctx.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05)
+
+    oscillator.start(ctx.currentTime)
+    oscillator.stop(ctx.currentTime + 0.05)
+  }
+
+  // 播放涂色声（轻柔的填充声）
+  playColorFill() {
+    if (!this.enabled) return
+    const ctx = this.init()
+    if (ctx.state === 'suspended') {
+      ctx.resume()
+    }
+
+    const oscillator = ctx.createOscillator()
+    const gainNode = ctx.createGain()
+
+    oscillator.connect(gainNode)
+    gainNode.connect(ctx.destination)
+
+    // 柔和的上升音调
+    oscillator.frequency.setValueAtTime(300, ctx.currentTime)
+    oscillator.frequency.exponentialRampToValueAtTime(500, ctx.currentTime + 0.1)
+
+    oscillator.type = 'sine'
+
+    gainNode.gain.setValueAtTime(this.volume * 0.15, ctx.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15)
+
+    oscillator.start(ctx.currentTime)
+    oscillator.stop(ctx.currentTime + 0.15)
+  }
+
+  // 播放涂色完成声
+  playColoringComplete() {
+    if (!this.enabled) return
+    const ctx = this.init()
+    if (ctx.state === 'suspended') {
+      ctx.resume()
+    }
+
+    // 播放一个优美的琶音
+    const notes = [523.25, 659.25, 783.99, 1046.50] // C5, E5, G5, C6
+
+    notes.forEach((freq, index) => {
+      const oscillator = ctx.createOscillator()
+      const gainNode = ctx.createGain()
+
+      oscillator.connect(gainNode)
+      gainNode.connect(ctx.destination)
+
+      const startTime = ctx.currentTime + index * 0.12
+
+      oscillator.frequency.setValueAtTime(freq, startTime)
+      oscillator.type = 'sine'
+
+      gainNode.gain.setValueAtTime(0, startTime)
+      gainNode.gain.linearRampToValueAtTime(this.volume * 0.2, startTime + 0.03)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.4)
+
+      oscillator.start(startTime)
+      oscillator.stop(startTime + 0.4)
+    })
+  }
 }
 
 // 单例导出
