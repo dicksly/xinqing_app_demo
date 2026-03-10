@@ -698,27 +698,35 @@ onUnmounted(() => {
   color: #409eff;
 }
 
-/* 深色模式 */
-.dark .soap-game {
+/* 深色模式 - 使用 :global 穿透 scoped */
+:global(.dark) .soap-game {
   background: linear-gradient(135deg, #2d3a4a 0%, #4a3a5a 100%);
 }
 
-.dark .game-header,
-.dark .game-footer {
-  background: rgba(0, 0, 0, 0.2);
+:global(.dark) .soap-game .game-header,
+:global(.dark) .soap-game .game-footer {
+  background: rgba(0, 0, 0, 0.3);
 }
 
-.dark .stat-label {
-  color: #aaa;
+:global(.dark) .soap-game .stat-label {
+  color: #b0b0b0;
 }
 
-.dark .stat-value {
+:global(.dark) .soap-game .stat-value {
   color: #fff;
 }
 
-.dark .slash-effect {
+:global(.dark) .soap-game .slash-effect {
   background: linear-gradient(90deg, transparent, rgba(200, 200, 255, 0.9), transparent);
   box-shadow: 0 0 10px rgba(200, 200, 255, 0.8);
+}
+
+:global(.dark) .soap-game .skin-selector :deep(.el-input__wrapper) {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+:global(.dark) .soap-game .skin-selector :deep(.el-input__inner) {
+  color: #fff;
 }
 
 @media (max-width: 480px) {
