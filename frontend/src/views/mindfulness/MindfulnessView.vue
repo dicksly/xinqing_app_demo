@@ -95,7 +95,7 @@
       </header>
 
       <div class="breathing-animation">
-        <div class="breathing-circle" :class="{ inhaling: isInhaling, exhaling: isExhaling }">
+        <div class="breathing-circle" :class="{ inhaling: isInhaling, holding: isHolding, exhaling: isExhaling }" :style="breathingCircleStyle">
           <span class="breathing-text">{{ breathingText }}</span>
         </div>
       </div>
@@ -182,6 +182,7 @@
       class="game-dialog"
     >
       <BubbleGame v-if="currentGame?.id === 'bubble'" @close="closeGame" />
+      <SoapGame v-else-if="currentGame?.id === 'soap'" @close="closeGame" />
       <div v-else class="game-placeholder">
         <p>{{ locale === 'zh-CN' ? '游戏开发中，敬请期待...' : 'Game in development, coming soon...' }}</p>
       </div>
@@ -216,6 +217,7 @@ import { useAuthStore } from '../../stores/auth'
 import { useGamesStore } from '../../stores/games'
 import AuthDialog from '../../components/auth/AuthDialog.vue'
 import BubbleGame from './games/BubbleGame.vue'
+import SoapGame from './games/SoapGame.vue'
 
 const { t, locale } = useI18n()
 const authStore = useAuthStore()
@@ -257,7 +259,7 @@ const meditationTypes = computed(() => [
 // 解压游戏 - 使用 SVG 图标
 const games = computed(() => [
   { id: 'bubble', title: t('mindfulness.games.bubble'), icon: GridIcon, iconClass: 'icon-primary', desc: t('mindfulness.games.bubbleDesc'), implemented: true },
-  { id: 'soap', title: t('mindfulness.games.soap'), icon: Scissor, iconClass: 'icon-secondary', desc: t('mindfulness.games.soapDesc'), implemented: false },
+  { id: 'soap', title: t('mindfulness.games.soap'), icon: Scissor, iconClass: 'icon-secondary', desc: t('mindfulness.games.soapDesc'), implemented: true },
   { id: 'organize', title: t('mindfulness.games.organize'), icon: Box, iconClass: 'icon-warm', desc: t('mindfulness.games.organizeDesc'), implemented: false },
   { id: 'mandala', title: t('mindfulness.games.mandala'), icon: Brush, iconClass: 'icon-pink', desc: t('mindfulness.games.mandalaDesc'), implemented: false },
 ])
@@ -271,11 +273,13 @@ const isPlaying = ref(false)
 
 // 呼吸训练
 const isInhaling = ref(false)
+const isHolding = ref(false)
 const isExhaling = ref(false)
 const isBreathingActive = ref(false)
 const breathingText = ref('')
 const breathingTimer = ref(null)
 const tickInterval = ref(null)
+const transitionDuration = ref(0)
 let audioContext = null
 
 // 游戏弹窗
@@ -295,6 +299,11 @@ const breathingTexts = computed(() => ({
 const currentMeditationConfig = computed(() => {
   return selectedType.value ? meditationConfigs[selectedType.value] : null
 })
+
+// 呼吸圆圈动态样式 - 根据阶段设置过渡时间
+const breathingCircleStyle = computed(() => ({
+  transition: `transform ${transitionDuration.value}s ease-in-out, box-shadow ${transitionDuration.value}s ease-in-out`
+}))
 
 // 初始化呼吸文本
 onMounted(() => {
@@ -584,9 +593,11 @@ function startBreathingCycle() {
   const cycle = () => {
     if (!isBreathingActive.value) return
 
-    // 吸气阶段
+    // 吸气阶段 - 4秒
     isInhaling.value = true
+    isHolding.value = false
     isExhaling.value = false
+    transitionDuration.value = 4 // 吸气过渡时间4秒
     breathingText.value = breathingTexts.value.inhale
 
     // 启动滴答声（每秒一次）
@@ -596,9 +607,11 @@ function startBreathingCycle() {
       if (!isBreathingActive.value) return
       stopTickTimer()
 
-      // 屏息阶段
+      // 屏息阶段 - 7秒，保持扩张状态
       isInhaling.value = false
+      isHolding.value = true
       isExhaling.value = false
+      transitionDuration.value = 0 // 屏息时不需要过渡
       breathingText.value = breathingTexts.value.hold
 
       // 启动屏息滴答声
@@ -608,9 +621,11 @@ function startBreathingCycle() {
         if (!isBreathingActive.value) return
         stopTickTimer()
 
-        // 呼气阶段
+        // 呼气阶段 - 8秒
         isInhaling.value = false
+        isHolding.value = false
         isExhaling.value = true
+        transitionDuration.value = 8 // 呼气过渡时间8秒
         breathingText.value = breathingTexts.value.exhale
 
         // 启动呼气滴答声
@@ -621,6 +636,10 @@ function startBreathingCycle() {
           stopTickTimer()
 
           // 完成一次循环
+          isInhaling.value = false
+          isHolding.value = false
+          isExhaling.value = false
+          transitionDuration.value = 0.5
           breathingText.value = breathingTexts.value.ready
           cycleCount++
 
@@ -640,6 +659,7 @@ function startBreathingCycle() {
 
 function stopBreathingCycle() {
   isInhaling.value = false
+  isHolding.value = false
   isExhaling.value = false
   breathingText.value = breathingTexts.value.ready
 
@@ -925,11 +945,15 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: all 2s ease-in-out;
   box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
 }
 
 .breathing-circle.inhaling {
+  transform: scale(1.3);
+  box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
+}
+
+.breathing-circle.holding {
   transform: scale(1.3);
   box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
 }
@@ -1127,7 +1151,8 @@ onMounted(() => {
   box-shadow: 0 4px 20px rgba(167, 139, 250, 0.3);
 }
 
-.dark .breathing-circle.inhaling {
+.dark .breathing-circle.inhaling,
+.dark .breathing-circle.holding {
   box-shadow: 0 8px 30px rgba(167, 139, 250, 0.4);
 }
 

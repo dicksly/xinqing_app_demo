@@ -12,6 +12,12 @@ const SKIN_UNLOCK_CONDITIONS = {
     { name: 'rainbow', condition: 50 },
     { name: 'starry', condition: 200 },
   ],
+  soap: [
+    { name: 'default', condition: 0 },
+    { name: 'lavender', condition: 30 },
+    { name: 'mint', condition: 80 },
+    { name: 'rose', condition: 150 },
+  ],
 }
 
 // 默认进度模板
@@ -23,6 +29,14 @@ const defaultProgress = {
     unlockedSkins: ['default'],
     currentSkin: 'default',
     stats: { totalPops: 0, maxCombo: 0 },
+  },
+  soap: {
+    gameType: 'soap',
+    totalPlayCount: 0,
+    totalPlayTime: 0,
+    unlockedSkins: ['default'],
+    currentSkin: 'default',
+    stats: { totalCuts: 0, maxCombo: 0 },
   },
 }
 
@@ -136,6 +150,33 @@ export const useGamesStore = defineStore('games', () => {
     return newSkins.length > progress.unlockedSkins.length
   }
 
+  // 切肥皂游戏：记录切割
+  function recordCut(combo = 1) {
+    const gameType = 'soap'
+    const progress = getProgress(gameType)
+    if (!progress) return
+
+    const newTotalCuts = (progress.stats.totalCuts || 0) + 1
+    const newMaxCombo = Math.max(progress.stats.maxCombo || 0, combo)
+    const newPlayCount = (progress.totalPlayCount || 0) + 1
+
+    // 检查解锁皮肤
+    const newSkins = checkUnlocks(gameType, newTotalCuts, progress.unlockedSkins)
+
+    updateProgress(gameType, {
+      totalPlayCount: newPlayCount,
+      stats: {
+        ...progress.stats,
+        totalCuts: newTotalCuts,
+        maxCombo: newMaxCombo,
+      },
+      unlockedSkins: newSkins,
+    })
+
+    // 返回是否有新解锁
+    return newSkins.length > progress.unlockedSkins.length
+  }
+
   // 检查皮肤解锁
   function checkUnlocks(gameType, totalPops, currentSkins) {
     const conditions = SKIN_UNLOCK_CONDITIONS[gameType] || []
@@ -211,6 +252,7 @@ export const useGamesStore = defineStore('games', () => {
     getProgress,
     updateProgress,
     recordPop,
+    recordCut,
     setCurrentSkin,
     syncLocalToServer,
     recordSession,
