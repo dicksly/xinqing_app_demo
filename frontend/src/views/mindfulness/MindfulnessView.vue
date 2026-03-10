@@ -26,6 +26,11 @@
         </div>
       </div>
 
+      <!-- 场景描述 -->
+      <div v-if="selectedType && currentMeditationConfig" class="scenario-description">
+        <p>{{ locale === 'zh-CN' ? currentMeditationConfig.description.zh : currentMeditationConfig.description.en }}</p>
+      </div>
+
       <!-- 时长选择 -->
       <div v-if="selectedType" class="section">
         <h3 class="section-title">{{ t('mindfulness.selectDuration') }}</h3>
@@ -270,6 +275,8 @@ const isExhaling = ref(false)
 const isBreathingActive = ref(false)
 const breathingText = ref('')
 const breathingTimer = ref(null)
+const tickInterval = ref(null)
+let audioContext = null
 
 // 游戏弹窗
 const showGameModal = ref(false)
@@ -284,6 +291,11 @@ const breathingTexts = computed(() => ({
   exhale: t('mindfulness.breathing.exhale'),
 }))
 
+// 当前冥想配置
+const currentMeditationConfig = computed(() => {
+  return selectedType.value ? meditationConfigs[selectedType.value] : null
+})
+
 // 初始化呼吸文本
 onMounted(() => {
   breathingText.value = breathingTexts.value.ready
@@ -297,6 +309,114 @@ function initAudioPlayers() {
 
   voiceAudioPlayer.value = new Audio()
   voiceAudioPlayer.value.loop = false
+
+  // 初始化 AudioContext 用于滴答声
+  try {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)()
+  } catch (e) {
+    console.warn('AudioContext 不支持:', e)
+  }
+}
+
+// 播放滴答声（每秒提示音）
+function playTickSound() {
+  if (!audioContext) return
+
+  try {
+    // 确保 AudioContext 处于运行状态
+    if (audioContext.state === 'suspended') {
+      audioContext.resume()
+    }
+
+    const oscillator = audioContext.createOscillator()
+    const gainNode = audioContext.createGain()
+
+    oscillator.connect(gainNode)
+    gainNode.connect(audioContext.destination)
+
+    // 设置滴答声的频率和音色
+    oscillator.frequency.value = 800 // 频率
+    oscillator.type = 'sine' // 正弦波
+
+    // 设置音量包络
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1)
+
+    // 播放
+    oscillator.start(audioContext.currentTime)
+    oscillator.stop(audioContext.currentTime + 0.1)
+  } catch (e) {
+    console.warn('滴答声播放失败:', e)
+  }
+}
+
+// 开始滴答计时
+function startTickTimer(duration) {
+  stopTickTimer()
+  let remaining = duration
+  playTickSound() // 立即播放一次
+
+  tickInterval.value = setInterval(() => {
+    remaining--
+    if (remaining > 0 && isBreathingActive.value) {
+      playTickSound()
+    }
+    if (remaining <= 0) {
+      stopTickTimer()
+    }
+  }, 1000)
+}
+
+// 停止滴答计时
+function stopTickTimer() {
+  if (tickInterval.value) {
+    clearInterval(tickInterval.value)
+    tickInterval.value = null
+  }
+}
+
+// 冥想场景配置 - 根据不同场景定制
+const meditationConfigs = {
+  sleep: {
+    defaultDuration: 20, // 睡眠助眠默认20分钟
+    defaultBgMusic: 'rain', // 雨声更适合睡眠
+    breathingPattern: { inhale: 5, hold: 8, exhale: 10 }, // 更慢的节奏
+    theme: 'calm',
+    description: {
+      zh: '放松身心，进入深度睡眠状态',
+      en: 'Relax your body and mind for deep sleep'
+    }
+  },
+  wake: {
+    defaultDuration: 5, // 晨间唤醒默认5分钟
+    defaultBgMusic: 'alpha-wave', // 阿尔法波更提神
+    breathingPattern: { inhale: 3, hold: 2, exhale: 4 }, // 快速唤醒节奏
+    theme: 'energize',
+    description: {
+      zh: '唤醒身体，开启元气满满的一天',
+      en: 'Wake up your body for an energetic day'
+    }
+  },
+  stress: {
+    defaultDuration: 10, // 抗压训练默认10分钟
+    defaultBgMusic: 'forest', // 森林声更专注
+    breathingPattern: { inhale: 4, hold: 7, exhale: 8 }, // 标准4-7-8
+    theme: 'focus',
+    description: {
+      zh: '提升专注力，增强抗压能力',
+      en: 'Boost focus and build stress resilience'
+    }
+  },
+  emergency: {
+    defaultDuration: 3, // 情绪急救默认3分钟
+    defaultBgMusic: 'white-noise', // 白噪音快速平复
+    breathingPattern: { inhale: 2, hold: 3, exhale: 4 }, // 快速短促节奏
+    theme: 'calm',
+    description: {
+      zh: '快速平复情绪，恢复平静',
+      en: 'Quickly calm down and restore peace'
+    }
+  }
 }
 
 // 开始冥想
@@ -440,6 +560,11 @@ watch(bgMusicType, async (newType) => {
 // 组件卸载时清理
 onUnmounted(() => {
   stopMeditation()
+  stopTickTimer()
+  if (audioContext) {
+    audioContext.close()
+    audioContext = null
+  }
 })
 
 // 切换呼吸训练
@@ -459,29 +584,41 @@ function startBreathingCycle() {
   const cycle = () => {
     if (!isBreathingActive.value) return
 
-    // 吸气 4 秒
+    // 吸气阶段
     isInhaling.value = true
     isExhaling.value = false
     breathingText.value = breathingTexts.value.inhale
 
+    // 启动滴答声（每秒一次）
+    startTickTimer(4)
+
     setTimeout(() => {
       if (!isBreathingActive.value) return
+      stopTickTimer()
 
-      // 屏息 7 秒
+      // 屏息阶段
       isInhaling.value = false
       isExhaling.value = false
       breathingText.value = breathingTexts.value.hold
 
+      // 启动屏息滴答声
+      startTickTimer(7)
+
       setTimeout(() => {
         if (!isBreathingActive.value) return
+        stopTickTimer()
 
-        // 呼气 8 秒
+        // 呼气阶段
         isInhaling.value = false
         isExhaling.value = true
         breathingText.value = breathingTexts.value.exhale
 
+        // 启动呼气滴答声
+        startTickTimer(8)
+
         setTimeout(() => {
           if (!isBreathingActive.value) return
+          stopTickTimer()
 
           // 完成一次循环
           breathingText.value = breathingTexts.value.ready
@@ -510,7 +647,19 @@ function stopBreathingCycle() {
     clearTimeout(breathingTimer.value)
     breathingTimer.value = null
   }
+
+  // 停止滴答声
+  stopTickTimer()
 }
+
+// 监听冥想类型选择，应用场景化默认配置
+watch(selectedType, (newType) => {
+  if (newType && meditationConfigs[newType]) {
+    const config = meditationConfigs[newType]
+    selectedDuration.value = config.defaultDuration
+    bgMusicType.value = config.defaultBgMusic
+  }
+})
 
 // 打开游戏
 function openGame(game) {
@@ -663,6 +812,22 @@ onMounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 场景描述 */
+.scenario-description {
+  margin-bottom: var(--spacing-md, 16px);
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border-radius: var(--radius-md, 12px);
+  border-left: 3px solid var(--color-primary, #10b981);
+}
+
+.scenario-description p {
+  margin: 0;
+  font-size: var(--font-sm, 13px);
+  color: var(--color-text-secondary, #64748b);
+  font-style: italic;
 }
 
 /* 分区 */
@@ -946,6 +1111,11 @@ onMounted(() => {
 .dark .type-item.active {
   background: rgba(167, 139, 250, 0.15);
   box-shadow: 0 0 0 2px var(--color-primary, #a78bfa);
+}
+
+.dark .scenario-description {
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
+  border-left-color: var(--color-primary, #a78bfa);
 }
 
 .dark .start-btn {

@@ -179,7 +179,7 @@ export default {
 
   // 知识充电站
   knowledge: {
-    dailyQuote: '每日金句',
+    dailyQuote: '晨曦语录（每日金句）',
     video: '视频',
     test: '测试',
     article: '文章',

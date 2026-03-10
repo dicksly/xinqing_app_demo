@@ -179,7 +179,7 @@ export default {
 
   // Knowledge Hub
   knowledge: {
-    dailyQuote: 'Daily Quote',
+    dailyQuote: 'Dawn Quotes (Daily Quote)',
     video: 'Videos',
     test: 'Tests',
     article: 'Articles',
