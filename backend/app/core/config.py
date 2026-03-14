@@ -2,6 +2,7 @@
 后端配置文件
 """
 
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from typing import Optional
 from functools import cached_property
@@ -9,6 +10,12 @@ from functools import cached_property
 
 class Settings(BaseSettings):
     """应用配置"""
+
+    model_config = {
+        "env_file": Path(__file__).resolve().parents[2] / ".env",
+        "env_file_encoding": "utf-8",
+        "extra": "ignore",
+    }
     
     # 应用基础配置
     APP_NAME: str = "心理健康与情绪疗愈 App"
@@ -31,11 +38,12 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "*"  # 默认允许所有来源，生产环境应设置为前端域名
     AI_API_KEY: Optional[str] = None
     AI_API_BASE: Optional[str] = None
+    AI_MODEL: str = "Pro/deepseek-ai/DeepSeek-V3.2"
     
     # 文件上传配置
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
-    ALLOWED_IMAGE_TYPES: list = ["image/jpeg", "image/png", "image/gif"]
-    ALLOWED_AUDIO_TYPES: list = ["audio/mpeg", "audio/wav", "audio/ogg"]
+    ALLOWED_IMAGE_TYPES: str = "image/jpeg,image/png,image/gif"
+    ALLOWED_AUDIO_TYPES: str = "audio/mpeg,audio/wav,audio/ogg"
     
     # 分页配置
     DEFAULT_PAGE_SIZE: int = 20
@@ -56,6 +64,14 @@ class Settings(BaseSettings):
     def cors_allow_credentials(self) -> bool:
         """通配来源时禁用 credentials，避免违反 CORS 规范。"""
         return self.allowed_origins_list != ["*"]
+
+    @cached_property
+    def allowed_image_types_list(self) -> list[str]:
+        return [item.strip() for item in self.ALLOWED_IMAGE_TYPES.split(",") if item.strip()]
+
+    @cached_property
+    def allowed_audio_types_list(self) -> list[str]:
+        return [item.strip() for item in self.ALLOWED_AUDIO_TYPES.split(",") if item.strip()]
 
 
 settings = Settings()

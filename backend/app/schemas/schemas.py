@@ -2,7 +2,7 @@
 Pydantic Schemas - 用于数据验证和序列化
 """
 
-from pydantic import BaseModel, ConfigDict, Field, AliasChoices
+from pydantic import BaseModel, ConfigDict, Field, AliasChoices, model_validator
 from typing import Optional, List
 from datetime import datetime
 
@@ -81,8 +81,8 @@ class MindfulnessSessionResponse(MindfulnessSessionBase):
 
 class TreeholeEntryBase(BaseModel):
     """秘密树洞基础 Schema"""
-    content_type: str = Field(
-        ...,
+    content_type: Optional[str] = Field(
+        None,
         description="内容类型：text/voice/image",
         validation_alias=AliasChoices("content_type", "contentType"),
     )
@@ -101,6 +101,25 @@ class TreeholeEntryBase(BaseModel):
         0,
         description="语音时长（秒）",
     )
+    
+    @model_validator(mode="after")
+    def validate_content_presence(self):
+        has_text = bool((self.content or "").strip())
+        has_image = bool(self.image_data)
+        has_voice = bool((self.duration or 0) > 0)
+
+        if not any([has_text, has_image, has_voice]):
+            raise ValueError("至少需要提供文字、图片或语音中的一种内容")
+
+        if not self.content_type:
+            if has_text:
+                self.content_type = "text"
+            elif has_voice:
+                self.content_type = "voice"
+            else:
+                self.content_type = "image"
+
+        return self
 
 
 class TreeholeEntryCreate(TreeholeEntryBase):

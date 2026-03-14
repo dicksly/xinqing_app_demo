@@ -3,8 +3,9 @@ AI 服务 - 提供风险检测和情感响应生成
 """
 
 import json
-from typing import List, Dict, Optional
-from ..models.models import EmotionRecord
+from urllib import request
+
+from ..core.config import settings
 
 
 class AIService:
@@ -59,12 +60,84 @@ class AIService:
         Returns:
             response: AI 生成的响应
         """
+        if self._llm_is_configured():
+            try:
+                response = self._request_chat_completion(content, risk_level)
+                if response:
+                    return response
+            except Exception as exc:
+                print(f"AI 请求失败，回退到本地模板: {exc}")
+
         if risk_level == "severe":
             return self._generate_severe_response()
         elif risk_level == "mild":
             return self._generate_mild_response(content)
         else:
             return self._generate_normal_response(content)
+
+    def _llm_is_configured(self) -> bool:
+        return bool(settings.AI_API_KEY and settings.AI_API_BASE and settings.AI_MODEL)
+
+    def _request_chat_completion(self, content: str, risk_level: str) -> str:
+        api_base = settings.AI_API_BASE.rstrip("/")
+        payload = {
+            "model": settings.AI_MODEL,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": self._build_system_prompt(risk_level),
+                },
+                {
+                    "role": "user",
+                    "content": content,
+                },
+            ],
+            "temperature": 0.7,
+        }
+
+        req = request.Request(
+            url=f"{api_base}/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {settings.AI_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+
+        with request.urlopen(req, timeout=20) as response:
+            body = json.loads(response.read().decode("utf-8"))
+
+        return (
+            body.get("choices", [{}])[0]
+            .get("message", {})
+            .get("content", "")
+            .strip()
+        )
+
+    def _build_system_prompt(self, risk_level: str) -> str:
+        base_prompt = (
+            "你是一个温和、共情、不评判的心理支持助手。"
+            "请用简体中文回复，保持真诚、简短、自然，不要使用说教语气。"
+            "不要自称医生，不要做临床诊断。"
+        )
+
+        if risk_level == "severe":
+            return (
+                base_prompt
+                + "用户存在高风险信号。优先表达关心，明确建议立即联系现实中的亲友和专业热线。"
+            )
+
+        if risk_level == "mild":
+            return (
+                base_prompt
+                + "用户情绪较脆弱。优先共情，再给出2到3条非常具体、温和、可执行的建议。"
+            )
+
+        return (
+            base_prompt
+            + "用户在正常倾诉。优先回应其情绪并提供陪伴感，可给1到2条轻量建议。"
+        )
     
     def _generate_severe_response(self) -> str:
         """生成高风险响应"""

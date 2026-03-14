@@ -25,8 +25,14 @@ const SKIN_UNLOCK_CONDITIONS = {
   ],
   mandala: [
     { name: 'default', condition: 0 },
+    { name: 'lotus', condition: 10 },
+    { name: 'sunburst', condition: 20 },
     { name: 'geometric', condition: 30 },
+    { name: 'hexagon', condition: 45 },
+    { name: 'spiral', condition: 60 },
     { name: 'floral', condition: 80 },
+    { name: 'moonstars', condition: 100 },
+    { name: 'fish', condition: 120 },
     { name: 'complex', condition: 150 },
   ],
 }

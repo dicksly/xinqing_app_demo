@@ -14,13 +14,26 @@
       </div>
       <div class="pattern-selector">
         <el-select
+          v-model="currentCategory"
+          size="small"
+          placeholder="选择分类"
+          @change="onCategoryChange"
+        >
+          <el-option
+            v-for="category in availableCategories"
+            :key="category.value"
+            :label="category.label"
+            :value="category.value"
+          />
+        </el-select>
+        <el-select
           v-model="currentPattern"
           size="small"
           placeholder="选择图案"
           @change="onPatternChange"
         >
           <el-option
-            v-for="pattern in availablePatterns"
+            v-for="pattern in filteredTemplates"
             :key="pattern.name"
             :label="pattern.label"
             :value="pattern.name"
@@ -34,7 +47,7 @@
     <div class="coloring-area">
       <!-- SVG 曼陀罗图案 -->
       <svg
-        viewBoxBox="0 0 300 300"
+        viewBox="0 0 300 300"
         class="mandala-svg"
         :class="`pattern-${currentPattern}`"
       >
@@ -44,6 +57,9 @@
           :key="'outer-' + index"
           class="mandala-region"
           :class="{ colored: region.color, filled: region.color === currentColor }"
+          :cx="region.cx"
+          :cy="region.cy"
+          :r="region.r"
           :style="{ fill: region.color || 'transparent' }"
           @click="fillRegion(region, 'outer', index)"
         />
@@ -53,6 +69,9 @@
           :key="'middle-' + index"
           class="mandala-region"
           :class="{ colored: region.color, filled: region.color === currentColor }"
+          :cx="region.cx"
+          :cy="region.cy"
+          :r="region.r"
           :style="{ fill: region.color || 'transparent' }"
           @click="fillRegion(region, 'middle', index)"
         />
@@ -62,6 +81,9 @@
           :key="'inner-' + index"
           class="mandala-region"
           :class="{ colored: region.color, filled: region.color === currentColor }"
+          :cx="region.cx"
+          :cy="region.cy"
+          :r="region.r"
           :style="{ fill: region.color || 'transparent' }"
           @click="fillRegion(region, 'inner', index)"
         />
@@ -69,6 +91,9 @@
         <circle
           class="mandala-center"
           :class="{ colored: centerRegion.color }"
+          :cx="centerRegion.cx"
+          :cy="centerRegion.cy"
+          :r="centerRegion.r"
           :style="{ fill: centerRegion.color }"
           @click="fillRegion(centerRegion, 'center', 0)"
         />
@@ -173,39 +198,173 @@ const emit = defineEmits(['close'])
 
 const gamesStore = useGamesStore()
 
+const TEMPLATE_CATEGORIES = {
+  mandala: '曼陀罗',
+  geometric: '几何',
+  nature: '自然',
+  sky: '星空',
+  animal: '动物',
+  advanced: '进阶',
+}
+
 // 图案配置
 const PATTERN_CONFIG = {
   default: {
+    category: 'mandala',
     label: '简单圆形',
     description: '基础曼陀罗图案',
-    outerRegions: 8,
-    middleRegions: 8,
-    innerRegions: 4,
-    centerRegion: true,
+    layout: {
+      outer: { count: 8, distance: 96, radius: 18 },
+      middle: { count: 8, distance: 60, radius: 16 },
+      inner: { count: 4, distance: 28, radius: 12 },
+      center: { cx: 150, cy: 150, r: 16 },
+    },
+  },
+  lotus: {
+    category: 'mandala',
+    label: '莲花曼陀罗',
+    description: '柔和的花瓣环形',
+    layout: {
+      outer: { count: 12, distance: 98, radius: 16 },
+      middle: { count: 8, distance: 58, radius: 14 },
+      inner: { count: 6, distance: 28, radius: 10 },
+      center: { cx: 150, cy: 150, r: 14 },
+    },
+  },
+  sunburst: {
+    category: 'mandala',
+    label: '日芒曼陀罗',
+    description: '放射状层次纹样',
+    layout: {
+      outer: { count: 14, distance: 102, radius: 15 },
+      middle: { count: 10, distance: 64, radius: 13 },
+      inner: { count: 6, distance: 30, radius: 10 },
+      center: { cx: 150, cy: 150, r: 14 },
+    },
   },
   geometric: {
+    category: 'geometric',
     label: '几何之美',
     description: '对称几何图案',
-    outerRegions: 12,
-    middleRegions: 6,
-    innerRegions: 6,
-    centerRegion: true,
+    layout: {
+      outer: { count: 12, distance: 94, radius: 16 },
+      middle: { count: 6, distance: 56, radius: 15 },
+      inner: { count: 6, distance: 28, radius: 11 },
+      center: { cx: 150, cy: 150, r: 14 },
+    },
+  },
+  hexagon: {
+    category: 'geometric',
+    label: '六角拼图',
+    description: '规则块面排列',
+    layout: {
+      outer: { count: 6, distance: 88, radius: 20 },
+      middle: { count: 6, distance: 48, radius: 16 },
+      inner: { count: 6, distance: 22, radius: 9 },
+      center: { cx: 150, cy: 150, r: 14 },
+    },
+  },
+  spiral: {
+    category: 'geometric',
+    label: '旋涡轨迹',
+    description: '旋转感几何图形',
+    layout: {
+      outer: { count: 10, distance: 92, radius: 14, offset: 0.3 },
+      middle: { count: 8, distance: 56, radius: 13, offset: 0.6 },
+      inner: { count: 5, distance: 24, radius: 10, offset: 0.9 },
+      center: { cx: 150, cy: 150, r: 12 },
+    },
   },
   floral: {
+    category: 'nature',
     label: '花朵绽放',
     description: '花瓣形图案',
-    outerRegions: 10,
-    middleRegions: 8,
-    innerRegions: 5,
-    centerRegion: true,
+    layout: {
+      outer: { count: 10, distance: 96, radius: 18 },
+      middle: { count: 8, distance: 58, radius: 14 },
+      inner: { count: 5, distance: 25, radius: 10 },
+      center: { cx: 150, cy: 150, r: 16 },
+    },
+  },
+  moonstars: {
+    category: 'sky',
+    label: '月夜星辰',
+    description: '月亮与星点构图',
+    layout: {
+      outer: {
+        custom: [
+          { cx: 90, cy: 86, r: 18 },
+          { cx: 125, cy: 66, r: 11 },
+          { cx: 170, cy: 78, r: 13 },
+          { cx: 215, cy: 100, r: 10 },
+          { cx: 110, cy: 220, r: 12 },
+          { cx: 190, cy: 216, r: 16 },
+        ],
+      },
+      middle: {
+        custom: [
+          { cx: 82, cy: 146, r: 12 },
+          { cx: 216, cy: 154, r: 12 },
+          { cx: 142, cy: 108, r: 10 },
+          { cx: 162, cy: 196, r: 10 },
+        ],
+      },
+      inner: {
+        custom: [
+          { cx: 132, cy: 152, r: 18 },
+          { cx: 154, cy: 144, r: 18 },
+          { cx: 170, cy: 166, r: 16 },
+        ],
+      },
+      center: { cx: 150, cy: 150, r: 10 },
+    },
+  },
+  fish: {
+    category: 'animal',
+    label: '游鱼图',
+    description: '小鱼轮廓填色',
+    layout: {
+      outer: {
+        custom: [
+          { cx: 88, cy: 150, r: 14 },
+          { cx: 112, cy: 128, r: 18 },
+          { cx: 112, cy: 172, r: 18 },
+          { cx: 146, cy: 118, r: 18 },
+          { cx: 146, cy: 182, r: 18 },
+          { cx: 184, cy: 128, r: 18 },
+          { cx: 184, cy: 172, r: 18 },
+          { cx: 220, cy: 150, r: 14 },
+        ],
+      },
+      middle: {
+        custom: [
+          { cx: 118, cy: 150, r: 14 },
+          { cx: 150, cy: 150, r: 16 },
+          { cx: 182, cy: 150, r: 14 },
+          { cx: 204, cy: 150, r: 10 },
+        ],
+      },
+      inner: {
+        custom: [
+          { cx: 94, cy: 138, r: 9 },
+          { cx: 94, cy: 162, r: 9 },
+          { cx: 150, cy: 132, r: 9 },
+          { cx: 150, cy: 168, r: 9 },
+        ],
+      },
+      center: { cx: 198, cy: 140, r: 5 },
+    },
   },
   complex: {
+    category: 'advanced',
     label: '复杂精美',
     description: '多层复杂图案',
-    outerRegions: 16,
-    middleRegions: 12,
-    innerRegions: 8,
-    centerRegion: true,
+    layout: {
+      outer: { count: 16, distance: 104, radius: 14 },
+      middle: { count: 12, distance: 66, radius: 12 },
+      inner: { count: 8, distance: 34, radius: 10 },
+      center: { cx: 150, cy: 150, r: 13 },
+    },
   },
 }
 
@@ -215,8 +374,10 @@ const COLORS = [
   '#DDA0DD', '#98D8C8', '#F8B500', '#FF8C94', '#00CED1',
   '#E8E8E8', '#B8B8B8', '#A8E6CF', '#C4B5FD', '#FFD700',
 ]
+const colors = COLORS
 
 // 状态
+const currentCategory = ref('mandala')
 const currentPattern = ref('default')
 const currentColor = ref('#4ECDC4')
 const showUnlockDialog = ref(false)
@@ -241,18 +402,26 @@ const progress = computed(() => gamesStore.getProgress('mandala') || {
   currentSkin: 'default',
 })
 
-const availablePatterns = computed(() =>
-  Object.entries(PATTERN_CONFIG).map(([name, config]) => ({
-    name,
-    label: config.label,
-  }))
+const availableCategories = computed(() =>
+  Object.entries(TEMPLATE_CATEGORIES).map(([value, label]) => ({ value, label }))
+)
+
+const filteredTemplates = computed(() =>
+  Object.entries(PATTERN_CONFIG)
+    .filter(([, config]) => config.category === currentCategory.value)
+    .map(([name, config]) => ({
+      name,
+      label: config.label,
+    }))
 )
 
 const totalRegions = computed(() => {
-  const config = PATTERN_CONFIG[currentPattern.value]
-  let total = config.outerRegions + config.middleRegions + config.innerRegions
-  if (config.centerRegion) total += 1
-  return total
+  return (
+    outerRegions.value.length +
+    middleRegions.value.length +
+    innerRegions.value.length +
+    (centerRegion.value?.r ? 1 : 0)
+  )
 })
 
 const coloredCount = computed(() => {
@@ -276,14 +445,33 @@ const usedColorsCount = computed(() => {
 const canUndo = computed(() => historyIndex.value >= 0)
 const canRedo = computed(() => historyIndex.value < history.value.length - 1)
 
+const createRingRegions = (count, distance, regionRadius, offset = 0) =>
+  Array.from({ length: count }, (_, index) => {
+    const angle = (Math.PI * 2 * index) / count - Math.PI / 2 + offset
+    return {
+      color: null,
+      cx: 150 + Math.cos(angle) * distance,
+      cy: 150 + Math.sin(angle) * distance,
+      r: regionRadius,
+    }
+  })
+
+const createRegions = (config) => {
+  if (config.custom) {
+    return config.custom.map((region) => ({ color: null, ...region }))
+  }
+
+  return createRingRegions(config.count, config.distance, config.radius, config.offset || 0)
+}
+
 // 初始化图案
 const initPattern = () => {
   const config = PATTERN_CONFIG[currentPattern.value]
 
-  outerRegions.value = Array(config.outerRegions).fill(null).map(() => ({ color: null }))
-  middleRegions.value = Array(config.middleRegions).fill(null).map(() => ({ color: null }))
-  innerRegions.value = Array(config.innerRegions).fill(null).map(() => ({ color: null }))
-  centerRegion.value = { color: null }
+  outerRegions.value = createRegions(config.layout.outer)
+  middleRegions.value = createRegions(config.layout.middle)
+  innerRegions.value = createRegions(config.layout.inner)
+  centerRegion.value = { color: null, ...config.layout.center }
 
   history.value = []
   historyIndex.value = -1
@@ -401,9 +589,21 @@ const startNewWork = () => {
 // 切换图案
 const onPatternChange = (patternName) => {
   currentPattern.value = patternName
+  currentCategory.value = PATTERN_CONFIG[patternName]?.category || currentCategory.value
   gamesStore.setCurrentSkin('mandala', patternName)
   initPattern()
   soundGenerator.playClick()
+}
+
+const onCategoryChange = (categoryName) => {
+  currentCategory.value = categoryName
+  const firstAvailable = filteredTemplates.value.find((template) =>
+    progress.value.unlockedSkins?.includes(template.name)
+  ) || filteredTemplates.value[0]
+
+  if (firstAvailable) {
+    onPatternChange(firstAvailable.name)
+  }
 }
 
 // 关闭游戏
@@ -419,6 +619,7 @@ const handleClose = () => {
 onMounted(() => {
   gamesStore.init()
   currentPattern.value = progress.value.currentSkin || 'default'
+  currentCategory.value = PATTERN_CONFIG[currentPattern.value]?.category || 'mandala'
   startTime.value = Date.now()
   initPattern()
 })

@@ -6,6 +6,7 @@
 from contextlib import asynccontextmanager
 import os
 from pathlib import Path
+import sqlite3
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,6 +25,31 @@ from app.api.v1.api import router as api_router
 from app.core.database import engine, Base
 
 
+def ensure_treehole_schema(db_path: Path) -> None:
+    """为旧版 SQLite 数据库补齐树洞表缺失列。"""
+    if not db_path.exists():
+        return
+
+    conn = sqlite3.connect(db_path)
+    try:
+        columns = {
+            row[1] for row in conn.execute("PRAGMA table_info(treehole_entries)").fetchall()
+        }
+
+        if not columns:
+            return
+
+        if "image_data" not in columns:
+            conn.execute("ALTER TABLE treehole_entries ADD COLUMN image_data TEXT")
+
+        if "duration" not in columns:
+            conn.execute("ALTER TABLE treehole_entries ADD COLUMN duration INTEGER DEFAULT 0")
+
+        conn.commit()
+    finally:
+        conn.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：启动时准备数据库。"""
@@ -31,6 +57,7 @@ async def lifespan(app: FastAPI):
         from app.core.persistent import DATABASE_FILE
         DATABASE_FILE.parent.mkdir(parents=True, exist_ok=True)
         print(f"✅ 数据库目录创建成功：{DATABASE_FILE.parent}")
+        ensure_treehole_schema(DATABASE_FILE)
     except ImportError:
         pass
 

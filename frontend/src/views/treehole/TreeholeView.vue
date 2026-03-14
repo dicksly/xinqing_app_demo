@@ -7,30 +7,12 @@
         <h2 class="card-title">{{ t('treehole.title') }}</h2>
       </header>
 
-      <!-- 内容类型选择 -->
-      <div class="content-type-selector">
-        <el-radio-group v-model="entryForm.contentType" class="type-group">
-          <el-radio-button label="text">
-            <component :is="Document" class="btn-icon" />
-            <span>{{ t('treehole.contentType.text') }}</span>
-          </el-radio-button>
-          <el-radio-button label="voice">
-            <component :is="Microphone" class="btn-icon" />
-            <span>{{ t('treehole.contentType.voice') }}</span>
-          </el-radio-button>
-          <el-radio-button label="image">
-            <component :is="Picture" class="btn-icon" />
-            <span>{{ t('treehole.contentType.image') }}</span>
-          </el-radio-button>
-        </el-radio-group>
-      </div>
-
       <!-- 文字输入 -->
-      <div v-if="entryForm.contentType === 'text'" class="content-input">
+      <div class="content-input">
         <el-input
           v-model="entryForm.content"
           type="textarea"
-          :rows="5"
+          :rows="4"
           :placeholder="t('treehole.placeholder')"
           maxlength="1000"
           show-word-limit
@@ -38,54 +20,82 @@
         />
       </div>
 
-      <!-- 语音输入（模拟） -->
-      <div v-if="entryForm.contentType === 'voice'" class="voice-input">
-        <div class="voice-recorder">
-          <div
-            class="record-btn touchable"
-            :class="{ recording: isRecording }"
-            @click="toggleRecording"
-          >
-            <component :is="isRecording ? VideoPause : Microphone" class="record-icon" />
-          </div>
-          <div v-if="recordingTime > 0" class="recording-time">
-            {{ recordingTime }}s
-          </div>
-          <span class="record-hint">{{ isRecording ? t('treehole.stopRecording') : t('treehole.startRecording') }}</span>
-        </div>
+      <div class="composer-toolbar">
+        <button
+          type="button"
+          class="tool-chip"
+          :class="{ active: activeComposerPanel === 'voice' || recordingTime > 0 }"
+          @click="toggleComposerPanel('voice')"
+        >
+          <component :is="Microphone" class="tool-chip-icon" />
+          <span>{{ locale === 'zh-CN' ? '语音' : 'Voice' }}</span>
+          <span v-if="recordingTime > 0" class="tool-chip-badge">{{ recordingTime }}s</span>
+        </button>
 
-        <div class="voice-option">
-          <el-checkbox v-model="entryForm.hasVoiceChange">
-            <component :is="Switch" class="check-icon" />
-            <span>{{ t('treehole.voiceChange') }}</span>
-          </el-checkbox>
-        </div>
+        <button
+          type="button"
+          class="tool-chip"
+          :class="{ active: activeComposerPanel === 'image' || !!uploadedImage }"
+          @click="toggleComposerPanel('image')"
+        >
+          <component :is="Picture" class="tool-chip-icon" />
+          <span>{{ locale === 'zh-CN' ? '图片' : 'Image' }}</span>
+        </button>
       </div>
 
-      <!-- 图片输入 -->
-      <div v-if="entryForm.contentType === 'image'" class="image-input">
-        <div v-if="!uploadedImage" class="image-upload-area">
-          <el-upload
-            class="image-uploader"
-            action="#"
-            :show-file-list="false"
-            :before-upload="beforeUpload"
-            accept="image/*"
-            drag
-          >
-            <div class="uploader-content">
-              <component :is="Plus" class="uploader-icon" />
-              <span class="uploader-text">{{ locale === 'zh-CN' ? '点击或拖拽上传图片' : 'Click or drag to upload' }}</span>
+      <transition name="panel-fade">
+        <div v-if="activeComposerPanel === 'voice'" class="compact-panel voice-panel">
+          <div class="voice-recorder compact-recorder">
+            <button
+              type="button"
+              class="record-btn touchable compact-record-btn"
+              :class="{ recording: isRecording }"
+              @click="toggleRecording"
+            >
+              <component :is="isRecording ? VideoPause : Microphone" class="record-icon compact-record-icon" />
+            </button>
+            <div class="voice-panel-meta">
+              <div class="panel-title">{{ locale === 'zh-CN' ? '录制语音' : 'Record voice' }}</div>
+              <div class="record-hint">{{ isRecording ? t('treehole.stopRecording') : t('treehole.startRecording') }}</div>
             </div>
-          </el-upload>
+            <div v-if="recordingTime > 0" class="recording-time compact-time">
+              {{ recordingTime }}s
+            </div>
+          </div>
+
+          <div class="voice-option compact-option">
+            <el-checkbox v-model="entryForm.hasVoiceChange">
+              <component :is="Switch" class="check-icon" />
+              <span>{{ t('treehole.voiceChange') }}</span>
+            </el-checkbox>
+          </div>
         </div>
-        <div v-else class="image-preview">
-          <img :src="uploadedImage" alt="preview" />
-          <el-button size="small" type="danger" @click="removeImage" circle class="remove-btn">
-            <component :is="CircleClose" />
-          </el-button>
+      </transition>
+
+      <transition name="panel-fade">
+        <div v-if="activeComposerPanel === 'image'" class="compact-panel image-panel">
+          <div v-if="!uploadedImage" class="compact-upload-card">
+            <el-upload
+              class="image-uploader compact-uploader"
+              action="#"
+              :show-file-list="false"
+              :before-upload="beforeUpload"
+              accept="image/*"
+            >
+              <div class="compact-upload-content">
+                <component :is="Plus" class="compact-upload-icon" />
+                <span>{{ locale === 'zh-CN' ? '添加图片' : 'Add image' }}</span>
+              </div>
+            </el-upload>
+          </div>
+          <div v-else class="image-preview compact-image-preview">
+            <img :src="uploadedImage" alt="preview" />
+            <el-button size="small" type="danger" @click="removeImage" circle class="remove-btn">
+              <component :is="CircleClose" />
+            </el-button>
+          </div>
         </div>
-      </div>
+      </transition>
 
       <!-- 发布选项 -->
       <div class="publish-options">
@@ -176,7 +186,7 @@
           <el-empty v-else-if="entries.length === 0" :description="locale === 'zh-CN' ? '暂无公开条目' : 'No public entries'" :image-size="60" />
           <div v-else class="entries-list">
             <div
-              v-for="entry in entries"
+              v-for="entry in paginatedEntries"
               :key="entry.id"
               class="entry-item"
               @click="showDetail(entry)"
@@ -187,17 +197,14 @@
                 </div>
                 <span class="entry-time">{{ formatTime(entry.created_at) }}</span>
               </div>
-              <!-- 文字内容 -->
-              <p v-if="entry.content_type === 'text'" class="entry-text">
+              <p v-if="entry.content" class="entry-text">
                 {{ entry.content?.substring(0, 100) }}{{ entry.content?.length > 100 ? '...' : '' }}
               </p>
-              <!-- 语音内容 -->
-              <p v-else-if="entry.content_type === 'voice'" class="entry-text voice-entry">
+              <p v-if="entry.duration > 0" class="entry-text voice-entry">
                 <component :is="Microphone" class="voice-icon" />
                 {{ locale === 'zh-CN' ? '语音记录' : 'Voice recording' }} ({{ entry.duration || 0 }}s)
               </p>
-              <!-- 图片内容 -->
-              <div v-else-if="entry.content_type === 'image'" class="entry-image">
+              <div v-if="entry.image_data" class="entry-image">
                 <img v-if="entry.image_data" :src="entry.image_data" alt="entry image" />
                 <span v-else class="image-placeholder">{{ locale === 'zh-CN' ? '图片' : 'Image' }}</span>
               </div>
@@ -207,13 +214,22 @@
                 <span>{{ entry.ai_response?.substring(0, 50) }}...</span>
               </div>
             </div>
+            <el-pagination
+              v-if="entries.length > pageSize"
+              v-model:current-page="latestPage"
+              class="list-pagination"
+              layout="prev, pager, next"
+              :page-size="pageSize"
+              :total="entries.length"
+              small
+            />
           </div>
         </el-tab-pane>
         <el-tab-pane :label="t('treehole.mine')" name="mine">
           <el-empty v-if="myEntries.length === 0" :description="locale === 'zh-CN' ? '暂无记录' : 'No records'" :image-size="60" />
           <div v-else class="entries-list">
             <div
-              v-for="entry in myEntries"
+              v-for="entry in paginatedMyEntries"
               :key="entry.id"
               class="entry-item"
               @click="showDetail(entry)"
@@ -224,14 +240,23 @@
                 </div>
                 <span class="entry-time">{{ formatTime(entry.created_at) }}</span>
                 <el-tag v-if="entry.is_published" size="small" type="success">{{ locale === 'zh-CN' ? '已公开' : 'Public' }}</el-tag>
+                <el-button
+                  type="danger"
+                  size="small"
+                  text
+                  class="delete-entry-btn"
+                  @click.stop="removeEntry(entry.id)"
+                >
+                  <component :is="Delete" />
+                </el-button>
               </div>
-              <p v-if="entry.content_type === 'text'" class="entry-text">
+              <p v-if="entry.content" class="entry-text">
                 {{ entry.content?.substring(0, 100) }}{{ entry.content?.length > 100 ? '...' : '' }}
               </p>
-              <p v-else-if="entry.content_type === 'voice'" class="entry-text">
+              <p v-if="entry.duration > 0" class="entry-text">
                 {{ locale === 'zh-CN' ? '语音记录' : 'Voice recording' }} ({{ entry.duration }}s)
               </p>
-              <div v-else-if="entry.content_type === 'image'" class="entry-image">
+              <div v-if="entry.image_data" class="entry-image">
                 <img :src="entry.image_data" alt="entry image" />
               </div>
               <div v-if="entry.ai_response" class="entry-ai-response">
@@ -239,6 +264,15 @@
                 <span>{{ entry.ai_response?.substring(0, 50) }}...</span>
               </div>
             </div>
+            <el-pagination
+              v-if="myEntries.length > pageSize"
+              v-model:current-page="minePage"
+              class="list-pagination"
+              layout="prev, pager, next"
+              :page-size="pageSize"
+              :total="myEntries.length"
+              small
+            />
           </div>
         </el-tab-pane>
       </el-tabs>
@@ -259,19 +293,17 @@
           </div>
           <div class="detail-meta">
             <div class="detail-type-label">
-              {{ locale === 'zh-CN' ? { text: '文字', voice: '语音', image: '图片' }[selectedEntry.content_type] }}内容
+              {{ getTypeLabel(selectedEntry.content_type) }}
             </div>
             <div class="detail-time">{{ formatTime(selectedEntry.created_at) }}</div>
           </div>
         </div>
 
-        <!-- 文字内容 -->
-        <div class="detail-body" v-if="selectedEntry.content_type === 'text'">
+        <div class="detail-body" v-if="selectedEntry.content">
           <p class="detail-text-content">{{ selectedEntry.content }}</p>
         </div>
 
-        <!-- 语音内容 -->
-        <div class="detail-body" v-else-if="selectedEntry.content_type === 'voice'">
+        <div class="detail-body" v-if="selectedEntry.duration > 0">
           <div class="detail-voice-content">
             <div class="voice-player">
               <component :is="Microphone" class="voice-icon-large" />
@@ -281,8 +313,7 @@
           </div>
         </div>
 
-        <!-- 图片内容 -->
-        <div class="detail-body" v-else-if="selectedEntry.content_type === 'image'">
+        <div class="detail-body" v-if="selectedEntry.image_data">
           <div class="detail-image-content">
             <img v-if="selectedEntry.image_data" :src="selectedEntry.image_data" alt="treehole image" />
             <div v-else class="image-placeholder-large">
@@ -312,7 +343,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   ChatDotRound,
@@ -334,16 +365,24 @@ import {
 } from '@element-plus/icons-vue'
 import { treeholeApi } from '../../api'
 import { ElMessage } from 'element-plus'
+import {
+  deleteLocalEntry,
+  getPageItems,
+  mergePublishedEntries,
+  sortEntriesByNewest
+} from '../../utils/treehole-feed'
+import { compressImageDataUrl } from '../../utils/image-upload'
+import { togglePanel } from '../../utils/treehole-composer'
 
 const { t, locale } = useI18n()
 
 // 表单数据
 const entryForm = ref({
-  contentType: 'text',
   content: '',
   hasVoiceChange: false,
   isAnonymous: true,
   isPublished: false,
+  image_data: null,
 })
 
 const submitting = ref(false)
@@ -359,10 +398,17 @@ const entries = ref([])
 const myEntries = ref([])
 const loading = ref(false)
 const activeTab = ref('latest')
+const pageSize = 5
+const latestPage = ref(1)
+const minePage = ref(1)
 
 // 详情弹窗
 const detailVisible = ref(false)
 const selectedEntry = ref(null)
+const activeComposerPanel = ref(null)
+
+const paginatedEntries = computed(() => getPageItems(entries.value, latestPage.value, pageSize))
+const paginatedMyEntries = computed(() => getPageItems(myEntries.value, minePage.value, pageSize))
 
 // 获取类型图标
 function getTypeIcon(type) {
@@ -372,6 +418,18 @@ function getTypeIcon(type) {
     image: Picture
   }
   return icons[type] || Document
+}
+
+function getTypeLabel(type) {
+  const labels = locale.value === 'zh-CN'
+    ? { text: '文字内容', voice: '语音内容', image: '图片内容' }
+    : { text: 'Text content', voice: 'Voice content', image: 'Image content' }
+
+  return labels[type] || labels.text
+}
+
+function toggleComposerPanel(panelName) {
+  activeComposerPanel.value = togglePanel(activeComposerPanel.value, panelName)
 }
 
 // 切换录音状态
@@ -403,7 +461,7 @@ function toggleRecording() {
 }
 
 // 图片上传
-function beforeUpload(file) {
+async function beforeUpload(file) {
   const isImage = file.type.startsWith('image/')
   const isLt5M = file.size / 1024 / 1024 < 5
 
@@ -418,10 +476,10 @@ function beforeUpload(file) {
 
   // 读取并预览图片
   const reader = new FileReader()
-  reader.onload = (e) => {
-    uploadedImage.value = e.target.result
-    entryForm.value.content = `[${locale.value === 'zh-CN' ? '图片' : 'Image'}：${file.name}]`
-    entryForm.value.image_data = e.target.result
+  reader.onload = async (e) => {
+    const compressedImage = await compressImageDataUrl(e.target.result)
+    uploadedImage.value = compressedImage
+    entryForm.value.image_data = compressedImage
   }
   reader.readAsDataURL(file)
 
@@ -431,24 +489,17 @@ function beforeUpload(file) {
 // 移除图片
 function removeImage() {
   uploadedImage.value = null
-  entryForm.value.content = ''
   entryForm.value.image_data = null
 }
 
 // 提交倾诉
 async function handleSubmit() {
-  if (entryForm.value.contentType === 'text' && !entryForm.value.content) {
-    ElMessage.warning(locale.value === 'zh-CN' ? '请输入内容' : 'Please enter content')
-    return
-  }
+  const hasText = Boolean(entryForm.value.content?.trim())
+  const hasVoice = recordingTime.value > 0
+  const hasImage = Boolean(uploadedImage.value)
 
-  if (entryForm.value.contentType === 'voice' && recordingTime.value === 0) {
-    ElMessage.warning(locale.value === 'zh-CN' ? '请先录音' : 'Please record first')
-    return
-  }
-
-  if (entryForm.value.contentType === 'image' && !uploadedImage.value) {
-    ElMessage.warning(locale.value === 'zh-CN' ? '请先上传图片' : 'Please upload an image first')
+  if (!hasText && !hasVoice && !hasImage) {
+    ElMessage.warning(locale.value === 'zh-CN' ? '请至少输入文字、录音或上传图片中的一种' : 'Please add text, voice, or image')
     return
   }
 
@@ -456,7 +507,7 @@ async function handleSubmit() {
   try {
     const entryData = {
       ...entryForm.value,
-      duration: entryForm.value.contentType === 'voice' ? recordingTime.value : 0,
+      duration: hasVoice ? recordingTime.value : 0,
       created_at: new Date().toISOString(),
       id: Date.now(),
     }
@@ -477,7 +528,6 @@ async function handleSubmit() {
 
     // 重置表单
     entryForm.value = {
-      contentType: 'text',
       content: '',
       hasVoiceChange: false,
       isAnonymous: true,
@@ -486,6 +536,7 @@ async function handleSubmit() {
     }
     uploadedImage.value = null
     recordingTime.value = 0
+    activeComposerPanel.value = null
 
     ElMessage.success(locale.value === 'zh-CN' ? '发送成功！' : 'Sent successfully!')
     loadEntries()
@@ -495,7 +546,7 @@ async function handleSubmit() {
     // 即使API失败也保存到本地
     const entryData = {
       ...entryForm.value,
-      duration: entryForm.value.contentType === 'voice' ? recordingTime.value : 0,
+      duration: recordingTime.value > 0 ? recordingTime.value : 0,
       created_at: new Date().toISOString(),
       id: Date.now(),
     }
@@ -504,6 +555,7 @@ async function handleSubmit() {
     localStorage.setItem('xinqing_treehole_records', JSON.stringify(savedEntries))
 
     ElMessage.success(locale.value === 'zh-CN' ? '已保存到本地！' : 'Saved locally!')
+    activeComposerPanel.value = null
     loadMyEntries()
   } finally {
     submitting.value = false
@@ -515,10 +567,15 @@ async function loadEntries() {
   loading.value = true
   try {
     const response = await treeholeApi.getPublished()
-    entries.value = response.data || []
+    const backendEntries = response.data || []
+    const localEntries = JSON.parse(localStorage.getItem('xinqing_treehole_records') || '[]')
+    entries.value = mergePublishedEntries(backendEntries, localEntries)
+    latestPage.value = 1
   } catch (error) {
     console.error('加载条目失败:', error)
-    entries.value = []
+    const localEntries = JSON.parse(localStorage.getItem('xinqing_treehole_records') || '[]')
+    entries.value = mergePublishedEntries([], localEntries)
+    latestPage.value = 1
   } finally {
     loading.value = false
   }
@@ -528,10 +585,32 @@ async function loadEntries() {
 function loadMyEntries() {
   try {
     const savedEntries = JSON.parse(localStorage.getItem('xinqing_treehole_records') || '[]')
-    myEntries.value = savedEntries.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    myEntries.value = sortEntriesByNewest(savedEntries)
+    const totalPages = Math.max(1, Math.ceil(myEntries.value.length / pageSize))
+    minePage.value = Math.min(minePage.value, totalPages)
   } catch (error) {
     console.error('加载我的条目失败:', error)
     myEntries.value = []
+    minePage.value = 1
+  }
+}
+
+function removeEntry(entryId) {
+  try {
+    const savedEntries = JSON.parse(localStorage.getItem('xinqing_treehole_records') || '[]')
+    const nextEntries = deleteLocalEntry(savedEntries, entryId)
+    localStorage.setItem('xinqing_treehole_records', JSON.stringify(nextEntries))
+
+    if (selectedEntry.value?.id === entryId) {
+      closeDetail()
+    }
+
+    loadMyEntries()
+    loadEntries()
+    ElMessage.success(locale.value === 'zh-CN' ? '已删除' : 'Deleted')
+  } catch (error) {
+    console.error('删除条目失败:', error)
+    ElMessage.error(locale.value === 'zh-CN' ? '删除失败' : 'Delete failed')
   }
 }
 
@@ -599,54 +678,85 @@ onMounted(() => {
   margin: 0;
 }
 
-/* 内容类型选择 */
-.content-type-selector {
-  margin-bottom: var(--spacing-md, 16px);
+/* 内容输入 */
+.content-input {
+  margin-bottom: var(--spacing-sm, 10px);
 }
 
-.type-group {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--spacing-xs, 4px);
-}
-
-.type-group :deep(.el-radio-button) {
-  margin: 0;
-}
-
-.type-group :deep(.el-radio-button__inner) {
-  width: 100%;
+/* 紧凑工具条 */
+.composer-toolbar {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs, 4px);
-  padding: var(--spacing-sm, 8px);
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
-.btn-icon {
+.tool-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border, #dbe3ec);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.tool-chip.active {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.08);
+  color: var(--color-primary, #10b981);
+}
+
+.tool-chip-icon {
   width: 14px;
   height: 14px;
 }
 
-/* 内容输入 */
-.content-input {
-  margin-bottom: var(--spacing-md, 16px);
+.tool-chip-badge {
+  font-size: 11px;
+  color: var(--color-text-muted, #94a3b8);
 }
 
-/* 语音输入 */
-.voice-input {
-  margin-bottom: var(--spacing-md, 16px);
+.compact-panel {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-border-light, #e8eef5);
+  border-radius: 14px;
+  background: #fbfcfd;
+}
+
+.panel-fade-enter-active,
+.panel-fade-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.panel-fade-enter-from,
+.panel-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 
 .voice-recorder {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--spacing-sm, 8px);
-  padding: var(--spacing-lg, 24px);
-  background: var(--color-bg-tertiary, #f1f5f9);
-  border-radius: var(--radius-lg, 16px);
+  gap: 12px;
+}
+
+.compact-recorder {
+  justify-content: flex-start;
+}
+
+.voice-panel-meta {
+  flex: 1;
+}
+
+.panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary, #1e293b);
 }
 
 .record-btn {
@@ -658,11 +768,18 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   transition: all var(--transition-base, 0.2s ease);
+  border: 0;
 }
 
 .record-btn.recording {
   background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
   animation: pulse 1.5s infinite;
+}
+
+.compact-record-btn {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
 }
 
 @keyframes pulse {
@@ -677,10 +794,21 @@ onMounted(() => {
   color: white;
 }
 
+.compact-record-icon {
+  width: 18px;
+  height: 18px;
+}
+
 .recording-time {
   font-size: var(--font-xl, 20px);
   font-weight: 600;
   color: var(--color-text-primary, #1e293b);
+}
+
+.compact-time {
+  font-size: 13px;
+  min-width: 38px;
+  text-align: right;
 }
 
 .record-hint {
@@ -688,8 +816,8 @@ onMounted(() => {
   color: var(--color-text-muted, #94a3b8);
 }
 
-.voice-option {
-  margin-top: var(--spacing-sm, 8px);
+.compact-option {
+  margin-top: 10px;
 }
 
 .check-icon {
@@ -699,55 +827,73 @@ onMounted(() => {
 }
 
 /* 图片上传 */
-.image-input {
-  margin-bottom: var(--spacing-md, 16px);
-}
-
 .image-uploader {
   width: 100%;
 }
 
-.image-uploader :deep(.el-upload-dragger) {
+.compact-uploader :deep(.el-upload) {
   width: 100%;
-  height: 140px;
-  border: 2px dashed var(--color-border, #e2e8f0);
-  border-radius: var(--radius-lg, 16px);
-  background: var(--color-bg-tertiary, #f1f5f9);
+}
+
+.compact-uploader :deep(.el-upload-dragger),
+.compact-uploader :deep(.el-upload) {
+  width: 100%;
+}
+
+.compact-upload-card {
+  border-radius: 12px;
+  background: var(--color-bg-tertiary, #f8fafc);
+}
+
+.compact-uploader :deep(.el-upload-dragger) {
+  width: 100%;
+  height: 84px;
+  border: 1px dashed var(--color-border, #dbe3ec);
+  border-radius: 12px;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all var(--transition-base, 0.2s ease);
 }
 
-.image-uploader :deep(.el-upload-dragger:hover) {
+.compact-uploader :deep(.el-upload-dragger:hover) {
   border-color: var(--color-primary, #10b981);
   background: rgba(16, 185, 129, 0.05);
 }
 
-.uploader-content {
-  display: flex;
-  flex-direction: column;
+.compact-upload-content {
+  display: inline-flex;
   align-items: center;
-  gap: var(--spacing-xs, 4px);
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary, #64748b);
 }
 
-.uploader-icon {
-  width: 32px;
-  height: 32px;
+.compact-upload-icon {
+  width: 16px;
+  height: 16px;
   color: var(--color-primary, #10b981);
 }
 
-.uploader-text {
-  font-size: var(--font-sm, 13px);
-  color: var(--color-text-muted, #94a3b8);
+.compact-image-preview {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.compact-image-preview img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
 }
 
 /* 发布选项 */
 .publish-options {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm, 8px);
-  margin-bottom: var(--spacing-md, 16px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
 .publish-options :deep(.el-checkbox__label) {
@@ -1041,25 +1187,32 @@ onMounted(() => {
   border: 1px solid rgba(167, 139, 250, 0.2);
 }
 
-.dark .type-group :deep(.el-radio-button__inner) {
-  background: rgba(31, 28, 42, 0.8);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.dark .voice-recorder {
-  background: rgba(31, 28, 42, 0.8);
-}
-
 .dark .record-btn {
   background: linear-gradient(135deg, var(--color-primary, #a78bfa) 0%, var(--color-primary-light, #c4b5fd) 100%);
 }
 
-.dark .image-uploader :deep(.el-upload-dragger) {
+.dark .tool-chip {
   background: rgba(31, 28, 42, 0.8);
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-.dark .image-uploader :deep(.el-upload-dragger:hover) {
+.dark .tool-chip.active {
+  border-color: rgba(167, 139, 250, 0.35);
+  background: rgba(167, 139, 250, 0.12);
+  color: #c4b5fd;
+}
+
+.dark .compact-panel {
+  background: rgba(31, 28, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .compact-uploader :deep(.el-upload-dragger) {
+  background: rgba(31, 28, 42, 0.4);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .compact-uploader :deep(.el-upload-dragger:hover) {
   border-color: var(--color-primary, #a78bfa);
   background: rgba(167, 139, 250, 0.1);
 }
