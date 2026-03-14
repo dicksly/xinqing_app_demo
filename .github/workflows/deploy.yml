@@ -25,10 +25,10 @@ jobs:
         run: |
           cd /opt/xinqing_app_demo/frontend
           sudo rm -rf node_modules
-          sudo npm install --registy=https://registry.npmmirror.com
+          sudo npm install --registry=https://registry.npmmirror.com
           sudo npm run build
           
-      - namee: Restart backend
+      - name: Restart backend
         run: |
           sudo systemctl restart xinqing-backend
           
