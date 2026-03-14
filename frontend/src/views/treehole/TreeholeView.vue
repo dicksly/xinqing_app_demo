@@ -179,6 +179,7 @@
               v-for="entry in entries"
               :key="entry.id"
               class="entry-item"
+              @click="showDetail(entry)"
             >
               <div class="entry-header">
                 <div class="entry-type" :class="'type-' + entry.content_type">
@@ -215,6 +216,7 @@
               v-for="entry in myEntries"
               :key="entry.id"
               class="entry-item"
+              @click="showDetail(entry)"
             >
               <div class="entry-header">
                 <div class="entry-type" :class="'type-' + entry.content_type">
@@ -241,6 +243,71 @@
         </el-tab-pane>
       </el-tabs>
     </section>
+
+    <!-- 详情弹窗 -->
+    <el-dialog
+      v-model="detailVisible"
+      :title="locale === 'zh-CN' ? '树洞详情' : 'Treehole Detail'"
+      width="90%"
+      class="detail-dialog"
+    >
+      <div class="detail-content" v-if="selectedEntry">
+        <!-- 头部 -->
+        <div class="detail-header">
+          <div class="detail-type-icon" :class="'type-' + selectedEntry.content_type">
+            <component :is="getTypeIcon(selectedEntry.content_type)" />
+          </div>
+          <div class="detail-meta">
+            <div class="detail-type-label">
+              {{ locale === 'zh-CN' ? { text: '文字', voice: '语音', image: '图片' }[selectedEntry.content_type] }}内容
+            </div>
+            <div class="detail-time">{{ formatTime(selectedEntry.created_at) }}</div>
+          </div>
+        </div>
+
+        <!-- 文字内容 -->
+        <div class="detail-body" v-if="selectedEntry.content_type === 'text'">
+          <p class="detail-text-content">{{ selectedEntry.content }}</p>
+        </div>
+
+        <!-- 语音内容 -->
+        <div class="detail-body" v-else-if="selectedEntry.content_type === 'voice'">
+          <div class="detail-voice-content">
+            <div class="voice-player">
+              <component :is="Microphone" class="voice-icon-large" />
+              <div class="voice-duration">{{ selectedEntry.duration || 0 }}s</div>
+              <div class="voice-hint">{{ locale === 'zh-CN' ? '点击播放语音' : 'Tap to play' }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 图片内容 -->
+        <div class="detail-body" v-else-if="selectedEntry.content_type === 'image'">
+          <div class="detail-image-content">
+            <img v-if="selectedEntry.image_data" :src="selectedEntry.image_data" alt="treehole image" />
+            <div v-else class="image-placeholder-large">
+              <component :is="Picture" class="placeholder-icon" />
+              <span>{{ locale === 'zh-CN' ? '图片已上传' : 'Image uploaded' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI 回复 -->
+        <div v-if="selectedEntry.ai_response" class="ai-reply-section">
+          <div class="ai-reply-header">
+            <component :is="Promotion" class="ai-icon" />
+            <span class="ai-label">{{ locale === 'zh-CN' ? 'AI 回复' : 'AI Response' }}</span>
+          </div>
+          <div class="ai-reply-text">{{ selectedEntry.ai_response }}</div>
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="closeDetail" type="primary" round>
+          {{ locale === 'zh-CN' ? '关闭' : 'Close' }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -292,6 +359,10 @@ const entries = ref([])
 const myEntries = ref([])
 const loading = ref(false)
 const activeTab = ref('latest')
+
+// 详情弹窗
+const detailVisible = ref(false)
+const selectedEntry = ref(null)
 
 // 获取类型图标
 function getTypeIcon(type) {
@@ -474,6 +545,18 @@ function formatTime(dateString) {
   if (diff < 3600000) return locale === 'zh-CN' ? `${Math.floor(diff / 60000)}分钟前` : `${Math.floor(diff / 60000)}m ago`
   if (diff < 86400000) return locale === 'zh-CN' ? `${Math.floor(diff / 3600000)}小时前` : `${Math.floor(diff / 3600000)}h ago`
   return date.toLocaleDateString()
+}
+
+// 显示详情
+function showDetail(entry) {
+  selectedEntry.value = entry
+  detailVisible.value = true
+}
+
+// 关闭详情
+function closeDetail() {
+  detailVisible.value = false
+  selectedEntry.value = null
 }
 
 onMounted(() => {
@@ -1004,5 +1087,191 @@ onMounted(() => {
 
 .dark .help-link svg {
   color: var(--color-primary, #a78bfa);
+}
+
+/* 详情弹窗 */
+.entry-item {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.entry-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.detail-dialog :deep(.el-dialog) {
+  border-radius: 16px;
+}
+
+.detail-content {
+  padding: 8px 0;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.detail-type-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detail-type-icon.type-text {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.detail-type-icon.type-text svg {
+  color: #10b981;
+}
+
+.detail-type-icon.type-voice {
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.detail-type-icon.type-voice svg {
+  color: #8b5cf6;
+}
+
+.detail-type-icon.type-image {
+  background: rgba(251, 191, 36, 0.15);
+}
+
+.detail-type-icon.type-image svg {
+  color: #fbbf24;
+}
+
+.detail-type-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.detail-meta {
+  flex: 1;
+}
+
+.detail-type-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.detail-time {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.detail-body {
+  margin-bottom: 16px;
+}
+
+.detail-text-content {
+  font-size: 15px;
+  color: #334155;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.detail-voice-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f1f5f9;
+  border-radius: 12px;
+}
+
+.voice-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-icon-large {
+  width: 48px;
+  height: 48px;
+  color: #8b5cf6;
+}
+
+.voice-duration {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.voice-hint {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.detail-image-content {
+  text-align: center;
+}
+
+.detail-image-content img {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 12px;
+  object-fit: contain;
+}
+
+.image-placeholder-large {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 150px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  color: #94a3b8;
+}
+
+.placeholder-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 8px;
+}
+
+.ai-reply-section {
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%);
+  border-radius: 12px;
+}
+
+.ai-reply-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.ai-reply-header .ai-icon {
+  width: 16px;
+  height: 16px;
+  color: #8b5cf6;
+}
+
+.ai-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #8b5cf6;
+}
+
+.ai-reply-text {
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.7;
 }
 </style>
