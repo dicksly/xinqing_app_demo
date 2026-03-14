@@ -430,14 +430,6 @@ function getTypeLabel(type) {
   return (labels[type] || type) + (locale.value === 'zh-CN' ? '内容' : ' Content')
 }
 
-function getTypeLabel(type) {
-  const labels = locale.value === 'zh-CN'
-    ? { text: '文字内容', voice: '语音内容', image: '图片内容' }
-    : { text: 'Text content', voice: 'Voice content', image: 'Image content' }
-
-  return labels[type] || labels.text
-}
-
 function toggleComposerPanel(panelName) {
   activeComposerPanel.value = togglePanel(activeComposerPanel.value, panelName)
 }
