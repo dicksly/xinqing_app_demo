@@ -420,6 +420,16 @@ function getTypeIcon(type) {
   return icons[type] || Document
 }
 
+// 获取类型标签
+function getTypeLabel(type) {
+  const labels = {
+    text: locale.value === 'zh-CN' ? '文字' : 'Text',
+    voice: locale.value === 'zh-CN' ? '语音' : 'Voice',
+    image: locale.value === 'zh-CN' ? '图片' : 'Image'
+  }
+  return (labels[type] || type) + (locale.value === 'zh-CN' ? '内容' : ' Content')
+}
+
 function getTypeLabel(type) {
   const labels = locale.value === 'zh-CN'
     ? { text: '文字内容', voice: '语音内容', image: '图片内容' }
