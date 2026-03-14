@@ -212,7 +212,7 @@ async def register(
 
     return TokenResponse(
         access_token=access_token,
-        user=UserResponse.from_orm(db_user)
+        user=UserResponse.model_validate(db_user)
     )
 
 
@@ -240,7 +240,7 @@ async def login(
 
     return TokenResponse(
         access_token=access_token,
-        user=UserResponse.from_orm(user)
+        user=UserResponse.model_validate(user)
     )
 
 
@@ -249,7 +249,7 @@ async def get_me(
     current_user: User = Depends(get_current_user_required)
 ):
     """获取当前用户信息"""
-    return UserResponse.from_orm(current_user)
+    return UserResponse.model_validate(current_user)
 
 
 # ============ 游戏进度路由 ============

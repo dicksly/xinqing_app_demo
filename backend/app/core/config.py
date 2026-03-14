@@ -4,6 +4,7 @@
 
 from pydantic_settings import BaseSettings
 from typing import Optional
+from functools import cached_property
 
 
 class Settings(BaseSettings):
@@ -39,6 +40,22 @@ class Settings(BaseSettings):
     # 分页配置
     DEFAULT_PAGE_SIZE: int = 20
     MAX_PAGE_SIZE: int = 100
+
+    @cached_property
+    def allowed_origins_list(self) -> list[str]:
+        """将逗号分隔的 CORS 配置标准化为列表。"""
+        origins = self.ALLOWED_ORIGINS
+
+        if isinstance(origins, str):
+            normalized = [origin.strip() for origin in origins.split(",") if origin.strip()]
+            return normalized or ["*"]
+
+        return list(origins or ["*"])
+
+    @cached_property
+    def cors_allow_credentials(self) -> bool:
+        """通配来源时禁用 credentials，避免违反 CORS 规范。"""
+        return self.allowed_origins_list != ["*"]
 
 
 settings = Settings()

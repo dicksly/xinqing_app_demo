@@ -2,7 +2,7 @@
 Pydantic Schemas - 用于数据验证和序列化
 """
 
-from pydantic import BaseModel, Field, AliasChoices
+from pydantic import BaseModel, ConfigDict, Field, AliasChoices
 from typing import Optional, List
 from datetime import datetime
 
@@ -57,9 +57,7 @@ class EmotionRecordResponse(EmotionRecordBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MindfulnessSessionBase(BaseModel):
@@ -78,9 +76,7 @@ class MindfulnessSessionResponse(MindfulnessSessionBase):
     id: int
     completed: bool
     created_at: datetime
-    
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TreeholeEntryBase(BaseModel):
@@ -120,9 +116,7 @@ class TreeholeEntryResponse(TreeholeEntryBase):
     risk_level: str
     ai_response: Optional[str]
     created_at: datetime
-    
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class KnowledgeContentBase(BaseModel):
@@ -139,9 +133,7 @@ class KnowledgeContentResponse(KnowledgeContentBase):
     id: int
     view_count: int
     created_at: datetime
-    
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class WeeklyReportResponse(BaseModel):
@@ -176,9 +168,7 @@ class UserResponse(BaseModel):
     email: str
     created_at: datetime
     last_login: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TokenResponse(BaseModel):
@@ -214,9 +204,7 @@ class GameProgressResponse(BaseModel):
     current_skin: str
     stats: dict
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class GameSyncRequest(BaseModel):
