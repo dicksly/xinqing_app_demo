@@ -10,9 +10,12 @@ jobs:
     runs-on: self-hosted
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
+      - name: Pull latest code
+        run: |
+          cd /opt/xinqing_app_demo
+          git fetch origin
+          git reset --hard origin/main
+          
       - name: Install backend dependencies
         run: |
           cd /opt/xinqing_app_demo/backend
@@ -22,22 +25,17 @@ jobs:
         run: |
           cd /opt/xinqing_app_demo/frontend
           sudo rm -rf node_modules
-          sudo npm install --registry=https://registry.npmmirror.com
+          sudo npm install --registy=https://registry.npmmirror.com
           sudo npm run build
           
-      - name: Deploy frontend
-        run: |
-          echo "No need to remove dist, build overwrites it"
-          echo "Frontend already built in place"
-          
-      - name: Restart backend
+      - namee: Restart backend
         run: |
           sudo systemctl restart xinqing-backend
           
       - name: Health check
         run: |
           sleep 3
-          curl -f http://localhost:8000/health || curl -f http://localhost:8000/ || echo "Backend may need health endpoint"
+          curl -f http://localhost:8000/ || echo "Backend check"
           curl -f http://localhost/ || echo "Frontend check"
           
       - name: Deployment complete
