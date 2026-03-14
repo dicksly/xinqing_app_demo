@@ -27,8 +27,8 @@ jobs:
           
       - name: Deploy frontend
         run: |
-          sudo rm -rf /opt/xinqing_app_demo/frontend/dist
-          sudo cp -r /home/github-runner/actions-runner/_work/xinqing_app_demo/xinqing_app_demo/frontend/dist /opt/xinqing_app_demo/frontend/
+          echo "No need to remove dist, build overwrites it"
+          echo "Frontend already built in place"
           
       - name: Restart backend
         run: |
