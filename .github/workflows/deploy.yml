@@ -13,15 +13,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          
       - name: Install backend dependencies
         run: |
           cd /opt/xinqing_app_demo/backend
-          python3.11 -m pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
+          /usr/bin/python3.11 -m pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
           
       - name: Build frontend
         run: |
