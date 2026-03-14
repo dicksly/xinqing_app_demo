@@ -92,6 +92,15 @@ class TreeholeEntryBase(BaseModel):
         description="是否变声处理",
         validation_alias=AliasChoices("has_voice_change", "hasVoiceChange"),
     )
+    image_data: Optional[str] = Field(
+        None,
+        description="图片 base64 数据",
+        validation_alias=AliasChoices("image_data", "imageData"),
+    )
+    duration: Optional[int] = Field(
+        0,
+        description="语音时长（秒）",
+    )
 
 
 class TreeholeEntryCreate(TreeholeEntryBase):
@@ -115,6 +124,8 @@ class TreeholeEntryResponse(TreeholeEntryBase):
     is_published: bool
     risk_level: str
     ai_response: Optional[str]
+    image_data: Optional[str] = None
+    duration: int = 0
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 

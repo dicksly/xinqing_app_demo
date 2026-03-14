@@ -47,6 +47,8 @@ class TreeholeEntry(Base):
     content_type = Column(String(20))  # 内容类型：text/voice/image
     content = Column(Text)  # 文字内容
     media_path = Column(String(255), nullable=True)  # 媒体文件路径
+    image_data = Column(Text, nullable=True)  # 图片 base64 数据
+    duration = Column(Integer, default=0)  # 语音时长（秒）
     is_anonymous = Column(Boolean, default=True)  # 是否匿名
     is_published = Column(Boolean, default=False)  # 是否发布到广场
     has_voice_change = Column(Boolean, default=False)  # 是否变声处理

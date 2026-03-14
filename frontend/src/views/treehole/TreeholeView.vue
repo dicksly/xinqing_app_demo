@@ -186,9 +186,25 @@
                 </div>
                 <span class="entry-time">{{ formatTime(entry.created_at) }}</span>
               </div>
-              <p class="entry-text">
-                {{ entry.content ? entry.content.substring(0, 100) + '...' : '[' + t('treehole.contentType.' + entry.content_type) + ']' }}
+              <!-- 文字内容 -->
+              <p v-if="entry.content_type === 'text'" class="entry-text">
+                {{ entry.content?.substring(0, 100) }}{{ entry.content?.length > 100 ? '...' : '' }}
               </p>
+              <!-- 语音内容 -->
+              <p v-else-if="entry.content_type === 'voice'" class="entry-text voice-entry">
+                <component :is="Microphone" class="voice-icon" />
+                {{ locale === 'zh-CN' ? '语音记录' : 'Voice recording' }} ({{ entry.duration || 0 }}s)
+              </p>
+              <!-- 图片内容 -->
+              <div v-else-if="entry.content_type === 'image'" class="entry-image">
+                <img v-if="entry.image_data" :src="entry.image_data" alt="entry image" />
+                <span v-else class="image-placeholder">{{ locale === 'zh-CN' ? '图片' : 'Image' }}</span>
+              </div>
+              <!-- AI 回应 -->
+              <div v-if="entry.ai_response" class="entry-ai-response">
+                <component :is="Promotion" class="ai-icon-small" />
+                <span>{{ entry.ai_response?.substring(0, 50) }}...</span>
+              </div>
             </div>
           </div>
         </el-tab-pane>
@@ -428,11 +444,23 @@ async function loadEntries() {
   loading.value = true
   try {
     const response = await treeholeApi.getPublished()
-    entries.value = response.data
+    entries.value = response.data || []
   } catch (error) {
     console.error('加载条目失败:', error)
+    entries.value = []
   } finally {
     loading.value = false
+  }
+}
+
+// 加载我的条目
+function loadMyEntries() {
+  try {
+    const savedEntries = JSON.parse(localStorage.getItem('xinqing_treehole_records') || '[]')
+    myEntries.value = savedEntries.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  } catch (error) {
+    console.error('加载我的条目失败:', error)
+    myEntries.value = []
   }
 }
 
@@ -450,6 +478,7 @@ function formatTime(dateString) {
 
 onMounted(() => {
   loadEntries()
+  loadMyEntries()
 })
 </script>
 
@@ -864,6 +893,59 @@ onMounted(() => {
   color: var(--color-text-secondary, #64748b);
   line-height: 1.6;
   margin: 0;
+}
+
+.entry-text.voice-entry {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.voice-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--color-secondary, #8b5cf6);
+}
+
+.entry-image {
+  margin-top: var(--spacing-xs, 4px);
+  border-radius: var(--radius-sm, 8px);
+  overflow: hidden;
+}
+
+.entry-image img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+}
+
+.image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  background: var(--color-bg-tertiary, #f1f5f9);
+  border-radius: var(--radius-sm, 8px);
+  color: var(--color-text-muted, #94a3b8);
+  font-size: var(--font-xs, 11px);
+}
+
+.entry-ai-response {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: var(--spacing-xs, 4px);
+  padding: var(--spacing-xs, 4px);
+  background: rgba(139, 92, 246, 0.08);
+  border-radius: var(--radius-sm, 8px);
+  font-size: 10px;
+  color: var(--color-secondary, #8b5cf6);
+}
+
+.ai-icon-small {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 }
 
 .loading {
