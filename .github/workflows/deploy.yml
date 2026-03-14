@@ -21,8 +21,8 @@ jobs:
       - name: Build frontend
         run: |
           cd /opt/xinqing_app_demo/frontend
-          sudo rm -rf node_modules package-lock.json
-          sudo npm ci --registry=https://registry.npmmirror.com
+          sudo rm -rf node_modules
+          sudo npm install --registry=https://registry.npmmirror.com
           sudo npm run build
           
       - name: Deploy frontend
