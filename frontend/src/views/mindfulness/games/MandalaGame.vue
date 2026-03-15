@@ -659,7 +659,7 @@ onMounted(() => {
 
 .stat-label {
   font-size: 11px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .stat-value {
@@ -691,7 +691,7 @@ onMounted(() => {
 .mandala-region {
   cursor: pointer;
   transition: all 0.2s ease;
-  stroke: #e0e0e0;
+  stroke: var(--color-border);
   stroke-width: 2;
 }
 
@@ -701,13 +701,13 @@ onMounted(() => {
 }
 
 .mandala-region.filled {
-  stroke: rgba(0, 0, 0, 0.1);
+  stroke: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
 }
 
 .mandala-center {
   cursor: pointer;
   transition: all 0.2s ease;
-  stroke: #e0e0e0;
+  stroke: var(--color-border);
   stroke-width: 2;
 }
 
@@ -724,7 +724,7 @@ onMounted(() => {
 
 .palette-label {
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-bottom: 8px;
   text-align: center;
 }
@@ -751,7 +751,7 @@ onMounted(() => {
 }
 
 .palette-color.active {
-  border-color: #333;
+  border-color: var(--color-text-primary);
   transform: scale(1.1);
 }
 
@@ -781,10 +781,12 @@ onMounted(() => {
 }
 
 .complete-content {
-  background: white;
+  background: var(--color-bg-card);
   padding: 32px;
   border-radius: 16px;
   text-align: center;
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-lg);
 }
 
 .complete-icon {
@@ -807,7 +809,7 @@ onMounted(() => {
 
 .complete-stats {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-bottom: 20px;
 }
 
@@ -855,21 +857,22 @@ onMounted(() => {
 :global(.dark) .color-palette,
 :global(.dark) .toolbar,
 :global(.dark) .game-footer {
-  background: rgba(0, 0, 0, 0.3);
+  background: color-mix(in srgb, var(--color-bg-secondary) 82%, transparent);
+  border-color: var(--color-border);
 }
 
 :global(.dark) .stat-label,
 :global(.dark) .palette-label {
-  color: #aaa;
+  color: var(--color-text-secondary);
 }
 
 :global(.dark) .stat-value {
-  color: #fff;
+  color: var(--color-text-primary);
 }
 
 :global(.dark) .mandala-region,
 :global(.dark) .mandala-center {
-  stroke: rgba(255, 255, 255, 0.3);
+  stroke: color-mix(in srgb, var(--color-text-primary) 24%, var(--color-border));
 }
 
 :global(.dark) .palette-color {
@@ -877,16 +880,17 @@ onMounted(() => {
 }
 
 :global(.dark) .palette-color.active {
-  border-color: #fff;
+  border-color: var(--color-text-primary);
 }
 
 :global(.dark) .complete-content {
-  background: #2d1b4e;
+  background: color-mix(in srgb, var(--color-bg-card) 92%, #3d275f);
+  border-color: var(--color-border);
 }
 
 :global(.dark) .complete-text,
 :global(.dark) .complete-stats {
-  color: #fff;
+  color: var(--color-text-primary);
 }
 
 :global(.dark) .complete-text {
@@ -894,11 +898,12 @@ onMounted(() => {
 }
 
 :global(.dark) .pattern-selector :deep(.el-input__wrapper) {
-  background: rgba(0, 0, 0, 0.3);
+  background: color-mix(in srgb, var(--color-bg-secondary) 80%, transparent);
+  box-shadow: inset 0 0 0 1px var(--color-border);
 }
 
 :global(.dark) .pattern-selector :deep(.el-input__inner) {
-  color: #fff;
+  color: var(--color-text-primary);
 }
 
 @media (max-width: 480px) {

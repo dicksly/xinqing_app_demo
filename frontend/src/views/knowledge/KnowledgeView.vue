@@ -877,6 +877,24 @@ onMounted(() => {
   margin-bottom: var(--spacing-md, 16px);
 }
 
+.content-tabs :deep(.el-tabs__nav-wrap::after) {
+  background: var(--color-border-light, #f1f5f9);
+}
+
+.content-tabs :deep(.el-tabs__item) {
+  color: var(--color-text-secondary, #64748b);
+  transition: color var(--transition-base, 0.2s ease);
+}
+
+.content-tabs :deep(.el-tabs__item.is-active),
+.content-tabs :deep(.el-tabs__item:hover) {
+  color: var(--color-primary, #10b981);
+}
+
+.content-tabs :deep(.el-tabs__active-bar) {
+  background: var(--color-primary, #10b981);
+}
+
 /* 视频网格 */
 .video-grid {
   display: grid;
@@ -1316,6 +1334,23 @@ onMounted(() => {
 .dark .content-section {
   background: rgba(45, 42, 62, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dark .content-tabs :deep(.el-tabs__nav-wrap::after) {
+  background: var(--color-border);
+}
+
+.dark .content-tabs :deep(.el-tabs__item) {
+  color: var(--color-text-secondary);
+}
+
+.dark .content-tabs :deep(.el-tabs__item.is-active),
+.dark .content-tabs :deep(.el-tabs__item:hover) {
+  color: var(--color-text-primary);
+}
+
+.dark .content-tabs :deep(.el-tabs__active-bar) {
+  background: var(--color-primary-light, #c4b5fd);
 }
 
 .dark .video-item {

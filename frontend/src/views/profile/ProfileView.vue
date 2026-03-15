@@ -179,7 +179,13 @@
         </div>
         <div class="setting-item">
           <span class="setting-label">{{ locale === 'zh-CN' ? '语言' : 'Language' }}</span>
-          <el-select v-model="settings.language" size="small" @change="changeLanguage">
+          <el-select
+            v-model="settings.language"
+            size="small"
+            teleported="false"
+            popper-class="settings-language-popper"
+            @change="changeLanguage"
+          >
             <el-option label="中文" value="zh-CN" />
             <el-option label="English" value="en-US" />
           </el-select>
@@ -708,6 +714,23 @@ onMounted(() => {
   overflow-y: auto;
 }
 
+.page-dialog :deep(.el-tabs__nav-wrap::after) {
+  background: var(--color-border-light, #f1f5f9);
+}
+
+.page-dialog :deep(.el-tabs__item) {
+  color: var(--color-text-secondary, #64748b);
+}
+
+.page-dialog :deep(.el-tabs__item.is-active),
+.page-dialog :deep(.el-tabs__item:hover) {
+  color: var(--color-primary, #10b981);
+}
+
+.page-dialog :deep(.el-tabs__active-bar) {
+  background: var(--color-primary, #10b981);
+}
+
 /* 记录列表 */
 .records-list {
   display: flex;
@@ -919,6 +942,93 @@ onMounted(() => {
 .dark .record-item,
 .dark .favorite-item {
   background: rgba(31, 28, 42, 0.8);
+}
+
+.dark .page-dialog :deep(.el-dialog) {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+}
+
+.dark .page-dialog :deep(.el-dialog__header) {
+  border-bottom: 1px solid var(--color-border);
+  margin-right: 0;
+  padding-bottom: var(--spacing-sm, 8px);
+}
+
+.dark .page-dialog :deep(.el-dialog__title),
+.dark .page-dialog :deep(.el-dialog__headerbtn .el-dialog__close) {
+  color: var(--color-text-primary);
+}
+
+.dark .page-dialog :deep(.el-dialog__body),
+.dark .page-dialog :deep(.el-dialog__footer) {
+  color: var(--color-text-primary);
+}
+
+.dark .page-dialog :deep(.el-tabs__nav-wrap::after) {
+  background: var(--color-border);
+}
+
+.dark .page-dialog :deep(.el-tabs__item) {
+  color: var(--color-text-secondary);
+}
+
+.dark .page-dialog :deep(.el-tabs__item.is-active),
+.dark .page-dialog :deep(.el-tabs__item:hover) {
+  color: var(--color-text-primary);
+}
+
+.dark .page-dialog :deep(.el-tabs__active-bar) {
+  background: var(--color-primary-light, #c4b5fd);
+}
+
+.dark .page-dialog :deep(.el-select__wrapper) {
+  background: color-mix(in srgb, var(--color-bg-secondary) 82%, transparent);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+
+.dark .page-dialog :deep(.el-select__placeholder),
+.dark .page-dialog :deep(.el-select__selected-item),
+.dark .page-dialog :deep(.el-select__caret),
+.dark .page-dialog :deep(.el-input__inner) {
+  color: var(--color-text-primary);
+}
+
+.dark .page-dialog :deep(.el-switch__core) {
+  border-color: var(--color-border);
+  background: color-mix(in srgb, var(--color-bg-secondary) 88%, transparent);
+}
+
+.dark .page-dialog :deep(.el-switch.is-checked .el-switch__core) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.dark :deep(.settings-language-popper) {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+}
+
+.dark :deep(.settings-language-popper .el-popper__arrow::before) {
+  background: var(--color-bg-card);
+  border-color: var(--color-border);
+}
+
+.dark :deep(.settings-language-popper .el-select-dropdown__item) {
+  color: var(--color-text-secondary);
+}
+
+.dark :deep(.settings-language-popper .el-select-dropdown__item.hover),
+.dark :deep(.settings-language-popper .el-select-dropdown__item:hover) {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.dark :deep(.settings-language-popper .el-select-dropdown__item.selected) {
+  color: var(--color-primary-light, #c4b5fd);
+  background: rgba(167, 139, 250, 0.12);
 }
 
 .dark .setting-item {

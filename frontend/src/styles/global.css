@@ -77,9 +77,9 @@
 /* 深色模式 - 温暖柔和的紫色系 */
 .dark {
   --color-text-primary: #f0edf5;
-  --color-text-secondary: #b8b3c7;
-  --color-text-muted: #8b8699;
-  --color-text-light: #6b6778;
+  --color-text-secondary: #d6d1e1;
+  --color-text-muted: #b7b0c8;
+  --color-text-light: #8f87a4;
 
   --color-bg-primary: #2d2a3e;
   --color-bg-secondary: #252233;

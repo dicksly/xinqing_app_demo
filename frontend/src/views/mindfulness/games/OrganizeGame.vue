@@ -592,7 +592,7 @@ onMounted(() => {
 
 .stat-label {
   font-size: 11px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .stat-value {
@@ -734,7 +734,7 @@ onMounted(() => {
 
 .zone-label {
   font-size: 10px;
-  color: #888;
+  color: var(--color-text-muted);
   margin-bottom: 4px;
 }
 
@@ -750,7 +750,7 @@ onMounted(() => {
 
 .items-label {
   font-size: 11px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-bottom: 8px;
   text-align: center;
 }
@@ -807,10 +807,12 @@ onMounted(() => {
 }
 
 .complete-content {
-  background: white;
+  background: var(--color-bg-card);
   padding: 32px;
   border-radius: 16px;
   text-align: center;
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-lg);
 }
 
 .complete-icon {
@@ -907,15 +909,15 @@ onMounted(() => {
 
 :global(.dark) .game-header,
 :global(.dark) .game-footer {
-  background: rgba(0, 0, 0, 0.3);
+  background: color-mix(in srgb, var(--color-bg-secondary) 82%, transparent);
 }
 
 :global(.dark) .stat-label {
-  color: #aaa;
+  color: var(--color-text-secondary);
 }
 
 :global(.dark) .stat-value {
-  color: #fff;
+  color: var(--color-text-primary);
 }
 
 :global(.dark) .fridge {
@@ -924,34 +926,35 @@ onMounted(() => {
 
 :global(.dark) .fridge-shelf,
 :global(.dark) .fridge-door {
-  background: rgba(0, 0, 0, 0.2);
+  background: color-mix(in srgb, var(--color-bg-secondary) 76%, transparent);
 }
 
 :global(.dark) .shelf-slot,
 :global(.dark) .door-slot {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--color-bg-card) 68%, transparent);
+  border-color: color-mix(in srgb, var(--color-text-primary) 18%, var(--color-border));
 }
 
 :global(.dark) .zone-label {
-  color: #888;
+  color: var(--color-text-muted);
 }
 
 :global(.dark) .items-area {
-  background: rgba(0, 0, 0, 0.2);
+  background: color-mix(in srgb, var(--color-bg-secondary) 76%, transparent);
 }
 
 :global(.dark) .items-label {
-  color: #aaa;
+  color: var(--color-text-secondary);
 }
 
 :global(.dark) .item.draggable {
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--color-bg-card) 72%, transparent);
 }
 
 :global(.dark) .complete-content {
-  background: #2a3a2a;
-  color: #fff;
+  background: color-mix(in srgb, var(--color-bg-card) 92%, #284228);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
 }
 
 :global(.dark) .complete-text {
@@ -959,11 +962,12 @@ onMounted(() => {
 }
 
 :global(.dark) .skin-selector :deep(.el-input__wrapper) {
-  background: rgba(0, 0, 0, 0.3);
+  background: color-mix(in srgb, var(--color-bg-secondary) 80%, transparent);
+  box-shadow: inset 0 0 0 1px var(--color-border);
 }
 
 :global(.dark) .skin-selector :deep(.el-input__inner) {
-  color: #fff;
+  color: var(--color-text-primary);
 }
 
 @media (max-width: 480px) {

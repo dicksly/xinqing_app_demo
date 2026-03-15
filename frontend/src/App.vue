@@ -168,14 +168,14 @@ html, body {
 .control-icon {
   width: 20px;
   height: 20px;
-  color: #64748b;
+  color: var(--color-text-secondary);
   transition: all 0.3s ease;
 }
 
 .lang-text {
   font-size: 12px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 .main-content {
@@ -226,24 +226,24 @@ html, body {
 .nav-icon {
   width: 22px;
   height: 22px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   transition: all 0.2s ease;
 }
 
 .nav-label {
   font-size: 10px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-weight: 500;
   transition: all 0.2s ease;
 }
 
 .nav-item.active .nav-icon {
-  color: #10b981;
+  color: var(--color-primary-dark);
   transform: scale(1.1);
 }
 
 .nav-item.active .nav-label {
-  color: #10b981;
+  color: var(--color-primary-dark);
   font-weight: 600;
 }
 
@@ -291,15 +291,15 @@ html, body {
 
 .dark .nav-icon,
 .dark .nav-label {
-  color: #9ca3af;
+  color: var(--color-text-secondary);
 }
 
 .dark .nav-item.active .nav-icon {
-  color: #a78bfa;
+  color: var(--color-primary-light);
 }
 
 .dark .nav-item.active .nav-label {
-  color: #a78bfa;
+  color: var(--color-primary-light);
 }
 
 .dark .control-btn {
@@ -308,10 +308,10 @@ html, body {
 }
 
 .dark .control-icon {
-  color: #fbbf24;
+  color: var(--color-text-primary);
 }
 
 .dark .lang-text {
-  color: #a78bfa;
+  color: var(--color-text-primary);
 }
 </style>

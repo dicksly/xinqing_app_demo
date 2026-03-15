@@ -520,7 +520,7 @@ onUnmounted(() => {
 
 .stat-label {
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .stat-value {
@@ -705,7 +705,7 @@ onUnmounted(() => {
 
 :global(.dark) .soap-game .game-header,
 :global(.dark) .soap-game .game-footer {
-  background: rgba(0, 0, 0, 0.3);
+  background: color-mix(in srgb, var(--color-bg-secondary) 82%, transparent);
 }
 
 :global(.dark) .soap-game .stat-label {
@@ -713,7 +713,7 @@ onUnmounted(() => {
 }
 
 :global(.dark) .soap-game .stat-value {
-  color: #fff;
+  color: var(--color-text-primary);
 }
 
 :global(.dark) .soap-game .slash-effect {
@@ -722,11 +722,12 @@ onUnmounted(() => {
 }
 
 :global(.dark) .soap-game .skin-selector :deep(.el-input__wrapper) {
-  background: rgba(0, 0, 0, 0.3);
+  background: color-mix(in srgb, var(--color-bg-secondary) 80%, transparent);
+  box-shadow: inset 0 0 0 1px var(--color-border);
 }
 
 :global(.dark) .soap-game .skin-selector :deep(.el-input__inner) {
-  color: #fff;
+  color: var(--color-text-primary);
 }
 
 @media (max-width: 480px) {

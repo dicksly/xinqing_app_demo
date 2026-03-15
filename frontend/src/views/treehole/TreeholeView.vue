@@ -1269,7 +1269,7 @@ onMounted(() => {
   gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .detail-type-icon {
@@ -1317,12 +1317,12 @@ onMounted(() => {
 .detail-type-label {
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--color-text-primary);
 }
 
 .detail-time {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   margin-top: 4px;
 }
 
@@ -1332,7 +1332,7 @@ onMounted(() => {
 
 .detail-text-content {
   font-size: 15px;
-  color: #334155;
+  color: var(--color-text-secondary);
   line-height: 1.8;
   white-space: pre-wrap;
   margin: 0;
@@ -1343,7 +1343,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: #f1f5f9;
+  background: var(--color-bg-tertiary);
   border-radius: 12px;
 }
 
@@ -1363,12 +1363,12 @@ onMounted(() => {
 .voice-duration {
   font-size: 24px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--color-text-primary);
 }
 
 .voice-hint {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .detail-image-content {
@@ -1388,9 +1388,9 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   height: 150px;
-  background: #f1f5f9;
+  background: var(--color-bg-tertiary);
   border-radius: 12px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .placeholder-icon {
@@ -1426,7 +1426,7 @@ onMounted(() => {
 
 .ai-reply-text {
   font-size: 14px;
-  color: #334155;
+  color: var(--color-text-secondary);
   line-height: 1.7;
 }
 </style>
