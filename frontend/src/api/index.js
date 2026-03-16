@@ -102,6 +102,10 @@ export const adminContentApi = {
   createDailyQuote: (data) => api.post('/admin/daily-quotes', data),
   updateDailyQuote: (id, data) => api.put(`/admin/daily-quotes/${id}`, data),
   deleteDailyQuote: (id) => api.delete(`/admin/daily-quotes/${id}`),
+  getKnowledgeContents: () => api.get('/admin/knowledge-contents'),
+  createKnowledgeContent: (data) => api.post('/admin/knowledge-contents', data),
+  updateKnowledgeContent: (id, data) => api.put(`/admin/knowledge-contents/${id}`, data),
+  deleteKnowledgeContent: (id) => api.delete(`/admin/knowledge-contents/${id}`),
 }
 
 // 游戏 API

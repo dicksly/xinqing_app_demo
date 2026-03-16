@@ -13,7 +13,7 @@
           <DailyQuoteManager />
         </el-tab-pane>
         <el-tab-pane label="内容管理" name="contents">
-          <p>内容管理开发中。</p>
+          <KnowledgeContentManager />
         </el-tab-pane>
         <el-tab-pane label="专题管理" name="topics">
           <p>专题管理开发中。</p>
@@ -28,6 +28,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import DailyQuoteManager from '../../components/admin/DailyQuoteManager.vue'
+import KnowledgeContentManager from '../../components/admin/KnowledgeContentManager.vue'
 import { useAdminStore } from '../../stores/admin'
 
 const router = useRouter()
