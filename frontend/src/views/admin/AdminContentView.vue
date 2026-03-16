@@ -16,7 +16,7 @@
           <KnowledgeContentManager />
         </el-tab-pane>
         <el-tab-pane label="专题管理" name="topics">
-          <p>专题管理开发中。</p>
+          <KnowledgeTopicManager />
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -29,6 +29,7 @@ import { useRouter } from 'vue-router'
 
 import DailyQuoteManager from '../../components/admin/DailyQuoteManager.vue'
 import KnowledgeContentManager from '../../components/admin/KnowledgeContentManager.vue'
+import KnowledgeTopicManager from '../../components/admin/KnowledgeTopicManager.vue'
 import { useAdminStore } from '../../stores/admin'
 
 const router = useRouter()

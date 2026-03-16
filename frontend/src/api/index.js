@@ -106,6 +106,10 @@ export const adminContentApi = {
   createKnowledgeContent: (data) => api.post('/admin/knowledge-contents', data),
   updateKnowledgeContent: (id, data) => api.put(`/admin/knowledge-contents/${id}`, data),
   deleteKnowledgeContent: (id) => api.delete(`/admin/knowledge-contents/${id}`),
+  getKnowledgeTopics: () => api.get('/admin/knowledge-topics'),
+  createKnowledgeTopic: (data) => api.post('/admin/knowledge-topics', data),
+  updateKnowledgeTopic: (id, data) => api.put(`/admin/knowledge-topics/${id}`, data),
+  deleteKnowledgeTopic: (id) => api.delete(`/admin/knowledge-topics/${id}`),
 }
 
 // 游戏 API
