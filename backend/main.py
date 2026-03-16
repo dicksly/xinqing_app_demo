@@ -23,6 +23,7 @@ except ImportError:
 
 from app.api.v1.api import router as api_router
 from app.core.database import engine, Base, SessionLocal
+from app.data.seed_knowledge_content import seed_knowledge_content
 
 
 def ensure_treehole_schema(db_path: Path) -> None:
@@ -67,6 +68,7 @@ async def lifespan(app: FastAPI):
         from app.services.auth_service import ensure_default_admin_user
 
         ensure_default_admin_user(db)
+        seed_knowledge_content(db)
     finally:
         db.close()
     print("🚀 应用启动成功！数据库表已创建")
