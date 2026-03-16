@@ -14,6 +14,7 @@ from ...models.models import (
     AdminUser,
     DailyQuote,
     EmotionRecord,
+    KnowledgeTopic,
     MindfulnessSession,
     TreeholeEntry,
     KnowledgeContent,
@@ -25,6 +26,7 @@ from ...schemas.schemas import (
     MindfulnessSessionCreate, MindfulnessSessionResponse,
     TreeholeEntryCreate, TreeholeEntryResponse,
     DailyQuoteCreate, DailyQuoteUpdate, DailyQuoteResponse,
+    KnowledgeTopicCreate, KnowledgeTopicUpdate, KnowledgeTopicResponse,
     KnowledgeContentCreate, KnowledgeContentUpdate, KnowledgeContentResponse,
     WeeklyReportResponse,
     UserCreate, UserLogin, UserResponse, TokenResponse,
@@ -217,6 +219,19 @@ async def get_public_knowledge_contents(
     )
 
 
+@router.get("/public/knowledge-topics", response_model=List[KnowledgeTopicResponse])
+async def get_public_knowledge_topics(
+    db: Session = Depends(get_db)
+):
+    """获取前台发布的专题列表。"""
+    return (
+        db.query(KnowledgeTopic)
+        .filter(KnowledgeTopic.status == "published")
+        .order_by(KnowledgeTopic.sort_order.asc(), KnowledgeTopic.id.desc())
+        .all()
+    )
+
+
 @router.get("/public/daily-quote", response_model=DailyQuoteResponse)
 async def get_public_daily_quote(
     db: Session = Depends(get_db)
@@ -402,6 +417,73 @@ async def delete_admin_knowledge_content(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="内容不存在")
 
     db.delete(db_content)
+    db.commit()
+    return {"success": True}
+
+
+@router.get("/admin/knowledge-topics", response_model=List[KnowledgeTopicResponse])
+async def list_admin_knowledge_topics(
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台获取专题列表。"""
+    del current_admin
+    return (
+        db.query(KnowledgeTopic)
+        .order_by(KnowledgeTopic.sort_order.asc(), KnowledgeTopic.id.desc())
+        .all()
+    )
+
+
+@router.post("/admin/knowledge-topics", response_model=KnowledgeTopicResponse)
+async def create_admin_knowledge_topic(
+    topic: KnowledgeTopicCreate,
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台创建专题。"""
+    del current_admin
+    db_topic = KnowledgeTopic(**topic.model_dump())
+    db.add(db_topic)
+    db.commit()
+    db.refresh(db_topic)
+    return db_topic
+
+
+@router.put("/admin/knowledge-topics/{topic_id}", response_model=KnowledgeTopicResponse)
+async def update_admin_knowledge_topic(
+    topic_id: int,
+    topic: KnowledgeTopicUpdate,
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台更新专题。"""
+    del current_admin
+    db_topic = db.query(KnowledgeTopic).filter(KnowledgeTopic.id == topic_id).first()
+    if db_topic is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="专题不存在")
+
+    for field, value in topic.model_dump().items():
+        setattr(db_topic, field, value)
+
+    db.commit()
+    db.refresh(db_topic)
+    return db_topic
+
+
+@router.delete("/admin/knowledge-topics/{topic_id}")
+async def delete_admin_knowledge_topic(
+    topic_id: int,
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台删除专题。"""
+    del current_admin
+    db_topic = db.query(KnowledgeTopic).filter(KnowledgeTopic.id == topic_id).first()
+    if db_topic is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="专题不存在")
+
+    db.delete(db_topic)
     db.commit()
     return {"success": True}
 

@@ -96,6 +96,22 @@ class DailyQuote(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class KnowledgeTopic(Base):
+    """知识专题表"""
+
+    __tablename__ = "knowledge_topics"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(String(20), default="draft")
+    content_count = Column(Integer, default=0)
+    locale = Column(String(20), default="zh-CN")
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class User(Base):
     """用户表"""
 

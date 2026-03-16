@@ -212,6 +212,34 @@ class DailyQuoteResponse(DailyQuoteBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class KnowledgeTopicBase(BaseModel):
+    """知识专题基础 Schema"""
+    title: str = Field(..., description="专题标题")
+    description: Optional[str] = Field(None, description="专题描述")
+    status: str = Field("draft", description="状态")
+    content_count: int = Field(0, description="内容数量")
+    locale: str = Field("zh-CN", description="语言")
+    sort_order: int = Field(0, description="排序")
+
+
+class KnowledgeTopicCreate(KnowledgeTopicBase):
+    """创建知识专题"""
+    pass
+
+
+class KnowledgeTopicUpdate(KnowledgeTopicBase):
+    """更新知识专题"""
+    pass
+
+
+class KnowledgeTopicResponse(KnowledgeTopicBase):
+    """知识专题响应"""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
 class WeeklyReportResponse(BaseModel):
     """周报响应"""
     total_records: int
