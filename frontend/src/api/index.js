@@ -1,14 +1,16 @@
 import axios from 'axios'
-import { resolveApiBaseUrl } from './base-url'
+import { resolveApiBaseUrl } from './base-url.js'
+
+const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : {}
 
 // 从环境变量获取 API 基础 URL
 // 开发环境：/api/v1（相对路径，代理到后端）
 // 生产环境：完整的后端 URL
-const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL)
+const API_BASE_URL = resolveApiBaseUrl(env.VITE_API_BASE_URL)
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: import.meta.env.VITE_API_TIMEOUT || 10000,
+  timeout: env.VITE_API_TIMEOUT || 10000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -85,6 +87,12 @@ export const authApi = {
   getMe: () => api.get('/auth/me'),
 }
 
+// 后台管理员认证 API
+export const adminApi = {
+  login: (data) => api.post('/admin/login', data),
+  getMe: () => api.get('/admin/me'),
+}
+
 // 游戏 API
 export const gamesApi = {
   // 获取所有游戏进度
@@ -106,7 +114,7 @@ export const gamesApi = {
 export default api
 
 // 导出 API 基础 URL，用于调试
-if (import.meta.env.DEV) {
+if (env.DEV) {
   console.log('🔧 开发环境：使用相对路径', API_BASE_URL)
 } else {
   console.log('🚀 生产环境：使用完整 URL', API_BASE_URL)
