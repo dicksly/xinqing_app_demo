@@ -76,7 +76,9 @@ export const treeholeApi = {
 
 // 知识库 API
 export const knowledgeApi = {
-  getList: (params) => api.get('/knowledge-contents', { params }),
+  getDailyQuote: () => api.get('/public/daily-quote'),
+  getList: (params) => api.get('/public/knowledge-contents', { params }),
+  getTopics: () => api.get('/public/knowledge-topics'),
 }
 
 // 用户认证 API
