@@ -19,7 +19,9 @@ const api = axios.create({
 // 请求拦截器：添加 token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('xinqing_token')
+    const userToken = localStorage.getItem('xinqing_token')
+    const adminToken = localStorage.getItem('xinqing_admin_token')
+    const token = config.url?.startsWith('/admin/') ? adminToken : userToken
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -33,10 +35,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token 过期，清除登录状态
-      localStorage.removeItem('xinqing_token')
-      localStorage.removeItem('xinqing_user')
-      // 可选：跳转到登录页或刷新页面
+      if (error.config?.url?.startsWith('/admin/')) {
+        localStorage.removeItem('xinqing_admin_token')
+        localStorage.removeItem('xinqing_admin_user')
+      } else {
+        localStorage.removeItem('xinqing_token')
+        localStorage.removeItem('xinqing_user')
+      }
     }
     return Promise.reject(error)
   }
@@ -71,7 +76,6 @@ export const treeholeApi = {
 
 // 知识库 API
 export const knowledgeApi = {
-  // 获取内容列表
   getList: (params) => api.get('/knowledge-contents', { params }),
 }
 
@@ -91,6 +95,13 @@ export const authApi = {
 export const adminApi = {
   login: (data) => api.post('/admin/login', data),
   getMe: () => api.get('/admin/me'),
+}
+
+export const adminContentApi = {
+  getDailyQuotes: () => api.get('/admin/daily-quotes'),
+  createDailyQuote: (data) => api.post('/admin/daily-quotes', data),
+  updateDailyQuote: (id, data) => api.put(`/admin/daily-quotes/${id}`, data),
+  deleteDailyQuote: (id) => api.delete(`/admin/daily-quotes/${id}`),
 }
 
 // 游戏 API

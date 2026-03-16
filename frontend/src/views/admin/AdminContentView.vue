@@ -8,18 +8,31 @@
       <el-button @click="handleLogout">退出登录</el-button>
     </div>
     <el-card shadow="never">
-      <p>后台内容管理入口已就绪。</p>
+      <el-tabs v-model="activeTab">
+        <el-tab-pane label="每日金句" name="quotes">
+          <DailyQuoteManager />
+        </el-tab-pane>
+        <el-tab-pane label="内容管理" name="contents">
+          <p>内容管理开发中。</p>
+        </el-tab-pane>
+        <el-tab-pane label="专题管理" name="topics">
+          <p>专题管理开发中。</p>
+        </el-tab-pane>
+      </el-tabs>
     </el-card>
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import DailyQuoteManager from '../../components/admin/DailyQuoteManager.vue'
 import { useAdminStore } from '../../stores/admin'
 
 const router = useRouter()
 const adminStore = useAdminStore()
+const activeTab = ref('quotes')
 
 function handleLogout() {
   adminStore.logout()
