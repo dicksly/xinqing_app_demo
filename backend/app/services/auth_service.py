@@ -12,10 +12,10 @@ from sqlalchemy.orm import Session
 
 from ..core.config import settings
 from ..core.database import get_db
-from ..models.models import User
+from ..models.models import AdminUser, User
 
 # 密码加密上下文
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated="auto")
 
 # Bearer Token 认证
 security = HTTPBearer(auto_error=False)
@@ -29,6 +29,22 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     """生成密码哈希"""
     return pwd_context.hash(password)
+
+
+def ensure_default_admin_user(db: Session) -> AdminUser:
+    """确保存在默认管理员账号。"""
+    admin = db.query(AdminUser).filter(AdminUser.username == "admin").first()
+    if admin:
+        return admin
+
+    admin = AdminUser(
+        username="admin",
+        password_hash=get_password_hash("admin123"),
+    )
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
+    return admin
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -85,3 +101,35 @@ async def get_current_user_required(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user
+
+
+async def get_current_admin_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: Session = Depends(get_db)
+) -> Optional[AdminUser]:
+    """获取当前管理员。"""
+    if not credentials:
+        return None
+
+    payload = decode_token(credentials.credentials)
+    if not payload or payload.get("scope") != "admin":
+        return None
+
+    admin_id = payload.get("sub")
+    if admin_id is None:
+        return None
+
+    return db.query(AdminUser).filter(AdminUser.id == int(admin_id)).first()
+
+
+async def get_current_admin_user_required(
+    admin_user: Optional[AdminUser] = Depends(get_current_admin_user)
+) -> AdminUser:
+    """获取当前管理员（必须登录）。"""
+    if admin_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="管理员未登录或 Token 已过期",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return admin_user

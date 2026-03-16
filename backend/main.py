@@ -22,7 +22,7 @@ except ImportError:
     print("ℹ 使用开发环境存储（临时）")
 
 from app.api.v1.api import router as api_router
-from app.core.database import engine, Base
+from app.core.database import engine, Base, SessionLocal
 
 
 def ensure_treehole_schema(db_path: Path) -> None:
@@ -62,6 +62,13 @@ async def lifespan(app: FastAPI):
         pass
 
     Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        from app.services.auth_service import ensure_default_admin_user
+
+        ensure_default_admin_user(db)
+    finally:
+        db.close()
     print("🚀 应用启动成功！数据库表已创建")
 
     yield

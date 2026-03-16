@@ -88,6 +88,18 @@ class User(Base):
     game_progress = relationship("GameProgress", back_populates="user")
 
 
+class AdminUser(Base):
+    """后台管理员表"""
+
+    __tablename__ = "admin_users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), unique=True, index=True)
+    password_hash = Column(String(255))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_login = Column(DateTime, nullable=True)
+
+
 class GameProgress(Base):
     """游戏进度表"""
 

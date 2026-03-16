@@ -208,6 +208,28 @@ class TokenResponse(BaseModel):
     user: UserResponse
 
 
+class AdminLogin(BaseModel):
+    """管理员登录"""
+    username: str = Field(..., description="管理员用户名")
+    password: str = Field(..., description="管理员密码")
+
+
+class AdminUserResponse(BaseModel):
+    """管理员信息响应"""
+    id: int
+    username: str
+    created_at: datetime
+    last_login: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminTokenResponse(BaseModel):
+    """管理员 Token 响应"""
+    access_token: str
+    token_type: str = "bearer"
+    user: AdminUserResponse
+
+
 # ============ 游戏进度相关 Schema ============
 
 class GameProgressBase(BaseModel):

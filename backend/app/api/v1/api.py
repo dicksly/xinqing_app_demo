@@ -10,20 +10,31 @@ import uuid
 
 from ...core.database import get_db
 from ...core.config import settings
-from ...models.models import EmotionRecord, MindfulnessSession, TreeholeEntry, KnowledgeContent, User, GameProgress
+from ...models.models import (
+    AdminUser,
+    EmotionRecord,
+    MindfulnessSession,
+    TreeholeEntry,
+    KnowledgeContent,
+    User,
+    GameProgress,
+)
 from ...schemas.schemas import (
     EmotionRecordCreate, EmotionRecordResponse,
     MindfulnessSessionCreate, MindfulnessSessionResponse,
     TreeholeEntryCreate, TreeholeEntryResponse,
     KnowledgeContentResponse, WeeklyReportResponse,
     UserCreate, UserLogin, UserResponse, TokenResponse,
+    AdminLogin, AdminUserResponse, AdminTokenResponse,
     GameProgressUpdate, GameProgressResponse, GameSyncRequest, GameRecordCreate
 )
 from ...services.emotion_service import EmotionService
 from ...services.ai_service import AIService
 from ...services.auth_service import (
     verify_password, get_password_hash, create_access_token,
-    get_current_user, get_current_user_required
+    ensure_default_admin_user,
+    get_current_user, get_current_user_required,
+    get_current_admin_user_required,
 )
 from datetime import datetime, timedelta
 
@@ -172,6 +183,42 @@ async def get_knowledge_contents(
 
     contents = query.offset(skip).limit(limit).all()
     return contents
+
+
+# ============ 后台管理员认证路由 ============
+
+@router.post("/admin/login", response_model=AdminTokenResponse)
+async def admin_login(
+    credentials: AdminLogin,
+    db: Session = Depends(get_db)
+):
+    """管理员登录。"""
+    ensure_default_admin_user(db)
+    admin = db.query(AdminUser).filter(AdminUser.username == credentials.username).first()
+
+    if not admin or not verify_password(credentials.password, admin.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="管理员用户名或密码错误"
+        )
+
+    admin.last_login = datetime.utcnow()
+    db.commit()
+    db.refresh(admin)
+
+    access_token = create_access_token(data={"sub": str(admin.id), "scope": "admin"})
+    return AdminTokenResponse(
+        access_token=access_token,
+        user=AdminUserResponse.model_validate(admin),
+    )
+
+
+@router.get("/admin/me", response_model=AdminUserResponse)
+async def get_admin_me(
+    current_admin: AdminUser = Depends(get_current_admin_user_required)
+):
+    """获取当前管理员信息。"""
+    return AdminUserResponse.model_validate(current_admin)
 
 
 # ============ 用户认证路由 ============
