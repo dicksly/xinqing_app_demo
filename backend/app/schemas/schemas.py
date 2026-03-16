@@ -152,10 +152,27 @@ class TreeholeEntryResponse(TreeholeEntryBase):
 class KnowledgeContentBase(BaseModel):
     """知识库内容基础 Schema"""
     title: str = Field(..., description="标题")
-    content_type: str = Field(..., description="内容类型：video/comic/test/quote")
+    summary: Optional[str] = Field(None, description="摘要")
+    content_type: str = Field(..., description="内容类型：video/article")
     content: str = Field(..., description="内容")
     category: str = Field(..., description="分类")
+    cover_url: Optional[str] = Field(None, description="封面图")
+    external_url: Optional[str] = Field(None, description="外部链接")
     tags: Optional[str] = Field(None, description="标签（JSON字符串）")
+    status: str = Field("draft", description="状态")
+    sort_order: int = Field(0, description="排序")
+    locale: str = Field("zh-CN", description="语言")
+    published_at: Optional[datetime] = Field(None, description="发布时间")
+
+
+class KnowledgeContentCreate(KnowledgeContentBase):
+    """创建知识内容"""
+    pass
+
+
+class KnowledgeContentUpdate(KnowledgeContentBase):
+    """更新知识内容"""
+    pass
 
 
 class KnowledgeContentResponse(KnowledgeContentBase):
@@ -163,6 +180,7 @@ class KnowledgeContentResponse(KnowledgeContentBase):
     id: int
     view_count: int
     created_at: datetime
+    updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
 

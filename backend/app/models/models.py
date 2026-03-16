@@ -64,12 +64,20 @@ class KnowledgeContent(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255))  # 标题
+    summary = Column(Text, nullable=True)  # 摘要
     content_type = Column(String(20))  # 内容类型：video/comic/test/quote
     content = Column(Text)  # 内容
     category = Column(String(50))  # 分类
+    cover_url = Column(String(500), nullable=True)  # 封面图
+    external_url = Column(String(500), nullable=True)  # 外部链接
     tags = Column(Text)  # 标签（JSON字符串）
     view_count = Column(Integer, default=0)  # 浏览次数
+    locale = Column(String(20), default="zh-CN")
+    status = Column(String(20), default="draft")
+    sort_order = Column(Integer, default=0)
+    published_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class DailyQuote(Base):
