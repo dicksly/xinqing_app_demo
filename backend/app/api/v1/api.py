@@ -12,6 +12,7 @@ from ...core.database import get_db
 from ...core.config import settings
 from ...models.models import (
     AdminUser,
+    DailyQuote,
     EmotionRecord,
     MindfulnessSession,
     TreeholeEntry,
@@ -23,6 +24,7 @@ from ...schemas.schemas import (
     EmotionRecordCreate, EmotionRecordResponse,
     MindfulnessSessionCreate, MindfulnessSessionResponse,
     TreeholeEntryCreate, TreeholeEntryResponse,
+    DailyQuoteCreate, DailyQuoteUpdate, DailyQuoteResponse,
     KnowledgeContentResponse, WeeklyReportResponse,
     UserCreate, UserLogin, UserResponse, TokenResponse,
     AdminLogin, AdminUserResponse, AdminTokenResponse,
@@ -185,6 +187,25 @@ async def get_knowledge_contents(
     return contents
 
 
+@router.get("/public/daily-quote", response_model=DailyQuoteResponse)
+async def get_public_daily_quote(
+    db: Session = Depends(get_db)
+):
+    """获取当前发布的每日金句。"""
+    quote = (
+        db.query(DailyQuote)
+        .filter(DailyQuote.status == "published")
+        .order_by(DailyQuote.sort_order.asc(), DailyQuote.id.desc())
+        .first()
+    )
+    if quote is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="暂无已发布金句"
+        )
+    return quote
+
+
 # ============ 后台管理员认证路由 ============
 
 @router.post("/admin/login", response_model=AdminTokenResponse)
@@ -219,6 +240,73 @@ async def get_admin_me(
 ):
     """获取当前管理员信息。"""
     return AdminUserResponse.model_validate(current_admin)
+
+
+@router.get("/admin/daily-quotes", response_model=List[DailyQuoteResponse])
+async def list_admin_daily_quotes(
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台获取每日金句列表。"""
+    del current_admin
+    return (
+        db.query(DailyQuote)
+        .order_by(DailyQuote.sort_order.asc(), DailyQuote.id.desc())
+        .all()
+    )
+
+
+@router.post("/admin/daily-quotes", response_model=DailyQuoteResponse)
+async def create_admin_daily_quote(
+    quote: DailyQuoteCreate,
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台创建每日金句。"""
+    del current_admin
+    db_quote = DailyQuote(**quote.model_dump())
+    db.add(db_quote)
+    db.commit()
+    db.refresh(db_quote)
+    return db_quote
+
+
+@router.put("/admin/daily-quotes/{quote_id}", response_model=DailyQuoteResponse)
+async def update_admin_daily_quote(
+    quote_id: int,
+    quote: DailyQuoteUpdate,
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台更新每日金句。"""
+    del current_admin
+    db_quote = db.query(DailyQuote).filter(DailyQuote.id == quote_id).first()
+    if db_quote is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="金句不存在")
+
+    for field, value in quote.model_dump().items():
+        setattr(db_quote, field, value)
+
+    db.commit()
+    db.refresh(db_quote)
+    return db_quote
+
+
+@router.delete("/admin/daily-quotes/{quote_id}")
+async def delete_admin_daily_quote(
+    quote_id: int,
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台删除每日金句。"""
+    del current_admin
+    db_quote = db.query(DailyQuote).filter(DailyQuote.id == quote_id).first()
+    if db_quote is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="金句不存在")
+
+    db.delete(db_quote)
+    db.commit()
+    return {"success": True}
 
 
 # ============ 用户认证路由 ============

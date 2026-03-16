@@ -4,7 +4,7 @@ Pydantic Schemas - 用于数据验证和序列化
 
 from pydantic import BaseModel, ConfigDict, Field, AliasChoices, model_validator
 from typing import Optional, List
-from datetime import datetime
+from datetime import date, datetime
 
 
 class EmotionRecordBase(BaseModel):
@@ -163,6 +163,34 @@ class KnowledgeContentResponse(KnowledgeContentBase):
     id: int
     view_count: int
     created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DailyQuoteBase(BaseModel):
+    """每日金句基础 Schema"""
+    text: str = Field(..., description="金句内容")
+    author: Optional[str] = Field(None, description="作者")
+    locale: str = Field("zh-CN", description="语言")
+    status: str = Field("draft", description="状态")
+    sort_order: int = Field(0, description="排序")
+    effective_date: Optional[date] = Field(None, description="生效日期")
+
+
+class DailyQuoteCreate(DailyQuoteBase):
+    """创建每日金句"""
+    pass
+
+
+class DailyQuoteUpdate(DailyQuoteBase):
+    """更新每日金句"""
+    pass
+
+
+class DailyQuoteResponse(DailyQuoteBase):
+    """每日金句响应"""
+    id: int
+    created_at: datetime
+    updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
 

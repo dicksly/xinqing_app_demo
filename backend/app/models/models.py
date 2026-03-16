@@ -2,7 +2,7 @@
 数据库模型定义
 """
 
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, Boolean, ForeignKey, Date
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..core.database import Base
@@ -70,6 +70,22 @@ class KnowledgeContent(Base):
     tags = Column(Text)  # 标签（JSON字符串）
     view_count = Column(Integer, default=0)  # 浏览次数
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class DailyQuote(Base):
+    """每日金句表"""
+
+    __tablename__ = "daily_quotes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    text = Column(Text, nullable=False)
+    author = Column(String(255), nullable=True)
+    locale = Column(String(20), default="zh-CN")
+    status = Column(String(20), default="draft")
+    sort_order = Column(Integer, default=0)
+    effective_date = Column(Date, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class User(Base):
