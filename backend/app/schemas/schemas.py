@@ -4,7 +4,7 @@ Pydantic Schemas - 用于数据验证和序列化
 
 from pydantic import BaseModel, ConfigDict, Field, AliasChoices, model_validator
 from typing import Optional, List
-from datetime import datetime
+from datetime import date, datetime
 
 
 class EmotionRecordBase(BaseModel):
@@ -152,10 +152,27 @@ class TreeholeEntryResponse(TreeholeEntryBase):
 class KnowledgeContentBase(BaseModel):
     """知识库内容基础 Schema"""
     title: str = Field(..., description="标题")
-    content_type: str = Field(..., description="内容类型：video/comic/test/quote")
+    summary: Optional[str] = Field(None, description="摘要")
+    content_type: str = Field(..., description="内容类型：video/article")
     content: str = Field(..., description="内容")
     category: str = Field(..., description="分类")
+    cover_url: Optional[str] = Field(None, description="封面图")
+    external_url: Optional[str] = Field(None, description="外部链接")
     tags: Optional[str] = Field(None, description="标签（JSON字符串）")
+    status: str = Field("draft", description="状态")
+    sort_order: int = Field(0, description="排序")
+    locale: str = Field("zh-CN", description="语言")
+    published_at: Optional[datetime] = Field(None, description="发布时间")
+
+
+class KnowledgeContentCreate(KnowledgeContentBase):
+    """创建知识内容"""
+    pass
+
+
+class KnowledgeContentUpdate(KnowledgeContentBase):
+    """更新知识内容"""
+    pass
 
 
 class KnowledgeContentResponse(KnowledgeContentBase):
@@ -163,6 +180,63 @@ class KnowledgeContentResponse(KnowledgeContentBase):
     id: int
     view_count: int
     created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DailyQuoteBase(BaseModel):
+    """每日金句基础 Schema"""
+    text: str = Field(..., description="金句内容")
+    author: Optional[str] = Field(None, description="作者")
+    locale: str = Field("zh-CN", description="语言")
+    status: str = Field("draft", description="状态")
+    sort_order: int = Field(0, description="排序")
+    effective_date: Optional[date] = Field(None, description="生效日期")
+
+
+class DailyQuoteCreate(DailyQuoteBase):
+    """创建每日金句"""
+    pass
+
+
+class DailyQuoteUpdate(DailyQuoteBase):
+    """更新每日金句"""
+    pass
+
+
+class DailyQuoteResponse(DailyQuoteBase):
+    """每日金句响应"""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class KnowledgeTopicBase(BaseModel):
+    """知识专题基础 Schema"""
+    title: str = Field(..., description="专题标题")
+    description: Optional[str] = Field(None, description="专题描述")
+    status: str = Field("draft", description="状态")
+    content_count: int = Field(0, description="内容数量")
+    locale: str = Field("zh-CN", description="语言")
+    sort_order: int = Field(0, description="排序")
+
+
+class KnowledgeTopicCreate(KnowledgeTopicBase):
+    """创建知识专题"""
+    pass
+
+
+class KnowledgeTopicUpdate(KnowledgeTopicBase):
+    """更新知识专题"""
+    pass
+
+
+class KnowledgeTopicResponse(KnowledgeTopicBase):
+    """知识专题响应"""
+    id: int
+    created_at: datetime
+    updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -206,6 +280,28 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+
+class AdminLogin(BaseModel):
+    """管理员登录"""
+    username: str = Field(..., description="管理员用户名")
+    password: str = Field(..., description="管理员密码")
+
+
+class AdminUserResponse(BaseModel):
+    """管理员信息响应"""
+    id: int
+    username: str
+    created_at: datetime
+    last_login: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminTokenResponse(BaseModel):
+    """管理员 Token 响应"""
+    access_token: str
+    token_type: str = "bearer"
+    user: AdminUserResponse
 
 
 # ============ 游戏进度相关 Schema ============

@@ -2,7 +2,7 @@
 数据库模型定义
 """
 
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, Boolean, ForeignKey, Date
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..core.database import Base
@@ -64,12 +64,52 @@ class KnowledgeContent(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255))  # 标题
+    summary = Column(Text, nullable=True)  # 摘要
     content_type = Column(String(20))  # 内容类型：video/comic/test/quote
     content = Column(Text)  # 内容
     category = Column(String(50))  # 分类
+    cover_url = Column(String(500), nullable=True)  # 封面图
+    external_url = Column(String(500), nullable=True)  # 外部链接
     tags = Column(Text)  # 标签（JSON字符串）
     view_count = Column(Integer, default=0)  # 浏览次数
+    locale = Column(String(20), default="zh-CN")
+    status = Column(String(20), default="draft")
+    sort_order = Column(Integer, default=0)
+    published_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class DailyQuote(Base):
+    """每日金句表"""
+
+    __tablename__ = "daily_quotes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    text = Column(Text, nullable=False)
+    author = Column(String(255), nullable=True)
+    locale = Column(String(20), default="zh-CN")
+    status = Column(String(20), default="draft")
+    sort_order = Column(Integer, default=0)
+    effective_date = Column(Date, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class KnowledgeTopic(Base):
+    """知识专题表"""
+
+    __tablename__ = "knowledge_topics"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(String(20), default="draft")
+    content_count = Column(Integer, default=0)
+    locale = Column(String(20), default="zh-CN")
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class User(Base):
@@ -86,6 +126,18 @@ class User(Base):
 
     # 关联
     game_progress = relationship("GameProgress", back_populates="user")
+
+
+class AdminUser(Base):
+    """后台管理员表"""
+
+    __tablename__ = "admin_users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), unique=True, index=True)
+    password_hash = Column(String(255))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_login = Column(DateTime, nullable=True)
 
 
 class GameProgress(Base):

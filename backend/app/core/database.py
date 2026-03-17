@@ -6,9 +6,17 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from .config import settings
 
+try:
+    from .persistent import DATABASE_URL as PERSISTENT_DATABASE_URL
+except ImportError:
+    PERSISTENT_DATABASE_URL = settings.DATABASE_URL
+
+DATABASE_URL = PERSISTENT_DATABASE_URL
+settings.DATABASE_URL = DATABASE_URL
+
 # 创建数据库引擎
 engine = create_engine(
-    settings.DATABASE_URL,
+    DATABASE_URL,
     connect_args={"check_same_thread": False},  # SQLite 特定配置
     echo=settings.DEBUG  # 开发环境打印 SQL
 )

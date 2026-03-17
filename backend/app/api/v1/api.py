@@ -10,20 +10,36 @@ import uuid
 
 from ...core.database import get_db
 from ...core.config import settings
-from ...models.models import EmotionRecord, MindfulnessSession, TreeholeEntry, KnowledgeContent, User, GameProgress
+from ...models.models import (
+    AdminUser,
+    DailyQuote,
+    EmotionRecord,
+    KnowledgeTopic,
+    MindfulnessSession,
+    TreeholeEntry,
+    KnowledgeContent,
+    User,
+    GameProgress,
+)
 from ...schemas.schemas import (
     EmotionRecordCreate, EmotionRecordResponse,
     MindfulnessSessionCreate, MindfulnessSessionResponse,
     TreeholeEntryCreate, TreeholeEntryResponse,
-    KnowledgeContentResponse, WeeklyReportResponse,
+    DailyQuoteCreate, DailyQuoteUpdate, DailyQuoteResponse,
+    KnowledgeTopicCreate, KnowledgeTopicUpdate, KnowledgeTopicResponse,
+    KnowledgeContentCreate, KnowledgeContentUpdate, KnowledgeContentResponse,
+    WeeklyReportResponse,
     UserCreate, UserLogin, UserResponse, TokenResponse,
+    AdminLogin, AdminUserResponse, AdminTokenResponse,
     GameProgressUpdate, GameProgressResponse, GameSyncRequest, GameRecordCreate
 )
 from ...services.emotion_service import EmotionService
 from ...services.ai_service import AIService
 from ...services.auth_service import (
     verify_password, get_password_hash, create_access_token,
-    get_current_user, get_current_user_required
+    ensure_default_admin_user,
+    get_current_user, get_current_user_required,
+    get_current_admin_user_required,
 )
 from datetime import datetime, timedelta
 
@@ -160,6 +176,7 @@ async def get_published_treehole_entries(
 @router.get("/knowledge-contents", response_model=List[KnowledgeContentResponse])
 async def get_knowledge_contents(
     category: Optional[str] = None,
+    content_type: Optional[str] = None,
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(get_db)
@@ -170,8 +187,305 @@ async def get_knowledge_contents(
     if category:
         query = query.filter(KnowledgeContent.category == category)
 
+    if content_type:
+        query = query.filter(KnowledgeContent.content_type == content_type)
+
     contents = query.offset(skip).limit(limit).all()
     return contents
+
+
+@router.get("/public/knowledge-contents", response_model=List[KnowledgeContentResponse])
+async def get_public_knowledge_contents(
+    category: Optional[str] = None,
+    content_type: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    """获取前台发布的知识内容。"""
+    query = db.query(KnowledgeContent).filter(KnowledgeContent.status == "published")
+
+    if category:
+        query = query.filter(KnowledgeContent.category == category)
+
+    if content_type:
+        query = query.filter(KnowledgeContent.content_type == content_type)
+
+    return (
+        query.order_by(KnowledgeContent.sort_order.asc(), KnowledgeContent.id.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
+@router.get("/public/knowledge-topics", response_model=List[KnowledgeTopicResponse])
+async def get_public_knowledge_topics(
+    db: Session = Depends(get_db)
+):
+    """获取前台发布的专题列表。"""
+    return (
+        db.query(KnowledgeTopic)
+        .filter(KnowledgeTopic.status == "published")
+        .order_by(KnowledgeTopic.sort_order.asc(), KnowledgeTopic.id.desc())
+        .all()
+    )
+
+
+@router.get("/public/daily-quote", response_model=DailyQuoteResponse)
+async def get_public_daily_quote(
+    db: Session = Depends(get_db)
+):
+    """获取当前发布的每日金句。"""
+    quote = (
+        db.query(DailyQuote)
+        .filter(DailyQuote.status == "published")
+        .order_by(DailyQuote.sort_order.asc(), DailyQuote.id.desc())
+        .first()
+    )
+    if quote is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="暂无已发布金句"
+        )
+    return quote
+
+
+# ============ 后台管理员认证路由 ============
+
+@router.post("/admin/login", response_model=AdminTokenResponse)
+async def admin_login(
+    credentials: AdminLogin,
+    db: Session = Depends(get_db)
+):
+    """管理员登录。"""
+    ensure_default_admin_user(db)
+    admin = db.query(AdminUser).filter(AdminUser.username == credentials.username).first()
+
+    if not admin or not verify_password(credentials.password, admin.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="管理员用户名或密码错误"
+        )
+
+    admin.last_login = datetime.utcnow()
+    db.commit()
+    db.refresh(admin)
+
+    access_token = create_access_token(data={"sub": str(admin.id), "scope": "admin"})
+    return AdminTokenResponse(
+        access_token=access_token,
+        user=AdminUserResponse.model_validate(admin),
+    )
+
+
+@router.get("/admin/me", response_model=AdminUserResponse)
+async def get_admin_me(
+    current_admin: AdminUser = Depends(get_current_admin_user_required)
+):
+    """获取当前管理员信息。"""
+    return AdminUserResponse.model_validate(current_admin)
+
+
+@router.get("/admin/daily-quotes", response_model=List[DailyQuoteResponse])
+async def list_admin_daily_quotes(
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台获取每日金句列表。"""
+    del current_admin
+    return (
+        db.query(DailyQuote)
+        .order_by(DailyQuote.sort_order.asc(), DailyQuote.id.desc())
+        .all()
+    )
+
+
+@router.post("/admin/daily-quotes", response_model=DailyQuoteResponse)
+async def create_admin_daily_quote(
+    quote: DailyQuoteCreate,
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台创建每日金句。"""
+    del current_admin
+    db_quote = DailyQuote(**quote.model_dump())
+    db.add(db_quote)
+    db.commit()
+    db.refresh(db_quote)
+    return db_quote
+
+
+@router.put("/admin/daily-quotes/{quote_id}", response_model=DailyQuoteResponse)
+async def update_admin_daily_quote(
+    quote_id: int,
+    quote: DailyQuoteUpdate,
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台更新每日金句。"""
+    del current_admin
+    db_quote = db.query(DailyQuote).filter(DailyQuote.id == quote_id).first()
+    if db_quote is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="金句不存在")
+
+    for field, value in quote.model_dump().items():
+        setattr(db_quote, field, value)
+
+    db.commit()
+    db.refresh(db_quote)
+    return db_quote
+
+
+@router.delete("/admin/daily-quotes/{quote_id}")
+async def delete_admin_daily_quote(
+    quote_id: int,
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台删除每日金句。"""
+    del current_admin
+    db_quote = db.query(DailyQuote).filter(DailyQuote.id == quote_id).first()
+    if db_quote is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="金句不存在")
+
+    db.delete(db_quote)
+    db.commit()
+    return {"success": True}
+
+
+@router.get("/admin/knowledge-contents", response_model=List[KnowledgeContentResponse])
+async def list_admin_knowledge_contents(
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台获取知识内容列表。"""
+    del current_admin
+    return (
+        db.query(KnowledgeContent)
+        .order_by(KnowledgeContent.sort_order.asc(), KnowledgeContent.id.desc())
+        .all()
+    )
+
+
+@router.post("/admin/knowledge-contents", response_model=KnowledgeContentResponse)
+async def create_admin_knowledge_content(
+    content: KnowledgeContentCreate,
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台创建知识内容。"""
+    del current_admin
+    db_content = KnowledgeContent(**content.model_dump())
+    db.add(db_content)
+    db.commit()
+    db.refresh(db_content)
+    return db_content
+
+
+@router.put("/admin/knowledge-contents/{content_id}", response_model=KnowledgeContentResponse)
+async def update_admin_knowledge_content(
+    content_id: int,
+    content: KnowledgeContentUpdate,
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台更新知识内容。"""
+    del current_admin
+    db_content = db.query(KnowledgeContent).filter(KnowledgeContent.id == content_id).first()
+    if db_content is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="内容不存在")
+
+    for field, value in content.model_dump().items():
+        setattr(db_content, field, value)
+
+    db.commit()
+    db.refresh(db_content)
+    return db_content
+
+
+@router.delete("/admin/knowledge-contents/{content_id}")
+async def delete_admin_knowledge_content(
+    content_id: int,
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台删除知识内容。"""
+    del current_admin
+    db_content = db.query(KnowledgeContent).filter(KnowledgeContent.id == content_id).first()
+    if db_content is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="内容不存在")
+
+    db.delete(db_content)
+    db.commit()
+    return {"success": True}
+
+
+@router.get("/admin/knowledge-topics", response_model=List[KnowledgeTopicResponse])
+async def list_admin_knowledge_topics(
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台获取专题列表。"""
+    del current_admin
+    return (
+        db.query(KnowledgeTopic)
+        .order_by(KnowledgeTopic.sort_order.asc(), KnowledgeTopic.id.desc())
+        .all()
+    )
+
+
+@router.post("/admin/knowledge-topics", response_model=KnowledgeTopicResponse)
+async def create_admin_knowledge_topic(
+    topic: KnowledgeTopicCreate,
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台创建专题。"""
+    del current_admin
+    db_topic = KnowledgeTopic(**topic.model_dump())
+    db.add(db_topic)
+    db.commit()
+    db.refresh(db_topic)
+    return db_topic
+
+
+@router.put("/admin/knowledge-topics/{topic_id}", response_model=KnowledgeTopicResponse)
+async def update_admin_knowledge_topic(
+    topic_id: int,
+    topic: KnowledgeTopicUpdate,
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台更新专题。"""
+    del current_admin
+    db_topic = db.query(KnowledgeTopic).filter(KnowledgeTopic.id == topic_id).first()
+    if db_topic is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="专题不存在")
+
+    for field, value in topic.model_dump().items():
+        setattr(db_topic, field, value)
+
+    db.commit()
+    db.refresh(db_topic)
+    return db_topic
+
+
+@router.delete("/admin/knowledge-topics/{topic_id}")
+async def delete_admin_knowledge_topic(
+    topic_id: int,
+    current_admin: AdminUser = Depends(get_current_admin_user_required),
+    db: Session = Depends(get_db)
+):
+    """后台删除专题。"""
+    del current_admin
+    db_topic = db.query(KnowledgeTopic).filter(KnowledgeTopic.id == topic_id).first()
+    if db_topic is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="专题不存在")
+
+    db.delete(db_topic)
+    db.commit()
+    return {"success": True}
 
 
 # ============ 用户认证路由 ============

@@ -1,14 +1,16 @@
 import axios from 'axios'
-import { resolveApiBaseUrl } from './base-url'
+import { resolveApiBaseUrl } from './base-url.js'
+
+const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : {}
 
 // 从环境变量获取 API 基础 URL
 // 开发环境：/api/v1（相对路径，代理到后端）
 // 生产环境：完整的后端 URL
-const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL)
+const API_BASE_URL = resolveApiBaseUrl(env.VITE_API_BASE_URL)
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: import.meta.env.VITE_API_TIMEOUT || 10000,
+  timeout: env.VITE_API_TIMEOUT || 10000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -17,7 +19,9 @@ const api = axios.create({
 // 请求拦截器：添加 token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('xinqing_token')
+    const userToken = localStorage.getItem('xinqing_token')
+    const adminToken = localStorage.getItem('xinqing_admin_token')
+    const token = config.url?.startsWith('/admin/') ? adminToken : userToken
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -31,10 +35,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token 过期，清除登录状态
-      localStorage.removeItem('xinqing_token')
-      localStorage.removeItem('xinqing_user')
-      // 可选：跳转到登录页或刷新页面
+      if (error.config?.url?.startsWith('/admin/')) {
+        localStorage.removeItem('xinqing_admin_token')
+        localStorage.removeItem('xinqing_admin_user')
+      } else {
+        localStorage.removeItem('xinqing_token')
+        localStorage.removeItem('xinqing_user')
+      }
     }
     return Promise.reject(error)
   }
@@ -69,8 +76,9 @@ export const treeholeApi = {
 
 // 知识库 API
 export const knowledgeApi = {
-  // 获取内容列表
-  getList: (params) => api.get('/knowledge-contents', { params }),
+  getDailyQuote: () => api.get('/public/daily-quote'),
+  getList: (params) => api.get('/public/knowledge-contents', { params }),
+  getTopics: () => api.get('/public/knowledge-topics'),
 }
 
 // 用户认证 API
@@ -83,6 +91,27 @@ export const authApi = {
 
   // 获取当前用户信息
   getMe: () => api.get('/auth/me'),
+}
+
+// 后台管理员认证 API
+export const adminApi = {
+  login: (data) => api.post('/admin/login', data),
+  getMe: () => api.get('/admin/me'),
+}
+
+export const adminContentApi = {
+  getDailyQuotes: () => api.get('/admin/daily-quotes'),
+  createDailyQuote: (data) => api.post('/admin/daily-quotes', data),
+  updateDailyQuote: (id, data) => api.put(`/admin/daily-quotes/${id}`, data),
+  deleteDailyQuote: (id) => api.delete(`/admin/daily-quotes/${id}`),
+  getKnowledgeContents: () => api.get('/admin/knowledge-contents'),
+  createKnowledgeContent: (data) => api.post('/admin/knowledge-contents', data),
+  updateKnowledgeContent: (id, data) => api.put(`/admin/knowledge-contents/${id}`, data),
+  deleteKnowledgeContent: (id) => api.delete(`/admin/knowledge-contents/${id}`),
+  getKnowledgeTopics: () => api.get('/admin/knowledge-topics'),
+  createKnowledgeTopic: (data) => api.post('/admin/knowledge-topics', data),
+  updateKnowledgeTopic: (id, data) => api.put(`/admin/knowledge-topics/${id}`, data),
+  deleteKnowledgeTopic: (id) => api.delete(`/admin/knowledge-topics/${id}`),
 }
 
 // 游戏 API
@@ -106,7 +135,7 @@ export const gamesApi = {
 export default api
 
 // 导出 API 基础 URL，用于调试
-if (import.meta.env.DEV) {
+if (env.DEV) {
   console.log('🔧 开发环境：使用相对路径', API_BASE_URL)
 } else {
   console.log('🚀 生产环境：使用完整 URL', API_BASE_URL)

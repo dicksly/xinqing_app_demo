@@ -221,17 +221,16 @@ import {
   Timer,
   Connection
 } from '@element-plus/icons-vue'
-import { knowledgeApi } from '../../api'
+import { knowledgeApi } from '../../api/index.js'
 import { ElMessage } from 'element-plus'
+import { mapKnowledgePageData } from './knowledge-public-data.js'
 
 const { t, locale } = useI18n()
 
 // 每日金句
 const dailyQuote = ref({
-  text: locale.value === 'zh-CN'
-    ? "生命中最重要的不是你遭遇了什么，而是你记住了什么。"
-    : "The most important thing is not what happens to you, but what you remember.",
-  author: locale.value === 'zh-CN' ? "未知" : "Unknown",
+  text: '',
+  author: '',
 })
 
 const currentDate = ref('')
@@ -525,6 +524,7 @@ const activeCategory = ref('video')
 const loading = ref(false)
 const videoContent = ref([])
 const articles = ref([])
+const topics = ref([])
 
 // 测试数据
 const tests = computed(() => [
@@ -603,34 +603,6 @@ const tests = computed(() => [
     duration: locale.value === 'zh-CN' ? '8分钟' : '8 min',
     questions_count: 15,
     questions: getAttachmentTestQuestions(),
-  },
-])
-
-// 专题数据
-const topics = computed(() => [
-  {
-    id: 1,
-    title: locale.value === 'zh-CN' ? '考试季抗压指南' : 'Exam Season Stress Relief',
-    status: t('knowledge.topicStatus.active'),
-    statusClass: 'status-active',
-    desc: locale.value === 'zh-CN' ? '帮助考生调整心态，发挥最佳水平' : 'Help students adjust their mindset for peak performance',
-    content_count: 12,
-  },
-  {
-    id: 2,
-    title: locale.value === 'zh-CN' ? '毕业季迷茫破解' : 'Graduation Confusion Guide',
-    status: t('knowledge.topicStatus.pending'),
-    statusClass: 'status-pending',
-    desc: locale.value === 'zh-CN' ? '从校园到职场的心理过渡指南' : 'Psychological transition from campus to workplace',
-    content_count: 8,
-  },
-  {
-    id: 3,
-    title: locale.value === 'zh-CN' ? '求职季心理建设' : 'Job Hunting Mental Preparation',
-    status: t('knowledge.topicStatus.planned'),
-    statusClass: 'status-planned',
-    desc: locale.value === 'zh-CN' ? '在求职过程中保持良好心态' : 'Maintain a positive mindset during job hunting',
-    content_count: 10,
   },
 ])
 
@@ -764,36 +736,28 @@ function likeContent() {
 async function loadContent() {
   loading.value = true
   try {
-    const [videosResponse, articlesResponse] = await Promise.all([
-      knowledgeApi.getList({ content_type: 'video' }),
-      knowledgeApi.getList({ content_type: 'article' }),
+    const [quoteResponse, contentsResponse, topicsResponse] = await Promise.all([
+      knowledgeApi.getDailyQuote(),
+      knowledgeApi.getList(),
+      knowledgeApi.getTopics(),
     ])
 
-    videoContent.value = videosResponse.data
-    articles.value = articlesResponse.data
+    const mapped = mapKnowledgePageData({
+      quote: quoteResponse.data,
+      contents: contentsResponse.data,
+      topics: topicsResponse.data,
+    })
+
+    dailyQuote.value = mapped.dailyQuote
+    videoContent.value = mapped.videoContent
+    articles.value = mapped.articles
+    topics.value = mapped.topics
   } catch (error) {
     console.error('加载内容失败:', error)
-    // 使用模拟数据
-    videoContent.value = [
-      {
-        id: 1,
-        title: locale.value === 'zh-CN' ? '什么是焦虑症' : 'What is Anxiety Disorder',
-        content_type: 'video',
-        category: locale.value === 'zh-CN' ? '心理健康' : 'Mental Health',
-        content: locale.value === 'zh-CN' ? '焦虑症是一种常见的心理健康问题...' : 'Anxiety disorder is a common mental health issue...',
-        view_count: 1234,
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: 2,
-        title: locale.value === 'zh-CN' ? '如何拒绝精神内耗' : 'How to Stop Overthinking',
-        content_type: 'video',
-        category: locale.value === 'zh-CN' ? '情绪管理' : 'Emotional Management',
-        content: locale.value === 'zh-CN' ? '精神内耗是现代人常见的心理困扰...' : 'Overthinking is a common psychological issue...',
-        view_count: 987,
-        created_at: new Date(Date.now() - 86400000).toISOString(),
-      },
-    ]
+    dailyQuote.value = { text: '', author: '' }
+    videoContent.value = []
+    articles.value = []
+    topics.value = []
   } finally {
     loading.value = false
   }
