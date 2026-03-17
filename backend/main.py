@@ -51,6 +51,55 @@ def ensure_treehole_schema(db_path: Path) -> None:
         conn.close()
 
 
+def ensure_knowledge_schema(db_path: Path) -> None:
+    """为旧版 SQLite 数据库补齐知识内容表缺失列。"""
+    if not db_path.exists():
+        return
+
+    conn = sqlite3.connect(db_path)
+    try:
+        columns = {
+            row[1] for row in conn.execute("PRAGMA table_info(knowledge_contents)").fetchall()
+        }
+
+        if not columns:
+            return
+
+        if "summary" not in columns:
+            conn.execute("ALTER TABLE knowledge_contents ADD COLUMN summary TEXT")
+
+        if "cover_url" not in columns:
+            conn.execute("ALTER TABLE knowledge_contents ADD COLUMN cover_url VARCHAR(500)")
+
+        if "external_url" not in columns:
+            conn.execute("ALTER TABLE knowledge_contents ADD COLUMN external_url VARCHAR(500)")
+
+        if "locale" not in columns:
+            conn.execute(
+                "ALTER TABLE knowledge_contents ADD COLUMN locale VARCHAR(20) DEFAULT 'zh-CN'"
+            )
+
+        if "status" not in columns:
+            conn.execute(
+                "ALTER TABLE knowledge_contents ADD COLUMN status VARCHAR(20) DEFAULT 'draft'"
+            )
+
+        if "sort_order" not in columns:
+            conn.execute(
+                "ALTER TABLE knowledge_contents ADD COLUMN sort_order INTEGER DEFAULT 0"
+            )
+
+        if "published_at" not in columns:
+            conn.execute("ALTER TABLE knowledge_contents ADD COLUMN published_at DATETIME")
+
+        if "updated_at" not in columns:
+            conn.execute("ALTER TABLE knowledge_contents ADD COLUMN updated_at DATETIME")
+
+        conn.commit()
+    finally:
+        conn.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：启动时准备数据库。"""
@@ -59,6 +108,7 @@ async def lifespan(app: FastAPI):
         DATABASE_FILE.parent.mkdir(parents=True, exist_ok=True)
         print(f"✅ 数据库目录创建成功：{DATABASE_FILE.parent}")
         ensure_treehole_schema(DATABASE_FILE)
+        ensure_knowledge_schema(DATABASE_FILE)
     except ImportError:
         pass
 

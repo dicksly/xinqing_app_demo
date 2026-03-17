@@ -81,6 +81,14 @@
           <component :is="ArrowRight" class="menu-arrow" />
         </div>
 
+        <div class="menu-item touchable" @click="openPage('admin')">
+          <div class="menu-icon">
+            <component :is="Management" />
+          </div>
+          <span class="menu-label">{{ locale === 'zh-CN' ? '后台入口' : 'Admin Console' }}</span>
+          <component :is="ArrowRight" class="menu-arrow" />
+        </div>
+
         <div class="menu-item touchable" @click="openPage('about')">
           <div class="menu-icon">
             <component :is="InfoFilled" />
@@ -240,6 +248,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   User,
@@ -248,6 +257,7 @@ import {
   Document,
   Star,
   Setting,
+  Management,
   InfoFilled,
   ArrowRight,
   VideoPlay,
@@ -259,12 +269,16 @@ import { useAuthStore } from '../../stores/auth'
 import { useGamesStore } from '../../stores/games'
 import { useEmotionStore } from '../../stores/emotion'
 import { useThemeStore } from '../../stores/theme'
+import { useAdminStore } from '../../stores/admin'
 import { setLocale } from '../../locales'
+import { getAdminEntryTarget } from '../../utils/admin-entry'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AuthDialog from '../../components/auth/AuthDialog.vue'
 
 const { t, locale } = useI18n()
+const router = useRouter()
 const authStore = useAuthStore()
+const adminStore = useAdminStore()
 const gamesStore = useGamesStore()
 const emotionStore = useEmotionStore()
 const themeStore = useThemeStore()
@@ -348,6 +362,9 @@ function openPage(type) {
     case 'settings':
       loadSettings()
       showSettingsDialog.value = true
+      break
+    case 'admin':
+      router.push(getAdminEntryTarget(adminStore.isAuthenticated))
       break
     case 'about':
       showAboutDialog.value = true
