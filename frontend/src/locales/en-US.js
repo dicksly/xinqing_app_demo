@@ -22,11 +22,29 @@ export default {
 
   // Navigation
   nav: {
+    home: 'Home',
     emotion: 'Mood',
     mindfulness: 'Mindful',
     treehole: 'Tree Hole',
     knowledge: 'Learn',
     profile: 'Me',
+  },
+
+  home: {
+    title: 'Healing Orchard',
+    subtitle: 'Let your mind feel gently cared for, like resting in a warm orchard.',
+    statusRecord: 'Mood Log',
+    statusDesc: 'Track today\'s mood\nand stress level',
+    mindfulness: 'Mindful Practice',
+    mindfulnessDesc: 'Meditation guidance\nand calming games',
+    treehole: 'Tree Hole',
+    treeholeDesc: 'Share your feelings\nand get support',
+    knowledge: 'Mind Boost',
+    knowledgeDesc: 'Easy practical\npsychology content',
+    dailyNote: 'Today\'s Care',
+    dailyNoteDesc: 'It is okay to slow down. You are already taking care of yourself.',
+    streak: 'Gentle Reminder',
+    streakDesc: 'Open one small module and give today a softer response.',
   },
 
   // Emotion Check-in

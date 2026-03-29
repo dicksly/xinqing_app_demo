@@ -4,7 +4,10 @@
     <section class="quote-card card">
       <header class="card-header">
         <component :is="Trophy" class="header-icon" />
-        <h2 class="card-title">{{ t('knowledge.dailyQuote') }}</h2>
+        <div class="header-copy">
+          <h2 class="card-title">{{ t('knowledge.dailyQuote') }}</h2>
+          <p class="card-subtitle">{{ quoteSubtitle }}</p>
+        </div>
         <span class="date-tag">{{ currentDate }}</span>
       </header>
 
@@ -16,9 +19,21 @@
 
     <!-- 内容分类标签页 -->
     <section class="content-section card">
+      <div class="content-spotlight">
+        <div>
+          <span class="spotlight-label">{{ contentSpotlightLabel }}</span>
+          <h3 class="spotlight-title">{{ contentSpotlightTitle }}</h3>
+        </div>
+        <span class="spotlight-chip">{{ activeCategory }}</span>
+      </div>
+
       <el-tabs v-model="activeCategory" class="content-tabs">
         <!-- 短视频/条漫 -->
         <el-tab-pane :label="t('knowledge.video')" name="video">
+          <div class="video-editorial">
+            <span class="editorial-kicker">{{ locale === 'zh-CN' ? '轻量内容' : 'Light content' }}</span>
+            <p class="editorial-desc">{{ locale === 'zh-CN' ? '先看一点短内容，让今天的理解从更轻的入口开始。' : 'Start with something short and let today\'s understanding begin from a lighter place.' }}</p>
+          </div>
           <div v-loading="loading" class="video-grid">
             <div
               v-for="item in videoContent"
@@ -44,31 +59,74 @@
 
         <!-- 心理测试 -->
         <el-tab-pane :label="t('knowledge.test')" name="test">
-          <div v-loading="loading" class="test-list">
+          <div v-loading="loading" class="featured-test-panel">
             <div
-              v-for="test in tests"
-              :key="test.id"
-              class="test-item touchable"
-              @click="startTest(test)"
+              v-if="featuredTest"
+              class="featured-test-card touchable"
+              @click="startTest(featuredTest)"
             >
-              <div class="test-icon" :class="test.iconClass">
-                <component :is="test.icon" />
+              <div class="featured-test-top">
+                <span class="featured-badge">{{ locale === 'zh-CN' ? 'POPULAR' : 'POPULAR' }}</span>
+                <span class="featured-tag">{{ featuredTest.duration }}</span>
               </div>
-              <div class="test-info">
-                <h3 class="test-title">{{ test.title }}</h3>
-                <p class="test-desc">{{ test.desc }}</p>
-                <div class="test-meta">
-                  <span class="meta-tag">{{ test.duration }}</span>
-                  <span class="meta-tag">{{ test.questions_count }}{{ locale === 'zh-CN' ? '题' : 'Q' }}</span>
+              <div class="featured-test-body">
+                <div class="featured-copy">
+                  <p class="featured-eyebrow">{{ locale === 'zh-CN' ? '今天适合先做这个' : 'A good place to start today' }}</p>
+                  <h3 class="featured-title">{{ featuredTest.title }}</h3>
+                  <p class="featured-desc">
+                    {{ locale === 'zh-CN'
+                      ? '用几分钟看看你在关系、压力和决策里的自然倾向。'
+                      : 'Take a few minutes to see your natural patterns in relationships, stress, and decisions.'
+                    }}
+                  </p>
+                  <div class="featured-meta">
+                    <span class="meta-tag">{{ featuredTest.questions_count }}{{ locale === 'zh-CN' ? '题' : 'Q' }}</span>
+                    <span class="meta-tag">{{ locale === 'zh-CN' ? '精选推荐' : 'Featured pick' }}</span>
+                  </div>
+                  <span class="featured-cta">{{ locale === 'zh-CN' ? '立即开始' : 'Start now' }}</span>
+                </div>
+                <div class="featured-visual">
+                  <div class="featured-ornament">
+                    <div class="ornament-frame frame-one"></div>
+                    <div class="ornament-frame frame-two"></div>
+                    <div class="test-icon featured-icon" :class="featuredTest.iconClass">
+                      <component :is="featuredTest.icon" />
+                    </div>
+                  </div>
                 </div>
               </div>
-              <el-button type="primary" size="small" round>{{ locale === 'zh-CN' ? '开始测试' : 'Start' }}</el-button>
+            </div>
+
+            <div class="secondary-test-list">
+              <div
+                v-for="test in secondaryTests"
+                :key="test.id"
+                class="secondary-test-item touchable"
+                @click="startTest(test)"
+              >
+                <div class="test-icon secondary-icon" :class="test.iconClass">
+                  <component :is="test.icon" />
+                </div>
+                <div class="secondary-test-info">
+                  <span class="secondary-kicker">{{ test.id === 2 ? (locale === 'zh-CN' ? '延伸探索' : 'Explore next') : (locale === 'zh-CN' ? '关系视角' : 'Relationship lens') }}</span>
+                  <h3 class="test-title">{{ getSecondaryTestTitle(test) }}</h3>
+                  <p class="test-desc">{{ getSecondaryTestDesc(test) }}</p>
+                </div>
+                <div class="secondary-test-side">
+                  <span class="secondary-meta">{{ test.duration }}</span>
+                  <span class="secondary-arrow">›</span>
+                </div>
+              </div>
             </div>
           </div>
         </el-tab-pane>
 
         <!-- 知识文章 -->
         <el-tab-pane :label="t('knowledge.article')" name="article">
+          <div class="article-editorial">
+            <span class="editorial-kicker">{{ locale === 'zh-CN' ? '延伸阅读' : 'Read next' }}</span>
+            <p class="editorial-desc">{{ locale === 'zh-CN' ? '做完一个小探索后，再读一点能把感受和理解慢慢接起来。' : 'After a small self-check, read a little more to connect feeling with understanding.' }}</p>
+          </div>
           <div v-loading="loading" class="article-list">
             <el-card
               v-for="article in articles"
@@ -98,6 +156,10 @@
 
         <!-- 专题策划 -->
         <el-tab-pane :label="t('knowledge.topic')" name="topic">
+          <div class="topic-editorial">
+            <span class="editorial-kicker">{{ locale === 'zh-CN' ? '栏目策划' : 'Editorial picks' }}</span>
+            <p class="editorial-desc">{{ locale === 'zh-CN' ? '把零散内容整理成一个更完整的主题入口，适合慢慢看。' : 'Organized themes that gather scattered content into something slower and more complete.' }}</p>
+          </div>
           <div class="topic-list">
             <div
               v-for="topic in topics"
@@ -606,6 +668,43 @@ const tests = computed(() => [
   },
 ])
 
+const featuredTest = computed(() => tests.value[0] || null)
+const secondaryTests = computed(() => tests.value.slice(1))
+
+const quoteSubtitle = computed(() => {
+  return locale.value === 'zh-CN'
+    ? '先读一句，让今天的内容从更轻一点的地方开始。'
+    : 'Start with one gentle line before moving into the rest of today\'s content.'
+})
+
+const contentSpotlightLabel = computed(() => {
+  if (locale.value === 'zh-CN') {
+    if (activeCategory.value === 'test') return '自我探索'
+    if (activeCategory.value === 'article') return '延伸阅读'
+    if (activeCategory.value === 'video') return '轻量内容'
+    return '精选内容'
+  }
+
+  if (activeCategory.value === 'test') return 'Self discovery'
+  if (activeCategory.value === 'article') return 'Read next'
+  if (activeCategory.value === 'video') return 'Light content'
+  return 'Featured'
+})
+
+const contentSpotlightTitle = computed(() => {
+  if (locale.value === 'zh-CN') {
+    if (activeCategory.value === 'test') return '再做个小探索，看看自己现在的状态。'
+    if (activeCategory.value === 'article') return '再延伸读一点，把感受慢慢讲清楚。'
+    if (activeCategory.value === 'video') return '先看一点轻内容，让理解更容易开始。'
+    return '今天想从哪一块开始？'
+  }
+
+  if (activeCategory.value === 'test') return 'Take one small step to understand where you are today.'
+  if (activeCategory.value === 'article') return 'Read a little more and give your feelings clearer language.'
+  if (activeCategory.value === 'video') return 'Start with something lighter and ease into the topic.'
+  return 'Where do you want to start today?'
+})
+
 // 对话框状态
 const showContentDialog = ref(false)
 const showTestDialog = ref(false)
@@ -656,6 +755,30 @@ function startTest(test) {
   currentTest.value = test
   testCompleted.value = false
   showTestDialog.value = true
+}
+
+function getSecondaryTestTitle(test) {
+  if (locale.value === 'zh-CN') {
+    if (test.id === 2) return '压力状态自测'
+    if (test.id === 3) return '依恋模式探索'
+  } else {
+    if (test.id === 2) return 'Stress Snapshot'
+    if (test.id === 3) return 'Attachment Patterns'
+  }
+
+  return test.title
+}
+
+function getSecondaryTestDesc(test) {
+  if (locale.value === 'zh-CN') {
+    if (test.id === 2) return '快速看看你最近的紧绷程度。'
+    if (test.id === 3) return '了解你在亲密关系里的靠近方式。'
+  } else {
+    if (test.id === 2) return 'Quickly see how tense life has felt lately.'
+    if (test.id === 3) return 'Understand how you move closer in relationships.'
+  }
+
+  return test.desc
 }
 
 // 查看文章
@@ -1360,5 +1483,616 @@ onMounted(() => {
 
 .dark .result-icon {
   color: var(--color-primary, #a78bfa);
+}
+
+.quote-card {
+  overflow: hidden;
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--surface-2) 88%, transparent) 0%, color-mix(in srgb, var(--surface-1) 92%, transparent) 100%),
+    var(--accent-gradient-soft);
+}
+
+.quote-content {
+  padding: 8px 4px 2px;
+}
+
+.quote-text {
+  font-size: 17px;
+  line-height: 1.8;
+  font-weight: 600;
+}
+
+.content-section {
+  background: color-mix(in srgb, var(--surface-2) 92%, transparent);
+}
+
+.content-tabs :deep(.el-tabs__item) {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+}
+
+.content-tabs :deep(.el-tabs__item.is-active) {
+  background: var(--nav-active-bg);
+}
+
+.video-grid {
+  gap: 12px;
+}
+
+.video-item,
+.test-item,
+.topic-item {
+  border: 1px solid var(--color-border-light);
+  background: color-mix(in srgb, var(--surface-3) 84%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.video-thumb {
+  height: 112px;
+  background: var(--accent-gradient);
+}
+
+.video-title,
+.test-title,
+.article-title {
+  line-height: 1.4;
+}
+
+.test-item {
+  padding: 12px;
+  align-items: flex-start;
+}
+
+.meta-tag,
+.article-tag,
+.content-category,
+.content-tag {
+  border: 1px solid var(--color-border-light);
+}
+
+.article-item {
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+}
+
+.article-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.question-item,
+.result-detail {
+  background: color-mix(in srgb, var(--surface-3) 88%, transparent);
+  border: 1px solid var(--color-border-light);
+}
+
+[data-ui-theme='glow-night'] .quote-card {
+  background:
+    linear-gradient(180deg, rgba(17, 24, 43, 0.92) 0%, rgba(12, 18, 32, 0.96) 100%),
+    var(--accent-gradient-soft);
+}
+
+[data-ui-theme='playful-bloom'] .quote-text {
+  font-size: 18px;
+}
+
+.header-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.quote-card .card-header {
+  align-items: flex-start;
+}
+
+.quote-card .header-icon {
+  margin-top: 2px;
+}
+
+.card-subtitle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.content-spotlight {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 2px 14px;
+}
+
+.spotlight-label {
+  display: inline-flex;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: 0.03em;
+}
+
+.spotlight-title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.15;
+  color: var(--color-text-primary);
+}
+
+.spotlight-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid var(--color-border-light);
+  color: var(--color-primary-dark);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.article-editorial {
+  padding: 2px 2px 14px;
+}
+
+.video-editorial,
+.topic-editorial {
+  padding: 2px 2px 14px;
+}
+
+.editorial-kicker {
+  display: inline-flex;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: 0.03em;
+}
+
+.editorial-desc {
+  margin: 0;
+  max-width: 300px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.quote-card {
+  padding-bottom: 18px;
+}
+
+.quote-content {
+  padding: 10px 8px 4px;
+}
+
+.quote-text {
+  font-size: 18px;
+  line-height: 1.75;
+}
+
+.quote-author {
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+.content-section {
+  padding-top: 12px;
+}
+
+.content-tabs :deep(.el-tabs__header) {
+  margin-bottom: 18px;
+}
+
+.content-tabs :deep(.el-tabs__nav-wrap) {
+  padding: 4px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.content-tabs :deep(.el-tabs__nav) {
+  gap: 6px;
+}
+
+.content-tabs :deep(.el-tabs__item) {
+  height: 34px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.content-tabs :deep(.el-tabs__active-bar) {
+  display: none;
+}
+
+.video-item {
+  padding: 10px;
+  border-radius: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.video-thumb {
+  height: 118px;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.video-thumb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(34, 15, 24, 0.14) 100%);
+}
+
+.video-info {
+  padding: 12px 4px 4px;
+}
+
+.video-category,
+.video-meta {
+  font-size: 10px;
+}
+
+.video-title {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.video-category {
+  display: inline-flex;
+  min-height: 22px;
+  padding: 0 8px;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid var(--color-border-light);
+  margin-bottom: 8px;
+}
+
+.video-meta {
+  gap: 5px;
+  color: var(--color-text-muted);
+}
+
+.test-item {
+  padding: 14px;
+  border-radius: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.test-desc {
+  line-height: 1.55;
+}
+
+.article-item {
+  border-radius: 20px;
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.article-header {
+  gap: 10px;
+  padding: 14px 14px 10px;
+}
+
+.article-preview {
+  padding: 0 14px;
+  line-height: 1.6;
+}
+
+.article-footer {
+  padding: 10px 14px 12px;
+}
+
+.topic-item {
+  padding: 14px;
+  border-radius: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.content-category,
+.content-tag,
+.meta-tag,
+.article-tag {
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.question-item {
+  border-radius: 18px;
+}
+
+.result-detail {
+  border-radius: 20px;
+}
+
+.featured-test-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.featured-test-card {
+  padding: 16px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #f05f98 0%, #ea4f8a 48%, #d93e7b 100%);
+  color: white;
+  box-shadow: 0 20px 34px rgba(234, 79, 138, 0.24);
+  overflow: hidden;
+  position: relative;
+}
+
+.featured-test-card::after {
+  content: '';
+  position: absolute;
+  right: -18px;
+  bottom: -18px;
+  width: 96px;
+  height: 96px;
+  border-radius: 24px;
+  border: 4px solid rgba(255, 255, 255, 0.16);
+}
+
+.featured-test-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.featured-badge,
+.featured-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.featured-badge {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.featured-tag {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.featured-test-body {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.featured-copy {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.featured-eyebrow {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.featured-title {
+  margin: 0 0 8px;
+  font-size: 22px;
+  line-height: 1.08;
+}
+
+.featured-desc {
+  margin: 0 0 12px;
+  max-width: 208px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.featured-meta {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.featured-test-card .meta-tag {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: white;
+}
+
+.featured-cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.featured-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  flex-shrink: 0;
+}
+
+.featured-ornament {
+  position: relative;
+  width: 92px;
+  height: 92px;
+}
+
+.ornament-frame {
+  position: absolute;
+  border-radius: 22px;
+  border: 3px solid rgba(255, 255, 255, 0.16);
+}
+
+.frame-one {
+  inset: 18px 0 0 18px;
+}
+
+.frame-two {
+  inset: 32px 12px -2px 30px;
+  border-radius: 18px;
+  border-width: 2px;
+  opacity: 0.7;
+}
+
+.featured-icon {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 64px;
+  height: 64px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.featured-icon svg {
+  width: 32px;
+  height: 32px;
+  color: white;
+}
+
+.secondary-test-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.secondary-test-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-2) 90%, transparent);
+  border: 1px solid var(--color-border-light);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.secondary-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+}
+
+.secondary-test-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.secondary-kicker {
+  display: inline-flex;
+  margin-bottom: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--color-primary);
+}
+
+.secondary-test-info .test-title {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+.secondary-test-info .test-desc {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.secondary-test-side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.secondary-meta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.secondary-arrow {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--color-text-muted);
+}
+
+.test-dialog :deep(.el-dialog__body) {
+  padding-top: 12px;
+}
+
+.test-questions {
+  gap: 14px;
+}
+
+.question-item {
+  padding: 14px;
+}
+
+.question-title {
+  line-height: 1.5;
+}
+
+.result-detail {
+  box-shadow: var(--shadow-sm);
+}
+
+.topic-header {
+  margin-bottom: 8px;
+}
+
+.topic-title {
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.topic-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.topic-status {
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.topic-desc {
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.topic-footer {
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.topic-count {
+  font-size: 11px;
 }
 </style>

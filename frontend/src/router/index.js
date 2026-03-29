@@ -6,7 +6,12 @@ import { useAdminStore } from '../stores/admin.js'
 const routes = [
   {
     path: '/',
-    redirect: '/emotion'
+    redirect: '/home'
+  },
+  {
+    path: '/home',
+    name: 'Home',
+    component: () => import('../views/home/HomeView.vue')
   },
   {
     path: '/emotion',
@@ -45,7 +50,7 @@ const routes = [
   },
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/emotion'
+    redirect: '/home'
   }
 ]
 

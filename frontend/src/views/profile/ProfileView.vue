@@ -2,6 +2,15 @@
   <div class="profile-view">
     <!-- 用户信息卡片 -->
     <section class="user-card card">
+      <header class="card-header profile-header">
+        <component :is="UserFilled" class="header-icon" />
+        <div class="header-copy">
+          <h2 class="card-title">{{ locale === 'zh-CN' ? '我的空间' : 'My Space' }}</h2>
+          <p class="card-subtitle">{{ locale === 'zh-CN' ? '把记录、收藏和设置都留在一个更私人的地方。' : 'Keep your records, favorites, and settings in one personal place.' }}</p>
+        </div>
+        <span class="panel-chip">{{ locale === 'zh-CN' ? 'Me' : 'Me' }}</span>
+      </header>
+
       <div v-if="authStore.isAuthenticated" class="user-info">
         <div class="avatar">
           <component :is="UserFilled" class="avatar-icon" />
@@ -494,6 +503,40 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md, 16px);
+}
+
+.header-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-header {
+  align-items: flex-start;
+}
+
+.profile-header .header-icon {
+  margin-top: 2px;
+}
+
+.card-subtitle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.panel-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid var(--color-border-light);
+  color: var(--color-primary-dark);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 /* 用户卡片 */
@@ -1058,5 +1101,85 @@ onMounted(() => {
 
 .dark .about-footer {
   border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.user-card {
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--surface-2) 84%, transparent) 0%, color-mix(in srgb, var(--surface-1) 92%, transparent) 100%),
+    var(--accent-gradient-soft);
+}
+
+.user-info {
+  align-items: flex-start;
+}
+
+.avatar {
+  width: 68px;
+  height: 68px;
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+.username {
+  font-size: 20px;
+}
+
+.prompt-icon {
+  background: color-mix(in srgb, var(--surface-3) 82%, transparent);
+}
+
+.stats-card,
+.menu-card {
+  background: color-mix(in srgb, var(--surface-2) 92%, transparent);
+}
+
+.stat-item,
+.record-item,
+.favorite-item {
+  border: 1px solid var(--color-border-light);
+  background: color-mix(in srgb, var(--surface-3) 84%, transparent);
+}
+
+.menu-list {
+  gap: 8px;
+  padding: 8px;
+}
+
+.menu-item {
+  border-bottom: none;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-3) 70%, transparent);
+  border: 1px solid transparent;
+}
+
+.menu-item:active,
+.menu-item:hover {
+  background: color-mix(in srgb, var(--nav-active-bg) 76%, var(--surface-2));
+  border-color: var(--color-border-light);
+}
+
+.menu-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+}
+
+.version-info {
+  letter-spacing: 0.04em;
+}
+
+.settings-section,
+.about-footer {
+  border-top-color: var(--color-border-light);
+}
+
+[data-ui-theme='glow-night'] .user-card {
+  background:
+    linear-gradient(180deg, rgba(18, 24, 44, 0.92) 0%, rgba(10, 14, 28, 0.96) 100%),
+    var(--accent-gradient-secondary);
+}
+
+[data-ui-theme='playful-bloom'] .menu-icon svg,
+[data-ui-theme='playful-bloom'] .about-link {
+  color: var(--color-primary-dark);
 }
 </style>

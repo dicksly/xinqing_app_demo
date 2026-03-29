@@ -22,11 +22,29 @@ export default {
 
   // 导航
   nav: {
+    home: '首页',
     emotion: '情绪',
     mindfulness: '正念',
     treehole: '树洞',
     knowledge: '充电站',
     profile: '我的',
+  },
+
+  home: {
+    title: '心灵疗愈站',
+    subtitle: '让心灵像果园一样温暖地治愈',
+    statusRecord: '状态记录',
+    statusDesc: '记录今日情绪状态\n与压力水平',
+    mindfulness: '正念练习',
+    mindfulnessDesc: '冥想引导与\n放松小游戏',
+    treehole: '树洞倾诉',
+    treeholeDesc: '倾诉心声，获得\n情感支持',
+    knowledge: '心理充电',
+    knowledgeDesc: '轻松获取实用的\n心理学内容',
+    dailyNote: '今日陪伴',
+    dailyNoteDesc: '慢一点也没关系，你已经在认真照顾自己了。',
+    streak: '柔软提醒',
+    streakDesc: '打开一个小模块，给今天一点点温柔回应。',
   },
 
   // 情绪打卡

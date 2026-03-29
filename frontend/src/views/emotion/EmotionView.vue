@@ -4,8 +4,22 @@
     <section class="checkin-card card">
       <header class="card-header">
         <component :is="Histogram" class="header-icon" />
-        <h2 class="card-title">{{ t('emotion.title') }}</h2>
+        <div class="header-copy">
+          <h2 class="card-title">{{ t('emotion.title') }}</h2>
+          <p class="card-subtitle">{{ locale === 'zh-CN' ? '用一个更轻的方式，记录今天的状态。' : 'Capture today with a softer, simpler check-in.' }}</p>
+        </div>
+        <span class="panel-chip">{{ locale === 'zh-CN' ? 'Today' : 'Today' }}</span>
       </header>
+
+      <div class="emotion-spotlight">
+        <div class="spotlight-copy">
+          <span class="spotlight-label">{{ locale === 'zh-CN' ? '轻量记录' : 'Quick note' }}</span>
+          <p>{{ locale === 'zh-CN' ? '先选一个状态，再补充能量、睡眠和一点微光时刻。' : 'Pick a mood first, then add energy, sleep, and one small bright moment.' }}</p>
+        </div>
+        <div class="spotlight-badge">
+          <span>{{ currentRecord.mood ? moods.find(item => item.value === currentRecord.mood)?.label : (locale === 'zh-CN' ? '未选择' : 'Pending') }}</span>
+        </div>
+      </div>
 
       <!-- 心情选择 -->
       <div class="section">
@@ -114,7 +128,10 @@
     <section class="report-card card">
       <header class="card-header">
         <component :is="DataLine" class="header-icon" />
-        <h2 class="card-title">{{ t('emotion.weeklyReport') }}</h2>
+        <div class="header-copy">
+          <h2 class="card-title">{{ t('emotion.weeklyReport') }}</h2>
+          <p class="card-subtitle">{{ locale === 'zh-CN' ? '把这一周的情绪节奏看得更清楚一点。' : 'See the rhythm of your week more clearly.' }}</p>
+        </div>
       </header>
 
       <div v-if="weeklyReport" class="report-content">
@@ -534,5 +551,271 @@ onMounted(() => {
 
 .dark .stress-rank-tag {
   background: rgba(45, 42, 62, 0.8);
+}
+
+.checkin-card {
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--surface-2) 82%, transparent) 0%, color-mix(in srgb, var(--surface-1) 92%, transparent) 100%),
+    var(--accent-gradient-soft);
+}
+
+.report-card {
+  background: color-mix(in srgb, var(--surface-2) 92%, transparent);
+}
+
+.emotion-view .section {
+  padding: 14px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-3) 76%, transparent);
+  border: 1px solid var(--color-border-light);
+}
+
+.emotion-view .section-title,
+.emotion-view .slider-label,
+.emotion-view .section-label {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.mood-grid {
+  gap: 10px;
+}
+
+.mood-item {
+  min-height: 88px;
+  padding: 12px 8px;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--surface-2) 86%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.mood-item.active {
+  background: color-mix(in srgb, var(--color-primary) 14%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--color-primary) 26%, transparent);
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+.mood-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+}
+
+.mood-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sleep-section {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.social-radio :deep(.el-radio-group) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.social-radio :deep(.el-radio-button) {
+  width: 100%;
+}
+
+.submit-btn {
+  min-height: 50px;
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--color-primary) 24%, transparent);
+}
+
+.report-stats {
+  gap: 10px;
+}
+
+.stat-item {
+  padding: 12px 8px;
+  background: color-mix(in srgb, var(--surface-3) 82%, transparent);
+  border: 1px solid var(--color-border-light);
+}
+
+.stat-value {
+  font-size: 24px;
+}
+
+.stress-chart {
+  background: color-mix(in srgb, var(--surface-3) 86%, transparent);
+  border: 1px solid var(--color-border-light);
+}
+
+[data-ui-theme='glow-night'] .checkin-card {
+  background:
+    linear-gradient(180deg, rgba(17, 28, 56, 0.88) 0%, rgba(10, 16, 31, 0.92) 100%),
+    var(--accent-gradient-secondary);
+}
+
+[data-ui-theme='playful-bloom'] .checkin-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 245, 233, 0.96) 100%),
+    var(--accent-gradient-soft);
+}
+
+.header-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.checkin-card .card-header,
+.report-card .card-header {
+  align-items: flex-start;
+}
+
+.checkin-card .header-icon,
+.report-card .header-icon {
+  margin-top: 2px;
+}
+
+.card-subtitle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.panel-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid var(--color-border-light);
+  color: var(--color-primary-dark);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.emotion-spotlight {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.68) 0%, rgba(255, 243, 240, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.spotlight-copy {
+  min-width: 0;
+}
+
+.spotlight-label {
+  display: inline-flex;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: 0.03em;
+}
+
+.spotlight-copy p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.spotlight-badge {
+  flex-shrink: 0;
+  min-width: 82px;
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--color-border-light);
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.emotion-view .section {
+  padding: 16px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.62) 0%, color-mix(in srgb, var(--surface-3) 92%, transparent) 100%);
+}
+
+.slider-header,
+.sleep-section {
+  margin-bottom: 2px;
+}
+
+.stress-tags :deep(.el-check-tag) {
+  border-radius: 999px;
+  border: 1px solid var(--color-border-light);
+  background: rgba(255, 255, 255, 0.56);
+  color: var(--color-text-secondary);
+  padding: 7px 11px;
+}
+
+.stress-tags :deep(.el-check-tag.is-checked) {
+  background: color-mix(in srgb, var(--color-primary) 12%, white);
+  color: var(--color-primary-dark);
+  border-color: color-mix(in srgb, var(--color-primary) 26%, transparent);
+}
+
+.social-radio :deep(.el-radio-button__inner) {
+  min-height: 42px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.54);
+}
+
+.social-radio :deep(.el-radio-button.is-active .el-radio-button__inner) {
+  background: color-mix(in srgb, var(--color-primary) 10%, white);
+}
+
+.submit-btn {
+  margin-top: 4px;
+  border-radius: 18px;
+}
+
+.report-card {
+  position: relative;
+}
+
+.report-card::after {
+  content: '';
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(240, 111, 137, 0.06) 0%, rgba(255, 204, 134, 0.12) 100%);
+  pointer-events: none;
+}
+
+.report-stats {
+  position: relative;
+  z-index: 1;
+  gap: 12px;
+}
+
+.stat-item {
+  align-items: flex-start;
+  padding: 14px 12px;
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.stat-label {
+  margin-top: 6px;
+  line-height: 1.35;
+}
+
+.stress-chart {
+  border-radius: 20px;
 }
 </style>

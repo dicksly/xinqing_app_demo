@@ -4,7 +4,11 @@
     <section class="confess-card card">
       <header class="card-header">
         <component :is="ChatDotRound" class="header-icon" />
-        <h2 class="card-title">{{ t('treehole.title') }}</h2>
+        <div class="header-copy">
+          <h2 class="card-title">{{ t('treehole.title') }}</h2>
+          <p class="card-subtitle">{{ locale === 'zh-CN' ? '把今天想说的话放下来，先让情绪有个出口。' : 'Set down what you need to say and give today an emotional outlet.' }}</p>
+        </div>
+        <span class="panel-chip">{{ locale === 'zh-CN' ? 'Safe space' : 'Safe space' }}</span>
       </header>
 
       <!-- 文字输入 -->
@@ -1428,5 +1432,125 @@ onMounted(() => {
   font-size: 14px;
   color: var(--color-text-secondary);
   line-height: 1.7;
+}
+
+.header-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.confess-card .card-header,
+.ai-response-card .card-header,
+.public-square-card .card-header {
+  align-items: flex-start;
+}
+
+.confess-card .header-icon,
+.ai-response-card .header-icon,
+.public-square-card .header-icon {
+  margin-top: 2px;
+}
+
+.card-subtitle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.panel-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid var(--color-border-light);
+  color: var(--color-primary-dark);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.confess-card {
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--surface-2) 84%, transparent) 0%, color-mix(in srgb, var(--surface-1) 92%, transparent) 100%),
+    var(--accent-gradient-secondary);
+}
+
+.content-input :deep(.el-textarea__inner) {
+  min-height: 132px;
+  border-radius: 20px;
+}
+
+.composer-toolbar {
+  gap: 10px;
+}
+
+.tool-chip {
+  min-height: 38px;
+  padding: 0 14px;
+  background: color-mix(in srgb, var(--surface-2) 90%, transparent);
+}
+
+.compact-panel {
+  padding: 14px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-3) 84%, transparent);
+}
+
+.publish-options {
+  gap: 10px;
+}
+
+.publish-options :deep(.el-checkbox) {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-3) 84%, transparent);
+  border: 1px solid var(--color-border-light);
+}
+
+.submit-btn {
+  min-height: 50px;
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--color-primary) 24%, transparent);
+}
+
+.ai-response-card {
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--surface-2) 88%, transparent) 0%, color-mix(in srgb, var(--surface-1) 90%, transparent) 100%),
+    var(--accent-gradient-soft);
+}
+
+.public-square-card {
+  background: color-mix(in srgb, var(--surface-2) 92%, transparent);
+}
+
+.entry-item {
+  padding: 12px;
+  border: 1px solid var(--color-border-light);
+  background: color-mix(in srgb, var(--surface-3) 86%, transparent);
+}
+
+.entry-item:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.entry-ai-response,
+.ai-reply-section {
+  background: color-mix(in srgb, var(--color-secondary) 12%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, var(--color-secondary) 20%, transparent);
+}
+
+[data-ui-theme='glow-night'] .confess-card {
+  background:
+    linear-gradient(180deg, rgba(19, 26, 49, 0.92) 0%, rgba(10, 15, 28, 0.96) 100%),
+    var(--accent-gradient-secondary);
+}
+
+[data-ui-theme='playful-bloom'] .tool-chip.active {
+  background: color-mix(in srgb, var(--color-primary) 14%, white);
 }
 </style>

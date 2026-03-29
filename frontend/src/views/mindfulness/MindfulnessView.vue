@@ -4,7 +4,11 @@
     <section class="meditation-card card">
       <header class="card-header">
         <component :is="Moon" class="header-icon" />
-        <h2 class="card-title">{{ t('mindfulness.meditationTitle') }}</h2>
+        <div class="header-copy">
+          <h2 class="card-title">{{ t('mindfulness.meditationTitle') }}</h2>
+          <p class="card-subtitle">{{ locale === 'zh-CN' ? '给自己一小段安静时间，从呼吸和引导开始。' : 'Give yourself a quiet moment and begin with breath and guidance.' }}</p>
+        </div>
+        <span class="panel-chip">{{ locale === 'zh-CN' ? 'Today' : 'Today' }}</span>
       </header>
 
       <!-- 冥想分类 -->
@@ -1178,5 +1182,88 @@ onMounted(() => {
 
 .dark .coming-soon {
   background: rgba(45, 42, 62, 0.8);
+}
+
+.header-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.meditation-card .card-header {
+  align-items: flex-start;
+}
+
+.meditation-card .header-icon {
+  margin-top: 2px;
+}
+
+.card-subtitle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.panel-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid var(--color-border-light);
+  color: var(--color-primary-dark);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.meditation-card,
+.breathing-card,
+.games-card {
+  background: color-mix(in srgb, var(--surface-2) 92%, transparent);
+}
+
+.type-item,
+.step,
+.game-item {
+  border: 1px solid var(--color-border-light);
+  background: color-mix(in srgb, var(--surface-3) 84%, transparent);
+}
+
+.type-item.active {
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--surface-2));
+  box-shadow: 0 12px 24px color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+.scenario-description {
+  background: linear-gradient(135deg, rgba(240, 111, 137, 0.1) 0%, rgba(255, 204, 134, 0.14) 100%);
+  border-left-color: var(--color-primary);
+  border-radius: 18px;
+}
+
+.section {
+  padding: 14px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-3) 84%, transparent);
+  border: 1px solid var(--color-border-light);
+}
+
+.start-btn,
+.breathing-btn {
+  min-height: 50px;
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--color-primary) 24%, transparent);
+}
+
+.breathing-circle {
+  background: var(--accent-gradient);
+}
+
+.game-item {
+  border-radius: 20px;
+}
+
+.coming-soon {
+  border: 1px solid var(--color-border-light);
 }
 </style>
