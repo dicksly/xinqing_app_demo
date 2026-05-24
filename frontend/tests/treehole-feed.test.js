@@ -5,6 +5,7 @@ import {
   deleteLocalEntry,
   getPageItems,
   mergePublishedEntries,
+  upsertSavedEntry,
 } from '../src/utils/treehole-feed.js'
 
 test('merges backend and local published entries while preserving media fields', () => {
@@ -112,4 +113,26 @@ test('keeps combined text voice and image fields on normalized published entries
   assert.equal(merged[0].content, '文字内容')
   assert.equal(merged[0].image_data, 'data:image/png;base64,xyz')
   assert.equal(merged[0].duration, 9)
+})
+
+test('upserts backend-created entry over temporary local entry to avoid duplicates', () => {
+  const savedEntries = [
+    {
+      id: 123,
+      content: 'same item',
+      isPublished: true,
+      created_at: '2026-03-14T10:00:00.000Z',
+    },
+  ]
+
+  const nextEntries = upsertSavedEntry(savedEntries, {
+    id: 10,
+    content: 'same item',
+    is_published: true,
+    created_at: '2026-03-14T10:00:00.000Z',
+  }, 123)
+
+  assert.equal(nextEntries.length, 1)
+  assert.equal(nextEntries[0].id, 10)
+  assert.equal(nextEntries[0].is_published, true)
 })

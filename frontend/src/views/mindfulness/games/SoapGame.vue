@@ -64,7 +64,7 @@
           :class="{ falling: currentSoap.falling }"
           :style="leftHalfStyle"
         >
-          <div class="soap-piece" :style="soapStyle">
+          <div class="soap-piece" :style="leftPieceStyle">
             <div class="soap-inner"></div>
             <div class="soap-cut-surface"></div>
           </div>
@@ -77,7 +77,7 @@
           :class="{ falling: currentSoap.falling }"
           :style="rightHalfStyle"
         >
-          <div class="soap-piece" :style="soapStyle">
+          <div class="soap-piece" :style="rightPieceStyle">
             <div class="soap-inner"></div>
             <div class="soap-cut-surface"></div>
           </div>
@@ -140,6 +140,7 @@ import { Refresh } from '@element-plus/icons-vue'
 import { useGamesStore } from '../../../stores/games'
 import soundGenerator from '../../../utils/sound'
 import vibrationHelper from '../../../utils/vibration'
+import { getCutRatio, getRandomSoapSkin } from '../../../utils/soap-game'
 
 const emit = defineEmits(['close'])
 
@@ -195,6 +196,7 @@ const currentCombo = ref(0)
 const isCutting = ref(false)
 const cutStartPos = ref({ x: 0, y: 0 })
 const cutEndPos = ref({ x: 0, y: 0 })
+const cutRatio = ref(0.5)
 const showUnlockDialog = ref(false)
 const unlockedSkinLabel = ref('')
 const particles = ref([])
@@ -232,22 +234,44 @@ const soapStyle = computed(() => {
 })
 
 // 切割后两半的样式
-const leftHalfStyle = computed(() => ({
-  transform: currentSoap.value?.falling
-    ? `translateX(-60px) translateY(100px) rotate(-15deg)`
-    : 'translateX(-5px)',
-  opacity: currentSoap.value?.falling ? 0 : 1,
+const leftHalfStyle = computed(() => {
+  const width = Math.round(160 * cutRatio.value)
+  return {
+    width: `${width}px`,
+    transform: currentSoap.value?.falling
+      ? `translateX(-60px) translateY(100px) rotate(-15deg)`
+      : 'translateX(-5px)',
+    opacity: currentSoap.value?.falling ? 0 : 1,
+  }
+})
+
+const rightHalfStyle = computed(() => {
+  const width = Math.round(160 * (1 - cutRatio.value))
+  return {
+    width: `${width}px`,
+    transform: currentSoap.value?.falling
+      ? `translateX(60px) translateY(100px) rotate(15deg)`
+      : 'translateX(5px)',
+    opacity: currentSoap.value?.falling ? 0 : 1,
+  }
+})
+
+const leftPieceStyle = computed(() => ({
+  ...soapStyle.value,
+  width: `${Math.round(160 * cutRatio.value)}px`,
 }))
 
-const rightHalfStyle = computed(() => ({
-  transform: currentSoap.value?.falling
-    ? `translateX(60px) translateY(100px) rotate(15deg)`
-    : 'translateX(5px)',
-  opacity: currentSoap.value?.falling ? 0 : 1,
+const rightPieceStyle = computed(() => ({
+  ...soapStyle.value,
+  width: `${Math.round(160 * (1 - cutRatio.value))}px`,
 }))
 
 // 初始化肥皂
 const initSoap = () => {
+  const unlockedSkins = progress.value.unlockedSkins || ['default']
+  currentSkin.value = getRandomSoapSkin(unlockedSkins, currentSkin.value)
+  gamesStore.setCurrentSkin('soap', currentSkin.value)
+  cutRatio.value = 0.5
   soapId.value++ // 递增 ID 强制重新渲染
   currentSoap.value = {
     id: soapId.value,
@@ -306,6 +330,12 @@ const getEventPosition = (e) => {
 // 执行切割
 const performCut = (start, end) => {
   if (!currentSoap.value || currentSoap.value.sliced) return
+  const soapRect = gameArea.value?.querySelector('.soap-container')?.getBoundingClientRect()
+  const areaRect = gameArea.value?.getBoundingClientRect()
+  if (soapRect && areaRect) {
+    const midX = (start.x + end.x) / 2
+    cutRatio.value = getCutRatio(midX, soapRect.left - areaRect.left, soapRect.width)
+  }
 
   // 播放切割音效和震动
   soundGenerator.playSlice()
@@ -616,7 +646,6 @@ onUnmounted(() => {
 /* 切割后的两半 */
 .soap-half {
   position: absolute;
-  width: 85px;
   height: 80px;
   transition: all 0.4s ease-out;
   display: flex;
@@ -635,7 +664,6 @@ onUnmounted(() => {
 }
 
 .soap-piece {
-  width: 80px;
   height: 80px;
   position: relative;
 }

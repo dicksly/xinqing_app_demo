@@ -124,6 +124,16 @@
       </el-button>
     </section>
 
+    <section class="analysis-entry-card card">
+      <div>
+        <h2 class="card-title">{{ locale === 'zh-CN' ? '详细心理分析' : 'Detailed Psychological Analysis' }}</h2>
+        <p class="card-subtitle">{{ locale === 'zh-CN' ? '填写问卷前需要阅读知情同意书并签名。' : 'Read and sign consent before taking the questionnaire.' }}</p>
+      </div>
+      <el-button type="primary" round @click="openAssessment">
+        {{ locale === 'zh-CN' ? '进入问卷' : 'Start' }}
+      </el-button>
+    </section>
+
     <!-- 本周报告卡片 -->
     <section class="report-card card">
       <header class="card-header">
@@ -170,6 +180,68 @@
 
       <el-empty v-else :description="t('emotion.report.noData')" :image-size="60" />
     </section>
+
+    <el-dialog
+      v-model="insightVisible"
+      :title="locale === 'zh-CN' ? '今日情绪标签' : 'Today Mood Tag'"
+      width="90%"
+      class="insight-dialog"
+    >
+      <div class="insight-result">
+        <div class="insight-tag">{{ latestInsight.tag }}</div>
+        <p>{{ latestInsight.comfort }}</p>
+      </div>
+      <template #footer>
+        <el-button type="primary" round @click="insightVisible = false">{{ locale === 'zh-CN' ? '收下' : 'Got it' }}</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="assessmentVisible"
+      :title="locale === 'zh-CN' ? '详细心理分析' : 'Detailed Psychological Analysis'"
+      width="92%"
+      class="assessment-dialog"
+    >
+      <div v-if="!assessmentConsentSaved" class="consent-form">
+        <p class="consent-copy">
+          {{ locale === 'zh-CN'
+            ? '本问卷用于生成更详细的情绪分析。你的作答会在匿名化后用于研究、产品分析和商业合作，不会展示你的姓名、账号或联系方式。'
+            : 'This questionnaire provides a detailed mood analysis. Your answers may be anonymized for research, product analytics, and business collaboration without showing your name, account, or contact information.' }}
+        </p>
+        <el-checkbox v-model="assessmentConsent.accepted">
+          {{ locale === 'zh-CN' ? '我已阅读并同意以上内容' : 'I have read and agree' }}
+        </el-checkbox>
+        <el-input v-model="assessmentConsent.userSignature" :placeholder="locale === 'zh-CN' ? '本人签名' : 'Your signature'" />
+        <el-checkbox v-model="assessmentConsent.isMinor">
+          {{ locale === 'zh-CN' ? '我是未成年人' : 'I am under 18' }}
+        </el-checkbox>
+        <el-input
+          v-if="assessmentConsent.isMinor"
+          v-model="assessmentConsent.guardianSignature"
+          :placeholder="locale === 'zh-CN' ? '家长/监护人签名' : 'Guardian signature'"
+        />
+      </div>
+      <div v-else class="questionnaire-form">
+        <div v-for="question in assessmentQuestions" :key="question.key" class="question-item">
+          <span>{{ question.label }}</span>
+          <el-slider v-model="assessmentAnswers[question.key]" :min="0" :max="4" :show-tooltip="false" />
+        </div>
+        <div v-if="assessmentResult" class="assessment-result" :class="assessmentResult.level">
+          <strong>{{ assessmentResult.title }}</strong>
+          <p>{{ assessmentResult.summary }}</p>
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="assessmentVisible = false" round>{{ locale === 'zh-CN' ? '关闭' : 'Close' }}</el-button>
+        <el-button v-if="!assessmentConsentSaved" type="primary" round @click="saveAssessmentConsent">
+          {{ locale === 'zh-CN' ? '签名并进入' : 'Sign and Continue' }}
+        </el-button>
+        <el-button v-else type="primary" round @click="submitAssessment">
+          {{ locale === 'zh-CN' ? '生成分析' : 'Generate Analysis' }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -179,12 +251,32 @@ import { useI18n } from 'vue-i18n'
 import { useEmotionStore } from '../../stores/emotion'
 import { ElMessage } from 'element-plus'
 import { Histogram, MagicStick, DataLine, Warning, CircleClose, Remove, StarFilled, Sunny } from '@element-plus/icons-vue'
+import { getMoodInsight } from '../../utils/emotion-insights'
+import { scoreAssessment, validateAssessmentConsent } from '../../utils/assessment'
 
 const { t, locale } = useI18n()
 const emotionStore = useEmotionStore()
 const currentRecord = ref(emotionStore.currentRecord)
 const submitting = ref(false)
 const weeklyReport = ref(emotionStore.weeklyReport)
+const insightVisible = ref(false)
+const latestInsight = ref(getMoodInsight(''))
+const assessmentVisible = ref(false)
+const assessmentConsentSaved = ref(Boolean(localStorage.getItem('xinqing_assessment_consent')))
+const assessmentConsent = ref({
+  accepted: false,
+  userSignature: '',
+  isMinor: false,
+  guardianSignature: '',
+})
+const assessmentAnswers = ref({
+  sleep: 0,
+  anxiety: 0,
+  sadness: 0,
+  energy: 0,
+  focus: 0,
+})
+const assessmentResult = ref(null)
 
 // 心情选项 - 使用 SVG 图标
 const moods = computed(() => [
@@ -234,6 +326,14 @@ const showAttribution = computed(() => {
   return ['anxious', 'sad'].includes(currentRecord.value.mood)
 })
 
+const assessmentQuestions = computed(() => [
+  { key: 'sleep', label: locale.value === 'zh-CN' ? '最近睡眠受影响的程度' : 'Sleep disruption recently' },
+  { key: 'anxiety', label: locale.value === 'zh-CN' ? '焦虑或紧绷的程度' : 'Anxiety or tension level' },
+  { key: 'sadness', label: locale.value === 'zh-CN' ? '低落或无力的程度' : 'Sadness or exhaustion level' },
+  { key: 'energy', label: locale.value === 'zh-CN' ? '日常能量被消耗的程度' : 'Daily energy drain' },
+  { key: 'focus', label: locale.value === 'zh-CN' ? '注意力受影响的程度' : 'Focus disruption' },
+])
+
 // 切换压力源
 function toggleStressSource(value) {
   const index = currentRecord.value.stressSources.indexOf(value)
@@ -264,6 +364,9 @@ async function handleSubmit() {
       stressSources: JSON.stringify(currentRecord.value.stressSources),
     })
 
+    localStorage.setItem('xinqing_today_mood', currentRecord.value.mood)
+    latestInsight.value = getMoodInsight(currentRecord.value.mood)
+    insightVisible.value = true
     ElMessage.success(locale.value === 'zh-CN' ? '打卡成功！' : 'Check-in successful!')
     emotionStore.resetCurrentRecord()
     emotionStore.fetchWeeklyReport()
@@ -272,6 +375,31 @@ async function handleSubmit() {
   } finally {
     submitting.value = false
   }
+}
+
+function openAssessment() {
+  assessmentVisible.value = true
+}
+
+function saveAssessmentConsent() {
+  const result = validateAssessmentConsent(assessmentConsent.value)
+  if (!result.valid) {
+    ElMessage.warning(result.errors[0])
+    return
+  }
+
+  localStorage.setItem('xinqing_assessment_consent', JSON.stringify({
+    signedAt: new Date().toISOString(),
+    userSignature: assessmentConsent.value.userSignature.trim(),
+    isMinor: assessmentConsent.value.isMinor,
+    guardianSignature: assessmentConsent.value.guardianSignature.trim(),
+    version: '2026-05-anonymized-research-product-business',
+  }))
+  assessmentConsentSaved.value = true
+}
+
+function submitAssessment() {
+  assessmentResult.value = scoreAssessment(assessmentAnswers.value)
 }
 
 // 加载周报
@@ -293,6 +421,67 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md, 16px);
+}
+
+.analysis-entry-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.analysis-entry-card .card-subtitle {
+  margin: 6px 0 0;
+}
+
+.insight-result {
+  text-align: center;
+}
+
+.insight-tag {
+  display: inline-flex;
+  margin-bottom: 12px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 800;
+}
+
+.insight-result p,
+.consent-copy,
+.assessment-result p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.consent-form,
+.questionnaire-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.question-item {
+  display: grid;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.assessment-result {
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.assessment-result.high {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.assessment-result.medium {
+  background: rgba(245, 158, 11, 0.1);
 }
 
 /* 卡片头部 */

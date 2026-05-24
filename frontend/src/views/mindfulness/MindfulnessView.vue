@@ -11,32 +11,18 @@
         <span class="panel-chip">{{ locale === 'zh-CN' ? 'Today' : 'Today' }}</span>
       </header>
 
-      <!-- 冥想分类 -->
-      <div class="meditation-types">
-        <div
-          v-for="type in meditationTypes"
-          :key="type.value"
-          class="type-item touchable"
-          :class="{ active: selectedType === type.value }"
-          @click="selectedType = type.value"
-        >
-          <div class="type-icon" :class="type.iconClass">
-            <component :is="type.icon" />
-          </div>
-          <div class="type-info">
-            <span class="type-label">{{ type.label }}</span>
-            <span class="type-desc">{{ type.desc }}</span>
-          </div>
+      <div class="single-meditation-panel">
+        <div class="type-icon icon-purple">
+          <component :is="Moon" />
+        </div>
+        <div class="type-info">
+          <span class="type-label">{{ locale === 'zh-CN' ? '每日冥想' : 'Daily Meditation' }}</span>
+          <span class="type-desc">{{ locale === 'zh-CN' ? '一个入口，直接开始。背景音按月份切换。' : 'One entry, ready to start. Backgrounds follow monthly themes.' }}</span>
         </div>
       </div>
 
-      <!-- 场景描述 -->
-      <div v-if="selectedType && currentMeditationConfig" class="scenario-description">
-        <p>{{ locale === 'zh-CN' ? currentMeditationConfig.description.zh : currentMeditationConfig.description.en }}</p>
-      </div>
-
       <!-- 时长选择 -->
-      <div v-if="selectedType" class="section">
+      <div class="section">
         <h3 class="section-title">{{ t('mindfulness.selectDuration') }}</h3>
         <el-radio-group v-model="selectedDuration" class="duration-group">
           <el-radio-button :label="3">{{ locale === 'zh-CN' ? '3分钟' : '3 min' }}</el-radio-button>
@@ -46,7 +32,7 @@
       </div>
 
       <!-- 音量控制 -->
-      <div v-if="selectedType" class="section">
+      <div class="section">
         <h3 class="section-title">{{ t('mindfulness.volumeControl') }}</h3>
         <div class="volume-control">
           <div class="volume-item">
@@ -67,19 +53,20 @@
           </div>
         </div>
         <div class="bg-music-selector">
-          <span class="selector-label">{{ t('mindfulness.bgMusicType') }}</span>
+          <span class="selector-label">{{ locale === 'zh-CN' ? '12个月主题背景音' : '12 Monthly Backgrounds' }}</span>
           <el-select v-model="bgMusicType" :placeholder="locale === 'zh-CN' ? '选择背景音' : 'Select background'" size="small">
-            <el-option :label="t('mindfulness.bgMusic.whiteNoise')" value="white-noise" />
-            <el-option :label="t('mindfulness.bgMusic.rain')" value="rain" />
-            <el-option :label="t('mindfulness.bgMusic.forest')" value="forest" />
-            <el-option :label="t('mindfulness.bgMusic.alphaWave')" value="alpha-wave" />
+            <el-option
+              v-for="theme in monthlyBackgroundThemes"
+              :key="theme.key"
+              :label="locale === 'zh-CN' ? theme.zh : theme.en"
+              :value="theme.key"
+            />
           </el-select>
         </div>
       </div>
 
       <!-- 开始按钮 -->
       <el-button
-        v-if="selectedType"
         type="primary"
         size="large"
         @click="startMeditation"
@@ -208,10 +195,6 @@ import {
   Grid,
   VideoPause,
   VideoPlay,
-  MoonNight,
-  Sunrise,
-  Trophy,
-  FirstAidKit,
   Grid as GridIcon,
   Scissor,
   Box,
@@ -221,11 +204,12 @@ import { mindfulnessApi } from '../../api'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '../../stores/auth'
 import { useGamesStore } from '../../stores/games'
-    import AuthDialog from '../../components/auth/AuthDialog.vue'
-    import BubbleGame from './games/BubbleGame.vue'
-    import SoapGame from './games/SoapGame.vue'
-    import OrganizeGame from './games/OrganizeGame.vue'
-    import MandalaGame from './games/MandalaGame.vue'
+import { getMonthlyTheme, MONTHLY_BACKGROUND_THEMES } from '../../utils/meditation-themes'
+import AuthDialog from '../../components/auth/AuthDialog.vue'
+import BubbleGame from './games/BubbleGame.vue'
+import SoapGame from './games/SoapGame.vue'
+import OrganizeGame from './games/OrganizeGame.vue'
+import MandalaGame from './games/MandalaGame.vue'
 
 const { t, locale } = useI18n()
 const authStore = useAuthStore()
@@ -235,18 +219,10 @@ const gamesStore = useGamesStore()
 // 可以是本地路径或远程 URL
 const audioResources = {
   // 背景音乐
-  bgMusic: {
-    'white-noise': '/audio/meditation/white-noise.mp3',
-    'rain': '/audio/meditation/rain.mp3',
-    'forest': '/audio/meditation/forest.mp3',
-    'alpha-wave': '/audio/meditation/alpha-wave.mp3',
-  },
+  bgMusic: Object.fromEntries(MONTHLY_BACKGROUND_THEMES.map((theme) => [theme.key, theme.audio])),
   // 引导语音（按冥想类型）
   voiceGuide: {
-    'sleep': '/audio/meditation/voice/sleep.mp3',
-    'wake': '/audio/meditation/voice/wake.mp3',
-    'stress': '/audio/meditation/voice/stress.mp3',
-    'emergency': '/audio/meditation/voice/emergency.mp3',
+    meditation: '/audio/meditation/voice/stress.mp3',
   }
 }
 
@@ -256,14 +232,6 @@ let voiceAudioPlayer = ref(null)
 const meditationTimer = ref(null)
 const elapsedTime = ref(0)
 
-// 冥想类型 - 使用 SVG 图标
-const meditationTypes = computed(() => [
-  { value: 'sleep', label: t('mindfulness.meditation.sleep'), icon: MoonNight, iconClass: 'icon-purple', desc: t('mindfulness.meditation.sleepDesc') },
-  { value: 'wake', label: t('mindfulness.meditation.wake'), icon: Sunrise, iconClass: 'icon-orange', desc: t('mindfulness.meditation.wakeDesc') },
-  { value: 'stress', label: t('mindfulness.meditation.stress'), icon: Trophy, iconClass: 'icon-blue', desc: t('mindfulness.meditation.stressDesc') },
-  { value: 'emergency', label: t('mindfulness.meditation.emergency'), icon: FirstAidKit, iconClass: 'icon-red', desc: t('mindfulness.meditation.emergencyDesc') },
-])
-
 // 解压游戏 - 使用 SVG 图标
 const games = computed(() => [
   { id: 'bubble', title: t('mindfulness.games.bubble'), icon: GridIcon, iconClass: 'icon-primary', desc: t('mindfulness.games.bubbleDesc'), implemented: true },
@@ -272,11 +240,12 @@ const games = computed(() => [
   { id: 'mandala', title: t('mindfulness.games.mandala'), icon: Brush, iconClass: 'icon-pink', desc: t('mindfulness.games.mandalaDesc'), implemented: true },
 ])
 
-const selectedType = ref('')
+const selectedType = ref('meditation')
 const selectedDuration = ref(10)
 const voiceVolume = ref(80)
 const bgVolume = ref(50)
-const bgMusicType = ref('white-noise')
+const monthlyBackgroundThemes = MONTHLY_BACKGROUND_THEMES
+const bgMusicType = ref(getMonthlyTheme(new Date().getMonth() + 1).key)
 const isPlaying = ref(false)
 
 // 呼吸训练
@@ -302,11 +271,6 @@ const breathingTexts = computed(() => ({
   hold: t('mindfulness.breathing.hold'),
   exhale: t('mindfulness.breathing.exhale'),
 }))
-
-// 当前冥想配置
-const currentMeditationConfig = computed(() => {
-  return selectedType.value ? meditationConfigs[selectedType.value] : null
-})
 
 // 呼吸圆圈动态样式 - 根据阶段设置过渡时间
 const breathingCircleStyle = computed(() => ({
@@ -392,57 +356,8 @@ function stopTickTimer() {
   }
 }
 
-// 冥想场景配置 - 根据不同场景定制
-const meditationConfigs = {
-  sleep: {
-    defaultDuration: 20, // 睡眠助眠默认20分钟
-    defaultBgMusic: 'rain', // 雨声更适合睡眠
-    breathingPattern: { inhale: 5, hold: 8, exhale: 10 }, // 更慢的节奏
-    theme: 'calm',
-    description: {
-      zh: '放松身心，进入深度睡眠状态',
-      en: 'Relax your body and mind for deep sleep'
-    }
-  },
-  wake: {
-    defaultDuration: 5, // 晨间唤醒默认5分钟
-    defaultBgMusic: 'alpha-wave', // 阿尔法波更提神
-    breathingPattern: { inhale: 3, hold: 2, exhale: 4 }, // 快速唤醒节奏
-    theme: 'energize',
-    description: {
-      zh: '唤醒身体，开启元气满满的一天',
-      en: 'Wake up your body for an energetic day'
-    }
-  },
-  stress: {
-    defaultDuration: 10, // 抗压训练默认10分钟
-    defaultBgMusic: 'forest', // 森林声更专注
-    breathingPattern: { inhale: 4, hold: 7, exhale: 8 }, // 标准4-7-8
-    theme: 'focus',
-    description: {
-      zh: '提升专注力，增强抗压能力',
-      en: 'Boost focus and build stress resilience'
-    }
-  },
-  emergency: {
-    defaultDuration: 3, // 情绪急救默认3分钟
-    defaultBgMusic: 'white-noise', // 白噪音快速平复
-    breathingPattern: { inhale: 2, hold: 3, exhale: 4 }, // 快速短促节奏
-    theme: 'calm',
-    description: {
-      zh: '快速平复情绪，恢复平静',
-      en: 'Quickly calm down and restore peace'
-    }
-  }
-}
-
 // 开始冥想
 async function startMeditation() {
-  if (!selectedType.value) {
-    ElMessage.warning(locale.value === 'zh-CN' ? '请选择冥想类型' : 'Please select meditation type')
-    return
-  }
-
   isPlaying.value = !isPlaying.value
 
   if (isPlaying.value) {
@@ -680,15 +595,6 @@ function stopBreathingCycle() {
   stopTickTimer()
 }
 
-// 监听冥想类型选择，应用场景化默认配置
-watch(selectedType, (newType) => {
-  if (newType && meditationConfigs[newType]) {
-    const config = meditationConfigs[newType]
-    selectedDuration.value = config.defaultDuration
-    bgMusicType.value = config.defaultBgMusic
-  }
-})
-
 // 打开游戏
 function openGame(game) {
   if (!game.implemented) {
@@ -775,6 +681,17 @@ onMounted(() => {
 }
 
 /* 冥想类型 */
+.single-meditation-panel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 8px);
+  padding: 14px;
+  margin-bottom: var(--spacing-md, 16px);
+  border: 1px solid var(--color-border-light, #e8eef5);
+  border-radius: 16px;
+  background: var(--color-bg-tertiary, #f1f5f9);
+}
+
 .meditation-types {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

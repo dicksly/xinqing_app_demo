@@ -65,3 +65,16 @@ export function getPageItems(items = [], currentPage = 1, pageSize = 5) {
 export function deleteLocalEntry(entries = [], entryId) {
   return entries.filter((entry) => entry.id !== entryId)
 }
+
+export function upsertSavedEntry(entries = [], entry, temporaryId = null) {
+  const normalized = normalizeEntry(entry)
+  const nextEntries = entries.filter((savedEntry) => {
+    if (temporaryId !== null && savedEntry.id === temporaryId) {
+      return false
+    }
+
+    return buildEntryKey(normalizeEntry(savedEntry)) !== buildEntryKey(normalized)
+  })
+
+  return [normalized, ...nextEntries]
+}
