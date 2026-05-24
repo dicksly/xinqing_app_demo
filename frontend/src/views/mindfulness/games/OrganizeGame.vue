@@ -45,9 +45,10 @@
               :class="{ correct: slot.correct, wrong: slot.wrong }"
               :data-zone="'door'"
               :data-index="index"
-              @dragover.prevent
-              @drop="onDrop($event, 'door', index)"
-            >
+                  @dragover.prevent
+                  @drop="onDrop($event, 'door', index)"
+                  @click="placeSelectedItem('door', index)"
+                >
               <div
                 v-if="slot.item"
                 class="item placed"
@@ -73,9 +74,10 @@
                 :class="{ correct: slot.correct, wrong: slot.wrong }"
                 :data-zone="'top'"
                 :data-index="index"
-                @dragover.prevent
-                @drop="onDrop($event, 'top', index)"
-              >
+                  @dragover.prevent
+                  @drop="onDrop($event, 'top', index)"
+                  @click="placeSelectedItem('top', index)"
+                >
                 <div
                   v-if="slot.item"
                   class="item placed"
@@ -99,9 +101,10 @@
                 :class="{ correct: slot.correct, wrong: slot.wrong }"
                 :data-zone="'middle'"
                 :data-index="index"
-                @dragover.prevent
-                @drop="onDrop($event, 'middle', index)"
-              >
+                  @dragover.prevent
+                  @drop="onDrop($event, 'middle', index)"
+                  @click="placeSelectedItem('middle', index)"
+                >
                 <div
                   v-if="slot.item"
                   class="item placed"
@@ -125,9 +128,10 @@
                 :class="{ correct: slot.correct, wrong: slot.wrong }"
                 :data-zone="'bottom'"
                 :data-index="index"
-                @dragover.prevent
-                @drop="onDrop($event, 'bottom', index)"
-              >
+                  @dragover.prevent
+                  @drop="onDrop($event, 'bottom', index)"
+                  @click="placeSelectedItem('bottom', index)"
+                >
                 <div
                   v-if="slot.item"
                   class="item placed"
@@ -150,8 +154,10 @@
             v-for="item in unplacedItems"
             :key="item.id"
             class="item draggable"
+            :class="{ selected: selectedItem?.id === item.id }"
             :style="getItemStyle(item)"
             :draggable="true"
+            @click="selectItem(item)"
             @dragstart="onDragStart($event, item)"
             @dragend="onDragEnd"
           >
@@ -298,6 +304,7 @@ const unplacedItems = ref([])
 
 // 拖拽状态
 const draggingItem = ref(null)
+const selectedItem = ref(null)
 
 // 计算属性
 const progress = computed(() => gamesStore.getProgress('organize') || {
@@ -373,12 +380,17 @@ const generateItems = () => {
 // 获取物品样式
 const getItemStyle = (item) => {
   const sizeMap = {
-    small: { width: '28px', height: '28px', fontSize: '16px' },
-    medium: { width: '36px', height: '36px', fontSize: '20px' },
-    large: { width: '44px', height: '44px', fontSize: '24px' },
-    tall: { width: '28px', height: '44px', fontSize: '18px' },
+    small: { width: '42px', height: '42px', fontSize: '18px' },
+    medium: { width: '48px', height: '48px', fontSize: '22px' },
+    large: { width: '54px', height: '54px', fontSize: '26px' },
+    tall: { width: '44px', height: '56px', fontSize: '20px' },
   }
   return sizeMap[item.size] || sizeMap.medium
+}
+
+const selectItem = (item) => {
+  selectedItem.value = selectedItem.value?.id === item.id ? null : item
+  soundGenerator.playPickup()
 }
 
 // 拖拽开始
@@ -402,7 +414,15 @@ const onDrop = (e, zone, index) => {
 
   if (!draggingItem.value) return
 
-  const item = draggingItem.value
+  placeItem(draggingItem.value, zone, index)
+}
+
+const placeSelectedItem = (zone, index) => {
+  if (!selectedItem.value) return
+  placeItem(selectedItem.value, zone, index)
+}
+
+const placeItem = (item, zone, index) => {
   const slots = getSlotsByZone(zone)
 
   // 检查槽位是否已有物品
@@ -437,6 +457,7 @@ const onDrop = (e, zone, index) => {
 
   // 清除拖拽状态
   draggingItem.value = null
+  selectedItem.value = null
 
   // 检查是否全部完成
   checkCompletion()
@@ -691,8 +712,8 @@ onMounted(() => {
 }
 
 .shelf-slot {
-  width: 48px;
-  height: 48px;
+  width: 58px;
+  height: 58px;
   background: rgba(255, 255, 255, 0.5);
   border-radius: 8px;
   border: 2px dashed #ddd;
@@ -740,7 +761,7 @@ onMounted(() => {
 
 /* 物品样式 */
 .items-area {
-  width: 120px;
+  width: 150px;
   display: flex;
   flex-direction: column;
   background: rgba(255, 255, 255, 0.7);
@@ -776,6 +797,7 @@ onMounted(() => {
   background: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   cursor: grab;
+  touch-action: manipulation;
 }
 
 .item.draggable:hover {
@@ -785,6 +807,11 @@ onMounted(() => {
 
 .item.draggable:active {
   cursor: grabbing;
+}
+
+.item.draggable.selected {
+  outline: 3px solid #4caf50;
+  transform: scale(1.08);
 }
 
 .item.placed {

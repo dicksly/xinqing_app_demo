@@ -1,9 +1,11 @@
 <template>
   <div class="home-view">
     <section class="home-hero">
-      <div class="fruit-stage">
-        <div class="fruit-badge">
+      <div class="fruit-stage" :class="`mascot-${mascotMood.face}`">
+        <div class="fruit-badge" :style="{ '--mascot-accent': mascotLevel.color }">
           <img :src="homeLogo" alt="Healing Orchard logo" class="fruit-image" />
+          <div class="mascot-face">{{ mascotMood.emoji }}</div>
+          <div class="mascot-accessory">{{ mascotLevel.accessory }}</div>
         </div>
         <div class="float-badge badge-bolt">
           <Lightning />
@@ -15,6 +17,24 @@
 
       <h1 class="home-title">{{ t('home.title') }}</h1>
       <p class="home-subtitle">{{ t('home.subtitle') }}</p>
+    </section>
+
+    <section class="mascot-card">
+      <div class="mascot-summary">
+        <span class="mascot-kicker">{{ locale === 'zh-CN' ? '草团子成长中' : 'Mascot Growth' }}</span>
+        <h2>{{ locale === 'zh-CN' ? `连续见面 ${streakState.currentStreak || 1} 天` : `${streakState.currentStreak || 1}-day streak` }}</h2>
+        <p>{{ mascotMood.message }} · {{ mascotLevel.action }}</p>
+      </div>
+      <div class="level-pill">
+        <span>{{ mascotLevel.days }}+</span>
+        <small>{{ mascotLevel.name }}</small>
+      </div>
+      <div class="progress-row">
+        <div class="progress-track">
+          <div class="progress-fill" :style="{ width: `${nextLevelProgress}%`, background: mascotLevel.color }"></div>
+        </div>
+        <span>{{ nextLevelText }}</span>
+      </div>
     </section>
 
     <section class="feature-grid">
@@ -48,7 +68,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
@@ -60,9 +80,37 @@ import {
   Opportunity
 } from '@element-plus/icons-vue'
 import homeLogo from '../../assets/home-logo-clean.png'
+import {
+  getMascotLevel,
+  getMascotMood,
+  getNextMascotLevel,
+  shouldShowReturnPrompt,
+  updateStreakState,
+} from '../../utils/engagement'
+import { ElMessageBox } from 'element-plus'
 
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const streakState = ref(JSON.parse(localStorage.getItem('xinqing_engagement_state') || '{}'))
+const todayMood = ref(localStorage.getItem('xinqing_today_mood') || '')
+
+const mascotLevel = computed(() => getMascotLevel(streakState.value.currentStreak || 1))
+const nextLevel = computed(() => getNextMascotLevel(streakState.value.currentStreak || 1))
+const mascotMood = computed(() => getMascotMood(todayMood.value))
+const nextLevelProgress = computed(() => {
+  if (!nextLevel.value) return 100
+  const previousDays = mascotLevel.value.days
+  const current = streakState.value.currentStreak || 1
+  const range = nextLevel.value.days - previousDays
+  return Math.min(100, Math.max(0, ((current - previousDays) / range) * 100))
+})
+const nextLevelText = computed(() => {
+  if (!nextLevel.value) {
+    return locale.value === 'zh-CN' ? '全部成长奖励已解锁' : 'All growth rewards unlocked'
+  }
+  const remaining = nextLevel.value.days - (streakState.value.currentStreak || 1)
+  return locale.value === 'zh-CN' ? `还差 ${remaining} 天解锁 ${nextLevel.value.accessory}` : `${remaining} days to ${nextLevel.value.accessory}`
+})
 
 const featureCards = computed(() => [
   {
@@ -98,6 +146,30 @@ const featureCards = computed(() => [
     delay: 190
   }
 ])
+
+function persistEngagementState() {
+  const nextState = updateStreakState(streakState.value)
+  streakState.value = nextState
+  localStorage.setItem('xinqing_engagement_state', JSON.stringify(nextState))
+
+  if (shouldShowReturnPrompt(nextState)) {
+    const message = locale.value === 'zh-CN'
+      ? `草团子已经 ${nextState.missedDays} 天没见到你啦，今天要不要先做一个小打卡？`
+      : `Your mascot has missed you for ${nextState.missedDays} days. Want to start with a tiny check-in?`
+    ElMessageBox.alert(message, locale.value === 'zh-CN' ? '欢迎回来' : 'Welcome back', {
+      confirmButtonText: locale.value === 'zh-CN' ? '去打卡' : 'Check in',
+      callback: () => router.push('/emotion'),
+    })
+  }
+
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {})
+  }
+}
+
+onMounted(() => {
+  persistEngagementState()
+})
 </script>
 
 <style scoped>
@@ -125,7 +197,9 @@ const featureCards = computed(() => [
   position: absolute;
   inset: 20px;
   border-radius: 50%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(251, 247, 242, 0.96) 72%, rgba(244, 237, 232, 0.98) 100%);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(255, 255, 255, 0.92) 0 18%, transparent 19%),
+    linear-gradient(180deg, color-mix(in srgb, var(--mascot-accent, #9ad58b) 28%, white) 0%, rgba(251, 247, 242, 0.96) 72%, rgba(244, 237, 232, 0.98) 100%);
   box-shadow:
     0 20px 40px rgba(202, 178, 168, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.92);
@@ -133,6 +207,33 @@ const featureCards = computed(() => [
   align-items: center;
   justify-content: center;
   animation: fruitPulse 5.6s ease-in-out infinite;
+}
+
+.mascot-face {
+  position: absolute;
+  left: 50%;
+  top: 74px;
+  transform: translateX(-50%);
+  min-width: 72px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: #486450;
+  pointer-events: none;
+}
+
+.mascot-accessory {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mascot-accent, #9ad58b) 36%, white);
+  color: #486450;
+  font-size: 10px;
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .fruit-badge::after {
@@ -212,6 +313,88 @@ const featureCards = computed(() => [
   box-shadow: 0 10px 20px rgba(219, 198, 191, 0.14);
   animation: homeFloatIn 0.42s ease both;
   animation-delay: 90ms;
+}
+
+.mascot-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--surface-1) 92%, white);
+  border: 1px solid var(--color-outline);
+  box-shadow: var(--shadow-md);
+}
+
+.mascot-summary {
+  min-width: 0;
+}
+
+.mascot-kicker {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.mascot-summary h2 {
+  margin: 0 0 5px;
+  color: var(--color-text-primary);
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.mascot-summary p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.level-pill {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 800;
+}
+
+.level-pill span {
+  font-size: 15px;
+}
+
+.level-pill small {
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.progress-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.progress-track {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.25s ease;
 }
 
 .feature-grid {

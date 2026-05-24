@@ -72,6 +72,9 @@ export const treeholeApi = {
 
   // 获取已发布的条目
   getPublished: (params) => api.get('/treehole-entries', { params }),
+
+  // 删除条目
+  delete: (id) => api.delete(`/treehole-entries/${id}`),
 }
 
 // 知识库 API

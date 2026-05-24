@@ -73,6 +73,9 @@
               <span>{{ t('treehole.voiceChange') }}</span>
             </el-checkbox>
           </div>
+          <div v-if="voiceBlobUrl" class="voice-playback">
+            <audio :src="voiceBlobUrl" controls />
+          </div>
         </div>
       </transition>
 
@@ -312,7 +315,8 @@
             <div class="voice-player">
               <component :is="Microphone" class="voice-icon-large" />
               <div class="voice-duration">{{ selectedEntry.duration || 0 }}s</div>
-              <div class="voice-hint">{{ locale === 'zh-CN' ? '点击播放语音' : 'Tap to play' }}</div>
+              <audio v-if="selectedEntry.voice_url" :src="selectedEntry.voice_url" controls />
+              <div v-else class="voice-hint">{{ locale === 'zh-CN' ? '音频未上传，仅保留时长记录' : 'Audio is not uploaded; duration only' }}</div>
             </div>
           </div>
         </div>
@@ -347,7 +351,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onBeforeUnmount, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   ChatDotRound,
@@ -373,7 +377,8 @@ import {
   deleteLocalEntry,
   getPageItems,
   mergePublishedEntries,
-  sortEntriesByNewest
+  sortEntriesByNewest,
+  upsertSavedEntry
 } from '../../utils/treehole-feed'
 import { compressImageDataUrl } from '../../utils/image-upload'
 import { togglePanel } from '../../utils/treehole-composer'
@@ -393,6 +398,10 @@ const submitting = ref(false)
 const isRecording = ref(false)
 const recordingTime = ref(0)
 const recordingTimer = ref(null)
+const mediaRecorder = ref(null)
+const recordingStream = ref(null)
+const audioChunks = ref([])
+const voiceBlobUrl = ref(null)
 const aiResponse = ref('')
 const riskLevel = ref('safe')
 const uploadedImage = ref(null)
@@ -439,10 +448,41 @@ function toggleComposerPanel(panelName) {
 }
 
 // 切换录音状态
-function toggleRecording() {
-  isRecording.value = !isRecording.value
+async function toggleRecording() {
+  if (!isRecording.value) {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      ElMessage.error(locale.value === 'zh-CN' ? '当前浏览器不支持录音' : 'Recording is not supported in this browser')
+      return
+    }
 
-  if (isRecording.value) {
+    if (voiceBlobUrl.value) {
+      URL.revokeObjectURL(voiceBlobUrl.value)
+      voiceBlobUrl.value = null
+    }
+
+    try {
+      recordingStream.value = await navigator.mediaDevices.getUserMedia({ audio: true })
+      audioChunks.value = []
+      mediaRecorder.value = new MediaRecorder(recordingStream.value)
+      mediaRecorder.value.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunks.value.push(event.data)
+        }
+      }
+      mediaRecorder.value.onstop = () => {
+        const blob = new Blob(audioChunks.value, { type: mediaRecorder.value?.mimeType || 'audio/webm' })
+        if (blob.size > 0) {
+          voiceBlobUrl.value = URL.createObjectURL(blob)
+        }
+      }
+      mediaRecorder.value.start()
+    } catch (error) {
+      console.error('录音失败:', error)
+      ElMessage.error(locale.value === 'zh-CN' ? '无法访问麦克风' : 'Could not access microphone')
+      return
+    }
+
+    isRecording.value = true
     recordingTime.value = 0
     recordingTimer.value = setInterval(() => {
       recordingTime.value++
@@ -451,15 +491,25 @@ function toggleRecording() {
       }
     }, 1000)
 
-    ElMessage.info(locale === 'zh-CN' ? '开始录音...' : 'Recording started...')
+    ElMessage.info(locale.value === 'zh-CN' ? '开始录音...' : 'Recording started...')
   } else {
+    isRecording.value = false
+
     if (recordingTimer.value) {
       clearInterval(recordingTimer.value)
       recordingTimer.value = null
     }
 
+    if (mediaRecorder.value?.state === 'recording') {
+      mediaRecorder.value.stop()
+    }
+    if (recordingStream.value) {
+      recordingStream.value.getTracks().forEach((track) => track.stop())
+      recordingStream.value = null
+    }
+
     if (recordingTime.value > 0) {
-      ElMessage.success(locale === 'zh-CN' ? `录音完成，时长 ${recordingTime.value} 秒` : `Recording complete, ${recordingTime.value}s`)
+      ElMessage.success(locale.value === 'zh-CN' ? `录音完成，时长 ${recordingTime.value} 秒` : `Recording complete, ${recordingTime.value}s`)
     } else {
       ElMessage.warning(t('treehole.recordingTooShort'))
     }
@@ -500,6 +550,11 @@ function removeImage() {
 
 // 提交倾诉
 async function handleSubmit() {
+  if (isRecording.value) {
+    ElMessage.warning(locale.value === 'zh-CN' ? '请先结束录音' : 'Please stop recording first')
+    return
+  }
+
   const hasText = Boolean(entryForm.value.content?.trim())
   const hasVoice = recordingTime.value > 0
   const hasImage = Boolean(uploadedImage.value)
@@ -514,23 +569,27 @@ async function handleSubmit() {
     const entryData = {
       ...entryForm.value,
       duration: hasVoice ? recordingTime.value : 0,
+      voice_url: hasVoice ? voiceBlobUrl.value : null,
       created_at: new Date().toISOString(),
       id: Date.now(),
     }
 
     const response = await treeholeApi.create(entryData)
+    const savedEntry = {
+      ...entryData,
+      ...(response.data || {}),
+      voice_url: entryData.voice_url,
+    }
 
     // 显示 AI 响应和风险等级
     if (response.data?.ai_response) {
       aiResponse.value = response.data.ai_response
       riskLevel.value = response.data.risk_level
-      entryData.ai_response = response.data.ai_response
     }
 
     // 保存到本地存储
     const savedEntries = JSON.parse(localStorage.getItem('xinqing_treehole_records') || '[]')
-    savedEntries.unshift(entryData)
-    localStorage.setItem('xinqing_treehole_records', JSON.stringify(savedEntries))
+    localStorage.setItem('xinqing_treehole_records', JSON.stringify(upsertSavedEntry(savedEntries, savedEntry, entryData.id)))
 
     // 重置表单
     entryForm.value = {
@@ -542,6 +601,7 @@ async function handleSubmit() {
     }
     uploadedImage.value = null
     recordingTime.value = 0
+    voiceBlobUrl.value = null
     activeComposerPanel.value = null
 
     ElMessage.success(locale.value === 'zh-CN' ? '发送成功！' : 'Sent successfully!')
@@ -553,6 +613,7 @@ async function handleSubmit() {
     const entryData = {
       ...entryForm.value,
       duration: recordingTime.value > 0 ? recordingTime.value : 0,
+      voice_url: recordingTime.value > 0 ? voiceBlobUrl.value : null,
       created_at: new Date().toISOString(),
       id: Date.now(),
     }
@@ -601,7 +662,17 @@ function loadMyEntries() {
   }
 }
 
-function removeEntry(entryId) {
+async function removeEntry(entryId) {
+  try {
+    await treeholeApi.delete(entryId)
+  } catch (error) {
+    if (error.response?.status !== 404) {
+      console.error('删除后端条目失败:', error)
+      ElMessage.error(locale.value === 'zh-CN' ? '删除失败' : 'Delete failed')
+      return
+    }
+  }
+
   try {
     const savedEntries = JSON.parse(localStorage.getItem('xinqing_treehole_records') || '[]')
     const nextEntries = deleteLocalEntry(savedEntries, entryId)
@@ -626,9 +697,9 @@ function formatTime(dateString) {
   const now = new Date()
   const diff = now - date
 
-  if (diff < 60000) return locale === 'zh-CN' ? '刚刚' : 'Just now'
-  if (diff < 3600000) return locale === 'zh-CN' ? `${Math.floor(diff / 60000)}分钟前` : `${Math.floor(diff / 60000)}m ago`
-  if (diff < 86400000) return locale === 'zh-CN' ? `${Math.floor(diff / 3600000)}小时前` : `${Math.floor(diff / 3600000)}h ago`
+  if (diff < 60000) return locale.value === 'zh-CN' ? '刚刚' : 'Just now'
+  if (diff < 3600000) return locale.value === 'zh-CN' ? `${Math.floor(diff / 60000)}分钟前` : `${Math.floor(diff / 60000)}m ago`
+  if (diff < 86400000) return locale.value === 'zh-CN' ? `${Math.floor(diff / 3600000)}小时前` : `${Math.floor(diff / 3600000)}h ago`
   return date.toLocaleDateString()
 }
 
@@ -644,9 +715,27 @@ function closeDetail() {
   selectedEntry.value = null
 }
 
+function cleanupRecordingResources() {
+  if (recordingTimer.value) {
+    clearInterval(recordingTimer.value)
+    recordingTimer.value = null
+  }
+  if (mediaRecorder.value?.state === 'recording') {
+    mediaRecorder.value.stop()
+  }
+  if (recordingStream.value) {
+    recordingStream.value.getTracks().forEach((track) => track.stop())
+    recordingStream.value = null
+  }
+}
+
 onMounted(() => {
   loadEntries()
   loadMyEntries()
+})
+
+onBeforeUnmount(() => {
+  cleanupRecordingResources()
 })
 </script>
 
@@ -824,6 +913,16 @@ onMounted(() => {
 
 .compact-option {
   margin-top: 10px;
+}
+
+.voice-playback {
+  margin-top: 10px;
+}
+
+.voice-playback audio,
+.voice-player audio {
+  width: 100%;
+  max-width: 260px;
 }
 
 .check-icon {

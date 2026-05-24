@@ -2,7 +2,7 @@
 数据库模型定义
 """
 
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, Boolean, ForeignKey, Date
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, Boolean, ForeignKey, Date, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..core.database import Base
@@ -38,6 +38,22 @@ class MindfulnessSession(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class EngagementState(Base):
+    """用户连续使用和草团子状态表（支持匿名设备）。"""
+
+    __tablename__ = "engagement_states"
+    __table_args__ = (UniqueConstraint("client_id", name="uq_engagement_states_client_id"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(String(120), index=True, nullable=False)
+    streak_days = Column(Integer, default=0)
+    best_streak_days = Column(Integer, default=0)
+    last_check_in_date = Column(Date, nullable=True)
+    last_mood = Column(String(50), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class TreeholeEntry(Base):
     """秘密树洞条目表"""
     
@@ -54,6 +70,27 @@ class TreeholeEntry(Base):
     has_voice_change = Column(Boolean, default=False)  # 是否变声处理
     risk_level = Column(String(20), default="safe")  # 风险等级：safe/mild/severe
     ai_response = Column(Text, nullable=True)  # AI 回应
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PsychologicalAssessment(Base):
+    """详细心理分析问卷记录。"""
+
+    __tablename__ = "psychological_assessments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(String(120), index=True, nullable=False)
+    consent_version = Column(String(80), nullable=False)
+    consent_usage = Column(Text, nullable=False)
+    consent_accepted = Column(Boolean, default=False)
+    user_signature = Column(String(120), nullable=False)
+    is_minor = Column(Boolean, default=False)
+    guardian_signature = Column(String(120), nullable=True)
+    answers = Column(Text, nullable=False)
+    score = Column(Integer, default=0)
+    level = Column(String(20), default="low")
+    diagnosis = Column(Text, nullable=False)
+    suggestions = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

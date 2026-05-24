@@ -2,8 +2,8 @@
 Pydantic Schemas - 用于数据验证和序列化
 """
 
-from pydantic import BaseModel, ConfigDict, Field, AliasChoices, model_validator
-from typing import Optional, List
+from pydantic import BaseModel, ConfigDict, Field, AliasChoices, field_validator, model_validator
+from typing import ClassVar, Optional, List
 from datetime import date, datetime
 
 
@@ -79,8 +79,153 @@ class MindfulnessSessionResponse(MindfulnessSessionBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class EngagementCheckInCreate(BaseModel):
+    """连续使用签到请求。"""
+    client_id: str = Field(
+        "anonymous",
+        min_length=1,
+        max_length=120,
+        validation_alias=AliasChoices("client_id", "clientId"),
+    )
+    mood: Optional[str] = Field(None, max_length=50, description="今日心情")
+    check_in_date: Optional[date] = Field(
+        None,
+        validation_alias=AliasChoices("check_in_date", "checkInDate"),
+    )
+
+
+class MascotStateResponse(BaseModel):
+    """草团子展示状态。"""
+    level: str
+    level_days: int
+    color: str
+    expression: str
+    unlocked_accessories: List[str]
+    unlocked_actions: List[str]
+
+
+class EngagementCheckInResponse(BaseModel):
+    """连续使用签到响应。"""
+    client_id: str
+    streak_days: int
+    best_streak_days: int
+    missed_days: int
+    last_check_in_date: date
+    return_prompt: Optional[str]
+    mascot: MascotStateResponse
+    next_level: Optional[dict]
+
+
+class EmotionInsightResponse(BaseModel):
+    """情绪打卡后的标签和安慰话术。"""
+    mood: str
+    tag: str
+    comfort: str
+
+
+class PsychologicalAssessmentAnswers(BaseModel):
+    """详细心理分析问卷答案。"""
+    sleep: int = Field(..., ge=1, le=5)
+    anxiety: int = Field(..., ge=1, le=5)
+    sadness: int = Field(..., ge=1, le=5)
+    energy: int = Field(..., ge=1, le=5)
+    focus: int = Field(..., ge=1, le=5)
+
+
+class PsychologicalAssessmentCreate(BaseModel):
+    """提交详细心理分析。"""
+    client_id: str = Field(
+        "anonymous",
+        min_length=1,
+        max_length=120,
+        validation_alias=AliasChoices("client_id", "clientId"),
+    )
+    consent_accepted: bool = Field(
+        ...,
+        validation_alias=AliasChoices("consent_accepted", "consentAccepted"),
+    )
+    user_signature: str = Field(
+        ...,
+        min_length=1,
+        max_length=120,
+        validation_alias=AliasChoices("user_signature", "userSignature"),
+    )
+    is_minor: bool = Field(
+        False,
+        validation_alias=AliasChoices("is_minor", "isMinor"),
+    )
+    guardian_signature: Optional[str] = Field(
+        None,
+        max_length=120,
+        validation_alias=AliasChoices("guardian_signature", "guardianSignature"),
+    )
+    answers: PsychologicalAssessmentAnswers
+
+    @model_validator(mode="after")
+    def validate_consent_and_signatures(self):
+        if not self.consent_accepted:
+            raise ValueError("需要同意 consent form 后才能开始详细心理分析")
+
+        if not self.user_signature.strip():
+            raise ValueError("需要用户签名")
+
+        if self.is_minor and not (self.guardian_signature or "").strip():
+            raise ValueError("未成年人需要家长/监护人签名")
+
+        return self
+
+
+class PsychologicalAssessmentResponse(BaseModel):
+    """详细心理分析结果。"""
+    assessment_id: int
+    score: int
+    level: str
+    tag: str
+    diagnosis: str
+    suggestions: List[str]
+    consent_version: str
+    consent_usage: str
+    created_at: datetime
+
+
+class MindfulnessThemeResponse(BaseModel):
+    """月度背景音主题。"""
+    month: int
+    key: str
+    name: str
+    description: str
+    audio_url: str
+
+
+class SoapRoundRequest(BaseModel):
+    """肥皂游戏新一局请求。"""
+    current_skin: Optional[str] = Field(
+        None,
+        validation_alias=AliasChoices("current_skin", "currentSkin"),
+    )
+    unlocked_skins: List[str] = Field(
+        default_factory=lambda: ["default"],
+        validation_alias=AliasChoices("unlocked_skins", "unlockedSkins"),
+    )
+
+
+class SoapRoundResponse(BaseModel):
+    """肥皂游戏新一局响应。"""
+    skin: str
+    color: str
+    label: str
+
+
 class TreeholeEntryBase(BaseModel):
     """秘密树洞基础 Schema"""
+    MAX_IMAGE_DATA_LENGTH: ClassVar[int] = 2_000_000
+    ALLOWED_IMAGE_DATA_PREFIXES: ClassVar[tuple[str, ...]] = (
+        "data:image/jpeg;base64,",
+        "data:image/png;base64,",
+        "data:image/gif;base64,",
+        "data:image/webp;base64,",
+    )
+
     content_type: Optional[str] = Field(
         None,
         description="内容类型：text/voice/image",
@@ -101,6 +246,20 @@ class TreeholeEntryBase(BaseModel):
         0,
         description="语音时长（秒）",
     )
+
+    @field_validator("image_data")
+    @classmethod
+    def validate_image_data(cls, value):
+        if not value:
+            return value
+
+        if len(value) > cls.MAX_IMAGE_DATA_LENGTH:
+            raise ValueError("图片数据过大")
+
+        if not any(value.startswith(prefix) for prefix in cls.ALLOWED_IMAGE_DATA_PREFIXES):
+            raise ValueError("不支持的图片格式")
+
+        return value
     
     @model_validator(mode="after")
     def validate_content_presence(self):
