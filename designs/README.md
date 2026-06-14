@@ -14,5 +14,7 @@ Pencil UI redesign previews for the main H5 mobile flow.
 
 - Artboard size: 390 x 844.
 - Export scale: 2x, producing 780 x 1688 PNG files.
+- `icons/image2-*.png` contains the transparent image-2 icon assets used in the previews.
+- `icons/image2-icon-sheet.png` and `icons/image2-ui-icon-sheet.png` keep the original generated icon sheets for traceability.
 - Design direction reference: `docs/plans/2026-06-13-h5-ui-redesign-design.md`.
 - Implementation reference: `docs/plans/2026-06-13-h5-ui-redesign-implementation.md`.
