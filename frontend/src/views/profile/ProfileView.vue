@@ -90,14 +90,6 @@
           <component :is="ArrowRight" class="menu-arrow" />
         </div>
 
-        <div class="menu-item touchable" @click="openPage('admin')">
-          <div class="menu-icon">
-            <component :is="Management" />
-          </div>
-          <span class="menu-label">{{ locale === 'zh-CN' ? '后台入口' : 'Admin Console' }}</span>
-          <component :is="ArrowRight" class="menu-arrow" />
-        </div>
-
         <div class="menu-item touchable" @click="openPage('about')">
           <div class="menu-icon">
             <component :is="InfoFilled" />
@@ -207,6 +199,21 @@
             <el-option label="English" value="en-US" />
           </el-select>
         </div>
+        <div class="setting-item font-size-setting">
+          <span class="setting-label">{{ locale === 'zh-CN' ? '字号' : 'Font size' }}</span>
+          <div class="font-scale-control" role="group" aria-label="Font size">
+            <button
+              v-for="option in fontScaleOptions"
+              :key="option.value"
+              type="button"
+              class="font-scale-option"
+              :class="{ active: settings.fontSizeScale === option.value }"
+              @click="changeFontScale(option.value)"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+        </div>
         <div class="setting-item">
           <span class="setting-label">{{ locale === 'zh-CN' ? '推送通知' : 'Push Notifications' }}</span>
           <el-switch v-model="settings.notifications" />
@@ -220,6 +227,13 @@
         <h4>{{ locale === 'zh-CN' ? '数据管理' : 'Data Management' }}</h4>
         <el-button size="small" @click="exportData">{{ locale === 'zh-CN' ? '导出数据' : 'Export Data' }}</el-button>
         <el-button size="small" type="danger" @click="clearData">{{ locale === 'zh-CN' ? '清除本地数据' : 'Clear Local Data' }}</el-button>
+      </div>
+      <div class="settings-section settings-admin-entry">
+        <h4>{{ locale === 'zh-CN' ? '高级设置' : 'Advanced' }}</h4>
+        <el-button size="small" @click="openAdminConsole">
+          <component :is="Management" />
+          <span>{{ locale === 'zh-CN' ? '内容后台' : 'Admin Console' }}</span>
+        </el-button>
       </div>
     </el-dialog>
 
@@ -314,8 +328,16 @@ const settings = reactive({
   darkMode: false,
   language: 'zh-CN',
   notifications: true,
-  dailyReminder: true
+  dailyReminder: true,
+  fontSizeScale: 'standard',
+  fontScale: 'standard'
 })
+
+const fontScaleOptions = [
+  { value: 'compact', label: '小' },
+  { value: 'standard', label: '中' },
+  { value: 'large', label: '大' },
+]
 
 // 记录数据
 const emotionRecords = ref([])
@@ -415,17 +437,46 @@ function loadSettings() {
   if (savedSettings) {
     const parsed = JSON.parse(savedSettings)
     Object.assign(settings, parsed)
+    settings.fontSizeScale = parsed.fontSizeScale || parsed.fontScale || 'standard'
+    settings.fontScale = settings.fontSizeScale
   }
+  applyFontScale(settings.fontSizeScale)
+}
+
+function saveSettings() {
+  settings.fontScale = settings.fontSizeScale
+  localStorage.setItem('xinqing_settings', JSON.stringify(settings))
+}
+
+function applyFontScale(scale = 'standard') {
+  const nextScale = ['compact', 'standard', 'large'].includes(scale) ? scale : 'standard'
+  document.documentElement.dataset.fontScale = nextScale
 }
 
 // 切换主题
 function toggleTheme() {
   themeStore.toggleTheme()
+  settings.darkMode = themeStore.isDark
+  saveSettings()
 }
 
 // 切换语言
 function changeLanguage(lang) {
   setLocale(lang)
+  settings.language = lang
+  saveSettings()
+}
+
+function changeFontScale(scale) {
+  settings.fontSizeScale = scale
+  settings.fontScale = scale
+  applyFontScale(scale)
+  saveSettings()
+}
+
+function openAdminConsole() {
+  showSettingsDialog.value = false
+  router.push(getAdminEntryTarget(adminStore.isAuthenticated))
 }
 
 // 导出数据
@@ -492,6 +543,7 @@ async function loadUserStats() {
 
 onMounted(() => {
   authStore.checkAuth()
+  loadSettings()
   if (authStore.isAuthenticated) {
     loadUserStats()
   }
@@ -920,6 +972,37 @@ onMounted(() => {
   color: var(--color-text-primary, #1e293b);
 }
 
+.font-size-setting {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.font-scale-control {
+  display: inline-grid;
+  grid-template-columns: repeat(3, 34px);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  border: 1px solid var(--color-border-light, #f1f5f9);
+}
+
+.font-scale-option {
+  min-height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-secondary, #64748b);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.font-scale-option.active {
+  background: var(--h5-primary);
+  color: #fff;
+  box-shadow: var(--h5-shadow-soft);
+}
+
 .settings-section {
   margin-top: var(--spacing-lg, 24px);
   padding-top: var(--spacing-md, 16px);
@@ -934,6 +1017,12 @@ onMounted(() => {
 
 .settings-section .el-button {
   margin-right: var(--spacing-sm, 8px);
+}
+
+.settings-admin-entry .el-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* 关于页面 */

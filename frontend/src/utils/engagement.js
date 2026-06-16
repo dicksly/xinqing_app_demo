@@ -18,11 +18,25 @@ export function daysBetween(dateKeyA, dateKeyB) {
   return Math.round((end - start) / DAY_MS)
 }
 
+export function normalizeEngagementState(state = {}) {
+  const bestStreak = Math.max(0, Number(state.bestStreak || 0))
+  const rawCurrent = Math.max(0, Number(state.currentStreak || 0))
+  const currentStreak = bestStreak > 0 ? Math.min(rawCurrent, bestStreak) : rawCurrent
+
+  return {
+    ...state,
+    currentStreak,
+    bestStreak: Math.max(bestStreak, currentStreak),
+    missedDays: Math.max(0, Number(state.missedDays || 0)),
+  }
+}
+
 export function updateStreakState(state = {}, now = new Date()) {
+  const normalizedState = normalizeEngagementState(state)
   const today = toDateKey(now)
-  const lastSeenDate = state.lastSeenDate || null
+  const lastSeenDate = normalizedState.lastSeenDate || null
   const gapDays = lastSeenDate ? daysBetween(lastSeenDate, today) : 0
-  const currentStreak = Number(state.currentStreak || 0)
+  const currentStreak = Number(normalizedState.currentStreak || 0)
 
   let nextStreak = currentStreak
   if (!lastSeenDate) {
@@ -36,9 +50,9 @@ export function updateStreakState(state = {}, now = new Date()) {
   }
 
   return {
-    ...state,
+    ...normalizedState,
     currentStreak: nextStreak,
-    bestStreak: Math.max(Number(state.bestStreak || 0), nextStreak),
+    bestStreak: Math.max(Number(normalizedState.bestStreak || 0), nextStreak),
     lastSeenDate: today,
     missedDays: gapDays > 1 ? gapDays - 1 : 0,
   }

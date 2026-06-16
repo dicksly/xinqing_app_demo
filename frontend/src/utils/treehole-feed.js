@@ -66,6 +66,10 @@ export function deleteLocalEntry(entries = [], entryId) {
   return entries.filter((entry) => entry.id !== entryId)
 }
 
+export function hasLocalEntry(entries = [], entryId) {
+  return entries.some((entry) => String(entry.id) === String(entryId))
+}
+
 export function upsertSavedEntry(entries = [], entry, temporaryId = null) {
   const normalized = normalizeEntry(entry)
   const nextEntries = entries.filter((savedEntry) => {

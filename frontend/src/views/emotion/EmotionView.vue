@@ -1,74 +1,30 @@
 <template>
-  <div class="emotion-view">
-    <!-- 今日心情打卡卡片 -->
-    <section class="checkin-card card">
-      <header class="card-header">
-        <component :is="Histogram" class="header-icon" />
-        <div class="header-copy">
-          <h2 class="card-title">{{ t('emotion.title') }}</h2>
-          <p class="card-subtitle">{{ locale === 'zh-CN' ? '用一个更轻的方式，记录今天的状态。' : 'Capture today with a softer, simpler check-in.' }}</p>
-        </div>
-        <span class="panel-chip">{{ locale === 'zh-CN' ? 'Today' : 'Today' }}</span>
-      </header>
+  <div class="care-page emotion-view">
+    <header class="care-page-header">
+      <h1 class="care-page-title">今日心情打卡</h1>
+      <p class="care-page-subtitle">慢慢来，选一个最接近的状态</p>
+    </header>
 
-      <div class="emotion-spotlight">
-        <div class="spotlight-copy">
-          <span class="spotlight-label">{{ locale === 'zh-CN' ? '轻量记录' : 'Quick note' }}</span>
-          <p>{{ locale === 'zh-CN' ? '先选一个状态，再补充能量、睡眠和一点微光时刻。' : 'Pick a mood first, then add energy, sleep, and one small bright moment.' }}</p>
-        </div>
-        <div class="spotlight-badge">
-          <span>{{ currentRecord.mood ? moods.find(item => item.value === currentRecord.mood)?.label : (locale === 'zh-CN' ? '未选择' : 'Pending') }}</span>
-        </div>
+    <section class="care-card pad checkin-panel">
+      <h2 class="care-card-title">基础状态</h2>
+      <div class="mood-grid">
+        <button
+          v-for="mood in moods"
+          :key="mood.value"
+          type="button"
+          class="mood-item care-touch"
+          :class="[mood.tone, { active: currentRecord.mood === mood.value }]"
+          @click="currentRecord.mood = mood.value"
+        >
+          <span class="mood-icon">
+            <img :src="mood.iconSrc" class="image2-icon" :alt="mood.label" />
+          </span>
+          <span>{{ mood.label }}</span>
+        </button>
       </div>
 
-      <!-- 心情选择 -->
-      <div class="section">
-        <h3 class="section-title">{{ t('emotion.basicStatus') }}</h3>
-        <div class="mood-grid">
-          <div
-            v-for="mood in moods"
-            :key="mood.value"
-            class="mood-item touchable"
-            :class="{ active: currentRecord.mood === mood.value }"
-            @click="currentRecord.mood = mood.value"
-          >
-            <div class="mood-icon" :class="mood.iconClass">
-              <component :is="mood.icon" />
-            </div>
-            <span class="mood-label">{{ mood.label }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 能量水平 -->
-      <div class="section">
-        <div class="slider-header">
-          <span class="slider-label">{{ t('emotion.energyLevel') }}</span>
-          <span class="slider-value">{{ currentRecord.energyLevel }}%</span>
-        </div>
-        <el-slider
-          v-model="currentRecord.energyLevel"
-          :marks="energyMarks"
-          :show-tooltip="false"
-          active-color="#10b981"
-        />
-      </div>
-
-      <!-- 睡眠质量 -->
-      <div class="section sleep-section">
-        <span class="section-label">{{ t('emotion.sleepQuality') }}</span>
-        <el-rate
-          v-model="currentRecord.sleepQuality"
-          :max="5"
-          show-score
-          :score-template="locale === 'zh-CN' ? '{value}星' : '{value} stars'"
-          :colors="['#fbbf24', '#fbbf24', '#fbbf24']"
-        />
-      </div>
-
-      <!-- 压力来源（负面心情时显示） -->
-      <div v-if="showAttribution" class="section">
-        <h3 class="section-title">{{ t('emotion.stressSources') }}</h3>
+      <div v-if="showAttribution" class="attribution-panel">
+        <h3>是什么压住了你？</h3>
         <div class="stress-tags">
           <el-check-tag
             v-for="tag in stressSources"
@@ -79,106 +35,103 @@
             {{ tag.label }}
           </el-check-tag>
         </div>
-
-        <h3 class="section-title">{{ t('emotion.socialPreference') }}</h3>
-        <el-radio-group v-model="currentRecord.socialPreference" class="social-radio">
-          <el-radio-button label="alone">{{ t('emotion.social.alone') }}</el-radio-button>
-          <el-radio-button label="social">{{ t('emotion.social.social') }}</el-radio-button>
-        </el-radio-group>
+        <div class="segmented-row social-row" style="--segment-count: 2">
+          <button
+            type="button"
+            class="segment-button"
+            :class="{ active: currentRecord.socialPreference === 'alone' }"
+            @click="currentRecord.socialPreference = 'alone'"
+          >
+            {{ t('emotion.social.alone') }}
+          </button>
+          <button
+            type="button"
+            class="segment-button"
+            :class="{ active: currentRecord.socialPreference === 'social' }"
+            @click="currentRecord.socialPreference = 'social'"
+          >
+            {{ t('emotion.social.social') }}
+          </button>
+        </div>
       </div>
+    </section>
 
-      <!-- 微光时刻 -->
-      <div class="section">
-        <h3 class="section-title">{{ t('emotion.happyMoment') }}</h3>
-        <el-input
-          v-model="currentRecord.happyMoment"
-          type="textarea"
-          :rows="2"
-          :placeholder="t('emotion.happyMomentPlaceholder')"
-          maxlength="50"
-          show-word-limit
-          resize="none"
+    <section class="care-card pad slider-panel">
+      <div class="slider-header">
+        <h2 class="care-card-title">能量水平</h2>
+        <strong>{{ currentRecord.energyLevel }}%</strong>
+      </div>
+      <el-slider
+        v-model="currentRecord.energyLevel"
+        :marks="energyMarks"
+        :show-tooltip="false"
+        active-color="#6E9DD8"
+      />
+      <div class="sleep-row">
+        <h2 class="care-card-title">睡眠质量</h2>
+        <el-rate
+          v-model="currentRecord.sleepQuality"
+          :max="5"
+          show-score
+          :score-template="locale === 'zh-CN' ? '{value}星' : '{value} stars'"
+          :colors="['#F2C75C', '#F2C75C', '#F2C75C']"
         />
-        <el-button
-          v-if="!currentRecord.happyMoment"
-          class="inspiration-btn"
-          @click="getInspiration"
-          text
-          type="primary"
-        >
-          <component :is="MagicStick" />
-          <span>{{ t('emotion.getInspiration') }}</span>
-        </el-button>
       </div>
-
-      <!-- 提交按钮 -->
-      <el-button
-        type="primary"
-        size="large"
-        :loading="submitting"
-        @click="handleSubmit"
-        class="submit-btn"
-        round
-      >
-        {{ t('emotion.submitCheckin') }}
-      </el-button>
     </section>
 
-    <section class="analysis-entry-card card">
+    <section class="care-card pad journal-panel">
+      <h2 class="care-card-title">微光时刻</h2>
+      <el-input
+        v-model="currentRecord.happyMoment"
+        class="quiet-field"
+        type="textarea"
+        :rows="3"
+        placeholder="今天有一点点值得记下的事吗？"
+        maxlength="50"
+        show-word-limit
+        resize="none"
+      />
+      <button v-if="!currentRecord.happyMoment" type="button" class="inspiration-link" @click="getInspiration">
+        给我一点灵感
+      </button>
+    </section>
+
+    <el-button
+      type="primary"
+      size="large"
+      :loading="submitting"
+      @click="handleSubmit"
+      class="submit-btn soft-submit"
+      round
+    >
+      保存今日状态
+    </el-button>
+
+    <section class="care-card pad analysis-entry-card">
       <div>
-        <h2 class="card-title">{{ locale === 'zh-CN' ? '详细心理分析' : 'Detailed Psychological Analysis' }}</h2>
-        <p class="card-subtitle">{{ locale === 'zh-CN' ? '填写问卷前需要阅读知情同意书并签名。' : 'Read and sign consent before taking the questionnaire.' }}</p>
+        <h2 class="care-card-title">详细心理分析</h2>
+        <p class="care-card-copy">填写问卷前需要阅读知情同意书并签名。</p>
       </div>
-      <el-button type="primary" round @click="openAssessment">
-        {{ locale === 'zh-CN' ? '进入问卷' : 'Start' }}
-      </el-button>
+      <el-button type="primary" round @click="openAssessment">进入问卷</el-button>
     </section>
 
-    <!-- 本周报告卡片 -->
-    <section class="report-card card">
-      <header class="card-header">
-        <component :is="DataLine" class="header-icon" />
-        <div class="header-copy">
-          <h2 class="card-title">{{ t('emotion.weeklyReport') }}</h2>
-          <p class="card-subtitle">{{ locale === 'zh-CN' ? '把这一周的情绪节奏看得更清楚一点。' : 'See the rhythm of your week more clearly.' }}</p>
+    <section class="care-card pad report-card">
+      <h2 class="care-card-title">本周情绪小结</h2>
+      <p class="care-card-copy">记录 3 天后会生成更清晰的趋势</p>
+      <div v-if="weeklyReport" class="report-stats">
+        <div class="stat-item">
+          <strong>{{ weeklyReport.total_records }}</strong>
+          <span>{{ t('emotion.report.checkinDays') }}</span>
         </div>
-      </header>
-
-      <div v-if="weeklyReport" class="report-content">
-        <div class="report-stats">
-          <div class="stat-item">
-            <span class="stat-value">{{ weeklyReport.total_records }}</span>
-            <span class="stat-label">{{ t('emotion.report.checkinDays') }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">{{ weeklyReport.average_energy?.toFixed(1) }}</span>
-            <span class="stat-label">{{ t('emotion.report.avgEnergy') }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">{{ weeklyReport.average_sleep?.toFixed(1) }}</span>
-            <span class="stat-label">{{ t('emotion.report.avgSleep') }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">{{ weeklyReport.happy_moments_count }}</span>
-            <span class="stat-label">{{ t('emotion.report.happyMoments') }}</span>
-          </div>
+        <div class="stat-item">
+          <strong>{{ weeklyReport.average_energy?.toFixed(1) }}</strong>
+          <span>{{ t('emotion.report.avgEnergy') }}</span>
         </div>
-
-        <div v-if="weeklyReport.top_stress_sources?.length > 0" class="stress-chart">
-          <h4 class="chart-title">{{ t('emotion.report.topStressSources') }}</h4>
-          <div class="stress-tags-list">
-            <span
-              v-for="(source, index) in weeklyReport.top_stress_sources"
-              :key="source"
-              class="stress-rank-tag"
-            >
-              #{{ index + 1 }} {{ source }}
-            </span>
-          </div>
+        <div class="stat-item">
+          <strong>{{ weeklyReport.average_sleep?.toFixed(1) }}</strong>
+          <span>{{ t('emotion.report.avgSleep') }}</span>
         </div>
       </div>
-
-      <el-empty v-else :description="t('emotion.report.noData')" :image-size="60" />
     </section>
 
     <el-dialog
@@ -193,6 +146,27 @@
       </div>
       <template #footer>
         <el-button type="primary" round @click="insightVisible = false">{{ locale === 'zh-CN' ? '收下' : 'Got it' }}</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="quoteCardVisible"
+      title="日签语录"
+      width="92%"
+      class="quote-card-dialog"
+    >
+      <div class="quote-card-preview" :class="latestQuoteCard.tone">
+        <div class="quote-illustration" aria-hidden="true">
+          <span>{{ latestQuoteCard.symbol }}</span>
+        </div>
+        <span class="care-kicker">{{ latestQuoteCard.title }}</span>
+        <h2>{{ latestQuoteCard.quote }}</h2>
+        <p>{{ latestQuoteCard.caption }}</p>
+        <small>心情疗愈 · {{ new Date().toLocaleDateString('zh-CN') }}</small>
+      </div>
+      <template #footer>
+        <el-button round @click="saveQuoteCard">保存日签</el-button>
+        <el-button type="primary" round @click="shareQuoteCard">分享</el-button>
       </template>
     </el-dialog>
 
@@ -250,8 +224,13 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useEmotionStore } from '../../stores/emotion'
 import { ElMessage } from 'element-plus'
-import { Histogram, MagicStick, DataLine, Warning, CircleClose, Remove, StarFilled, Sunny } from '@element-plus/icons-vue'
+import anxiousIcon from '../../assets/icons/image2-mood-anxious.png'
+import sadIcon from '../../assets/icons/image2-mood-sad.png'
+import calmIcon from '../../assets/icons/image2-mood-calm.png'
+import happyIcon from '../../assets/icons/image2-mood-happy.png'
+import energeticIcon from '../../assets/icons/image2-mood-energetic.png'
 import { getMoodInsight } from '../../utils/emotion-insights'
+import { buildMoodQuoteShareText, getMoodQuoteCard } from '../../utils/mood-quote-card'
 import { scoreAssessment, validateAssessmentConsent } from '../../utils/assessment'
 
 const { t, locale } = useI18n()
@@ -261,6 +240,8 @@ const submitting = ref(false)
 const weeklyReport = ref(emotionStore.weeklyReport)
 const insightVisible = ref(false)
 const latestInsight = ref(getMoodInsight(''))
+const quoteCardVisible = ref(false)
+const latestQuoteCard = ref(getMoodQuoteCard(''))
 const assessmentVisible = ref(false)
 const assessmentConsentSaved = ref(Boolean(localStorage.getItem('xinqing_assessment_consent')))
 const assessmentConsent = ref({
@@ -278,16 +259,14 @@ const assessmentAnswers = ref({
 })
 const assessmentResult = ref(null)
 
-// 心情选项 - 使用 SVG 图标
 const moods = computed(() => [
-  { value: 'anxious', label: t('emotion.mood.anxious'), icon: Warning, iconClass: 'icon-anxious' },
-  { value: 'sad', label: t('emotion.mood.sad'), icon: CircleClose, iconClass: 'icon-sad' },
-  { value: 'calm', label: t('emotion.mood.calm'), icon: Remove, iconClass: 'icon-calm' },
-  { value: 'happy', label: t('emotion.mood.happy'), icon: StarFilled, iconClass: 'icon-happy' },
-  { value: 'energetic', label: t('emotion.mood.energetic'), icon: Sunny, iconClass: 'icon-energetic' },
+  { value: 'anxious', label: t('emotion.mood.anxious'), iconSrc: anxiousIcon, tone: 'tone-rose' },
+  { value: 'sad', label: t('emotion.mood.sad'), iconSrc: sadIcon, tone: 'tone-blue' },
+  { value: 'calm', label: t('emotion.mood.calm'), iconSrc: calmIcon, tone: 'tone-sage' },
+  { value: 'happy', label: t('emotion.mood.happy'), iconSrc: happyIcon, tone: 'tone-yellow' },
+  { value: 'energetic', label: t('emotion.mood.energetic'), iconSrc: energeticIcon, tone: 'tone-coral' },
 ])
 
-// 压力源选项
 const stressSources = computed(() => [
   { value: 'work', label: t('emotion.stress.work') },
   { value: 'interpersonal', label: t('emotion.stress.interpersonal') },
@@ -297,14 +276,12 @@ const stressSources = computed(() => [
   { value: 'none', label: t('emotion.stress.none') },
 ])
 
-// 能量滑块标记
 const energyMarks = computed(() => ({
   0: locale.value === 'zh-CN' ? '低' : 'Low',
   50: locale.value === 'zh-CN' ? '中' : 'Med',
   100: locale.value === 'zh-CN' ? '高' : 'High',
 }))
 
-// 灵感提示词
 const inspirations = computed(() => locale.value === 'zh-CN' ? [
   '好喝的咖啡',
   '好看的晚霞',
@@ -321,10 +298,7 @@ const inspirations = computed(() => locale.value === 'zh-CN' ? [
   'Completed a small task',
 ])
 
-// 是否显示归因部分
-const showAttribution = computed(() => {
-  return ['anxious', 'sad'].includes(currentRecord.value.mood)
-})
+const showAttribution = computed(() => ['anxious', 'sad'].includes(currentRecord.value.mood))
 
 const assessmentQuestions = computed(() => [
   { key: 'sleep', label: locale.value === 'zh-CN' ? '最近睡眠受影响的程度' : 'Sleep disruption recently' },
@@ -334,7 +308,6 @@ const assessmentQuestions = computed(() => [
   { key: 'focus', label: locale.value === 'zh-CN' ? '注意力受影响的程度' : 'Focus disruption' },
 ])
 
-// 切换压力源
 function toggleStressSource(value) {
   const index = currentRecord.value.stressSources.indexOf(value)
   if (index > -1) {
@@ -344,13 +317,11 @@ function toggleStressSource(value) {
   }
 }
 
-// 获取灵感
 function getInspiration() {
   const randomIndex = Math.floor(Math.random() * inspirations.value.length)
   currentRecord.value.happyMoment = inspirations.value[randomIndex]
 }
 
-// 提交打卡
 async function handleSubmit() {
   if (!currentRecord.value.mood) {
     ElMessage.warning(locale.value === 'zh-CN' ? '请选择今日心情' : 'Please select your mood')
@@ -359,14 +330,16 @@ async function handleSubmit() {
 
   submitting.value = true
   try {
+    const savedMood = currentRecord.value.mood
     await emotionStore.createRecord({
       ...currentRecord.value,
       stressSources: JSON.stringify(currentRecord.value.stressSources),
     })
 
-    localStorage.setItem('xinqing_today_mood', currentRecord.value.mood)
-    latestInsight.value = getMoodInsight(currentRecord.value.mood)
-    insightVisible.value = true
+    localStorage.setItem('xinqing_today_mood', savedMood)
+    latestInsight.value = getMoodInsight(savedMood)
+    latestQuoteCard.value = getMoodQuoteCard(savedMood)
+    quoteCardVisible.value = true
     ElMessage.success(locale.value === 'zh-CN' ? '打卡成功！' : 'Check-in successful!')
     emotionStore.resetCurrentRecord()
     emotionStore.fetchWeeklyReport()
@@ -374,6 +347,56 @@ async function handleSubmit() {
     ElMessage.error(locale.value === 'zh-CN' ? '打卡失败，请重试' : 'Check-in failed, please try again')
   } finally {
     submitting.value = false
+  }
+}
+
+function escapeSvgText(text = '') {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+function saveQuoteCard() {
+  const card = latestQuoteCard.value
+  const [start, end] = card.gradient || ['#F7D8E1', '#FFF7F2']
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200">
+    <defs>
+      <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+        <stop offset="0%" stop-color="${start}"/>
+        <stop offset="100%" stop-color="${end}"/>
+      </linearGradient>
+    </defs>
+    <rect width="900" height="1200" rx="58" fill="url(#bg)"/>
+    <circle cx="690" cy="260" r="120" fill="rgba(255,255,255,0.58)"/>
+    <text x="690" y="300" text-anchor="middle" font-size="150" fill="#D95E76" font-family="Arial">${escapeSvgText(card.symbol)}</text>
+    <text x="90" y="190" font-size="42" font-weight="700" fill="#765F59" font-family="Arial">${escapeSvgText(card.title)}</text>
+    <text x="90" y="445" font-size="58" font-weight="800" fill="#342A2A" font-family="Arial">${escapeSvgText(card.quote.slice(0, 15))}</text>
+    <text x="90" y="525" font-size="58" font-weight="800" fill="#342A2A" font-family="Arial">${escapeSvgText(card.quote.slice(15, 30))}</text>
+    <text x="90" y="650" font-size="34" fill="#765F59" font-family="Arial">${escapeSvgText(card.caption)}</text>
+    <text x="90" y="1040" font-size="28" fill="#9C817A" font-family="Arial">心情疗愈 · ${new Date().toLocaleDateString('zh-CN')}</text>
+  </svg>`
+  const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `xinqing-quote-${Date.now()}.svg`
+  link.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success('日签已保存')
+}
+
+async function shareQuoteCard() {
+  const text = buildMoodQuoteShareText(latestQuoteCard.value)
+  if (navigator.share) {
+    await navigator.share({ text }).catch(() => {})
+    return
+  }
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('分享文案已复制')
+  } else {
+    ElMessage.info(text)
   }
 }
 
@@ -402,7 +425,6 @@ function submitAssessment() {
   assessmentResult.value = scoreAssessment(assessmentAnswers.value)
 }
 
-// 加载周报
 async function loadWeeklyReport() {
   try {
     weeklyReport.value = await emotionStore.fetchWeeklyReport()
@@ -417,43 +439,134 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.emotion-view {
+.checkin-panel,
+.slider-panel,
+.journal-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md, 16px);
+  gap: 16px;
 }
 
+.mood-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mood-item {
+  min-width: 0;
+  min-height: 104px;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  color: var(--color-text-primary);
+  font-weight: 900;
+  background: #F7D8E1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.mood-item.active {
+  border-color: var(--h5-primary);
+  box-shadow: inset 0 0 0 2px rgba(217, 94, 118, 0.16);
+}
+
+.mood-icon {
+  width: 42px;
+  height: 42px;
+}
+
+.tone-blue { background: #E2ECF8; }
+.tone-sage { background: #DDEFE5; }
+.tone-yellow { background: #FFF0C8; }
+.tone-coral { background: #F8DFD2; }
+
+.attribution-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.attribution-panel h3 {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+}
+
+.stress-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.slider-header,
+.sleep-row,
 .analysis-entry-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
 }
 
-.analysis-entry-card .card-subtitle {
-  margin: 6px 0 0;
+.slider-header strong {
+  color: var(--h5-primary);
+  font-size: 20px;
 }
 
-.insight-result {
+.sleep-row {
+  padding-top: 16px;
+  border-top: 1px solid var(--h5-border);
+}
+
+.inspiration-link {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  color: var(--h5-primary);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.soft-submit {
+  width: 100%;
+  min-height: 58px;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.report-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.stat-item {
+  padding: 12px;
+  border-radius: 16px;
+  background: #FBF7F3;
   text-align: center;
 }
 
-.insight-tag {
-  display: inline-flex;
-  margin-bottom: 12px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-  font-weight: 800;
+.stat-item strong,
+.stat-item span {
+  display: block;
 }
 
-.insight-result p,
-.consent-copy,
-.assessment-result p {
-  margin: 0;
-  color: var(--color-text-secondary);
-  line-height: 1.6;
+.stat-item strong {
+  color: var(--h5-primary);
+  font-size: 20px;
+}
+
+.stat-item span {
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .consent-form,
@@ -463,548 +576,97 @@ onMounted(() => {
   gap: 14px;
 }
 
-.question-item {
-  display: grid;
-  gap: 8px;
+.consent-copy,
+.insight-result p,
+.assessment-result p {
   color: var(--color-text-secondary);
-  font-size: 13px;
+  line-height: 1.6;
 }
 
-.assessment-result {
-  padding: 14px;
-  border-radius: 14px;
-  background: var(--surface-2);
+.insight-tag {
+  color: var(--h5-primary);
+  font-size: 20px;
+  font-weight: 900;
 }
 
-.assessment-result.high {
-  background: rgba(239, 68, 68, 0.08);
+.quote-card-preview {
+  min-height: 380px;
+  border-radius: 28px;
+  padding: 26px 22px;
+  overflow: hidden;
+  position: relative;
+  background: linear-gradient(145deg, #F7D8E1, #FFF7F2);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.82);
 }
 
-.assessment-result.medium {
-  background: rgba(245, 158, 11, 0.1);
+.quote-card-preview.blue {
+  background: linear-gradient(145deg, #E2ECF8, #F8F4FF);
 }
 
-/* 卡片头部 */
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm, 8px);
-  margin-bottom: var(--spacing-md, 16px);
-  padding-bottom: var(--spacing-sm, 8px);
-  border-bottom: 1px solid var(--color-border-light, #f1f5f9);
+.quote-card-preview.sage {
+  background: linear-gradient(145deg, #DDEFE5, #FFF9ED);
 }
 
-.header-icon {
-  width: 20px;
-  height: 20px;
-  color: var(--color-primary, #10b981);
+.quote-card-preview.gold {
+  background: linear-gradient(145deg, #FFF0C8, #FFF7E8);
 }
 
-.card-title {
-  font-size: var(--font-lg, 17px);
-  font-weight: 600;
-  color: var(--color-text-primary, #1e293b);
-  margin: 0;
+.quote-card-preview.coral {
+  background: linear-gradient(145deg, #F8DFD2, #FFF4ED);
 }
 
-/* 分区 */
-.section {
-  margin-bottom: var(--spacing-md, 16px);
-}
-
-.section-title {
-  font-size: var(--font-sm, 13px);
-  font-weight: 500;
-  color: var(--color-text-secondary, #64748b);
-  margin: 0 0 var(--spacing-sm, 8px) 0;
-}
-
-.section-label {
-  font-size: var(--font-sm, 13px);
-  color: var(--color-text-secondary, #64748b);
-}
-
-/* 心情网格 */
-.mood-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: var(--spacing-sm, 8px);
-}
-
-.mood-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-xs, 4px);
-  padding: var(--spacing-sm, 8px);
-  border-radius: var(--radius-md, 12px);
-  background: var(--color-bg-tertiary, #f1f5f9);
-  transition: all var(--transition-base, 0.2s ease);
-  min-height: 44px;
-}
-
-.mood-item.active {
-  background: rgba(16, 185, 129, 0.1);
-  box-shadow: 0 0 0 2px var(--color-primary, #10b981);
-}
-
-.mood-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm, 8px);
+.quote-illustration {
+  width: 128px;
+  height: 128px;
+  border-radius: 42px;
+  margin-left: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.mood-icon svg {
-  width: 18px;
-  height: 18px;
-}
-
-.mood-label {
-  font-size: var(--font-xs, 11px);
-  color: var(--color-text-secondary, #64748b);
-}
-
-.mood-item.active .mood-label {
-  color: var(--color-primary, #10b981);
-  font-weight: 500;
-}
-
-/* 能量滑块 */
-.slider-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-sm, 8px);
-}
-
-.slider-label {
-  font-size: var(--font-sm, 13px);
-  color: var(--color-text-secondary, #64748b);
-}
-
-.slider-value {
-  font-size: var(--font-base, 15px);
-  font-weight: 600;
-  color: var(--color-primary, #10b981);
-}
-
-/* 睡眠质量 */
-.sleep-section {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* 压力标签 */
-.stress-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-xs, 4px);
-  margin-bottom: var(--spacing-md, 16px);
-}
-
-.social-radio {
-  width: 100%;
-}
-
-.social-radio :deep(.el-radio-button__inner) {
-  width: 100%;
-}
-
-/* 灵感按钮 */
-.inspiration-btn {
-  margin-top: var(--spacing-sm, 8px);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs, 4px);
-}
-
-.inspiration-btn svg {
-  width: 14px;
-  height: 14px;
-}
-
-/* 提交按钮 */
-.submit-btn {
-  width: 100%;
-  margin-top: var(--spacing-sm, 8px);
-  background: linear-gradient(135deg, var(--color-primary, #10b981) 0%, var(--color-primary-light, #34d399) 100%);
-  border: none;
-  font-weight: 500;
-}
-
-/* 报告统计 */
-.report-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--spacing-sm, 8px);
-  margin-bottom: var(--spacing-md, 16px);
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--spacing-sm, 8px);
-  background: var(--color-bg-tertiary, #f1f5f9);
-  border-radius: var(--radius-md, 12px);
-}
-
-.stat-value {
-  font-size: var(--font-xl, 20px);
-  font-weight: 600;
-  color: var(--color-text-primary, #1e293b);
-}
-
-.stat-label {
-  font-size: var(--font-xs, 11px);
-  color: var(--color-text-muted, #94a3b8);
-  margin-top: var(--spacing-xs, 4px);
-}
-
-/* 压力图表 */
-.stress-chart {
-  padding: var(--spacing-md, 16px);
-  background: var(--color-bg-tertiary, #f1f5f9);
-  border-radius: var(--radius-md, 12px);
-}
-
-.chart-title {
-  font-size: var(--font-sm, 13px);
-  font-weight: 500;
-  color: var(--color-text-secondary, #64748b);
-  margin: 0 0 var(--spacing-sm, 8px) 0;
-}
-
-.stress-tags-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-xs, 4px);
-}
-
-.stress-rank-tag {
-  display: inline-flex;
-  padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
-  background: var(--color-bg-card, #ffffff);
-  border-radius: var(--radius-full, 9999px);
-  font-size: var(--font-xs, 11px);
-  color: var(--color-text-secondary, #64748b);
-}
-
-/* 响应式 */
-@media (max-width: 360px) {
-  .mood-grid {
-    grid-template-columns: repeat(5, 1fr);
-    gap: var(--spacing-xs, 4px);
-  }
-
-  .report-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* 深色模式 - 温暖紫色系 */
-.dark .checkin-card,
-.dark .report-card {
-  background: rgba(45, 42, 62, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.dark .mood-item {
-  background: rgba(31, 28, 42, 0.8);
-}
-
-.dark .mood-item.active {
-  background: rgba(167, 139, 250, 0.15);
-  box-shadow: 0 0 0 2px var(--color-primary, #a78bfa);
-}
-
-.dark .mood-item.active .mood-label {
-  color: var(--color-primary, #a78bfa);
-}
-
-.dark .slider-value {
-  color: var(--color-primary, #a78bfa);
-}
-
-.dark .stat-item {
-  background: rgba(31, 28, 42, 0.8);
-}
-
-.dark .stress-chart {
-  background: rgba(31, 28, 42, 0.8);
-}
-
-.dark .stress-rank-tag {
-  background: rgba(45, 42, 62, 0.8);
-}
-
-.checkin-card {
-  background:
-    linear-gradient(160deg, color-mix(in srgb, var(--surface-2) 82%, transparent) 0%, color-mix(in srgb, var(--surface-1) 92%, transparent) 100%),
-    var(--accent-gradient-soft);
-}
-
-.report-card {
-  background: color-mix(in srgb, var(--surface-2) 92%, transparent);
-}
-
-.emotion-view .section {
-  padding: 14px;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--surface-3) 76%, transparent);
-  border: 1px solid var(--color-border-light);
-}
-
-.emotion-view .section-title,
-.emotion-view .slider-label,
-.emotion-view .section-label {
-  font-weight: 700;
-  letter-spacing: 0.01em;
-}
-
-.mood-grid {
-  gap: 10px;
-}
-
-.mood-item {
-  min-height: 88px;
-  padding: 12px 8px;
-  border: 1px solid transparent;
-  background: color-mix(in srgb, var(--surface-2) 86%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
-}
-
-.mood-item.active {
-  background: color-mix(in srgb, var(--color-primary) 14%, var(--surface-2));
-  border-color: color-mix(in srgb, var(--color-primary) 26%, transparent);
-  box-shadow: 0 12px 26px color-mix(in srgb, var(--color-primary) 14%, transparent);
-}
-
-.mood-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
-}
-
-.mood-label {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.sleep-section {
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.social-radio :deep(.el-radio-group) {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.social-radio :deep(.el-radio-button) {
-  width: 100%;
-}
-
-.submit-btn {
-  min-height: 50px;
-  box-shadow: 0 14px 28px color-mix(in srgb, var(--color-primary) 24%, transparent);
-}
-
-.report-stats {
-  gap: 10px;
-}
-
-.stat-item {
-  padding: 12px 8px;
-  background: color-mix(in srgb, var(--surface-3) 82%, transparent);
-  border: 1px solid var(--color-border-light);
-}
-
-.stat-value {
-  font-size: 24px;
-}
-
-.stress-chart {
-  background: color-mix(in srgb, var(--surface-3) 86%, transparent);
-  border: 1px solid var(--color-border-light);
-}
-
-[data-ui-theme='glow-night'] .checkin-card {
-  background:
-    linear-gradient(180deg, rgba(17, 28, 56, 0.88) 0%, rgba(10, 16, 31, 0.92) 100%),
-    var(--accent-gradient-secondary);
-}
-
-[data-ui-theme='playful-bloom'] .checkin-card {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 245, 233, 0.96) 100%),
-    var(--accent-gradient-soft);
-}
-
-.header-copy {
-  flex: 1;
-  min-width: 0;
-}
-
-.checkin-card .card-header,
-.report-card .card-header {
-  align-items: flex-start;
-}
-
-.checkin-card .header-icon,
-.report-card .header-icon {
-  margin-top: 2px;
-}
-
-.card-subtitle {
-  margin: 4px 0 0;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--color-text-muted);
-}
-
-.panel-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 28px;
-  padding: 0 12px;
-  border-radius: 999px;
   background: rgba(255, 255, 255, 0.58);
-  border: 1px solid var(--color-border-light);
-  color: var(--color-primary-dark);
-  font-size: 11px;
-  font-weight: 700;
+  color: var(--h5-primary);
+  font-size: 72px;
+  font-weight: 900;
 }
 
-.emotion-spotlight {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  margin-bottom: 14px;
-  border-radius: 22px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.68) 0%, rgba(255, 243, 240, 0.9) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.58);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
-}
-
-.spotlight-copy {
-  min-width: 0;
-}
-
-.spotlight-label {
-  display: inline-flex;
-  margin-bottom: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-primary);
-  letter-spacing: 0.03em;
-}
-
-.spotlight-copy p {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.55;
-  color: var(--color-text-secondary);
-}
-
-.spotlight-badge {
-  flex-shrink: 0;
-  min-width: 82px;
-  min-height: 42px;
-  padding: 0 12px;
-  border-radius: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid var(--color-border-light);
+.quote-card-preview h2 {
+  margin: 18px 0 14px;
   color: var(--color-text-primary);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 27px;
+  line-height: 1.28;
+  font-weight: 900;
 }
 
-.emotion-view .section {
-  padding: 16px;
-  border-radius: 20px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.62) 0%, color-mix(in srgb, var(--surface-3) 92%, transparent) 100%);
-}
-
-.slider-header,
-.sleep-section {
-  margin-bottom: 2px;
-}
-
-.stress-tags :deep(.el-check-tag) {
-  border-radius: 999px;
-  border: 1px solid var(--color-border-light);
-  background: rgba(255, 255, 255, 0.56);
+.quote-card-preview p {
+  margin: 0;
   color: var(--color-text-secondary);
-  padding: 7px 11px;
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 800;
 }
 
-.stress-tags :deep(.el-check-tag.is-checked) {
-  background: color-mix(in srgb, var(--color-primary) 12%, white);
-  color: var(--color-primary-dark);
-  border-color: color-mix(in srgb, var(--color-primary) 26%, transparent);
-}
-
-.social-radio :deep(.el-radio-button__inner) {
-  min-height: 42px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.54);
-}
-
-.social-radio :deep(.el-radio-button.is-active .el-radio-button__inner) {
-  background: color-mix(in srgb, var(--color-primary) 10%, white);
-}
-
-.submit-btn {
-  margin-top: 4px;
-  border-radius: 18px;
-}
-
-.report-card {
-  position: relative;
-}
-
-.report-card::after {
-  content: '';
+.quote-card-preview small {
   position: absolute;
-  right: 18px;
-  top: 18px;
-  width: 72px;
-  height: 72px;
-  border-radius: 22px;
-  background: linear-gradient(135deg, rgba(240, 111, 137, 0.06) 0%, rgba(255, 204, 134, 0.12) 100%);
-  pointer-events: none;
+  left: 22px;
+  bottom: 22px;
+  color: var(--color-text-muted);
+  font-weight: 800;
 }
 
-.report-stats {
-  position: relative;
-  z-index: 1;
-  gap: 12px;
+.question-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.stat-item {
-  align-items: flex-start;
-  padding: 14px 12px;
-  border-radius: 18px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
-}
+@media (max-width: 374px) {
+  .mood-grid {
+    gap: 6px;
+  }
 
-.stat-label {
-  margin-top: 6px;
-  line-height: 1.35;
-}
-
-.stress-chart {
-  border-radius: 20px;
+  .mood-item {
+    min-height: 92px;
+    font-size: 13px;
+  }
 }
 </style>

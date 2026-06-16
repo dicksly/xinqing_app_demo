@@ -1,5 +1,185 @@
 <template>
   <div class="treehole-view">
+    <div class="care-page treehole-redesign">
+      <header class="care-page-header">
+        <h1 class="care-page-title">倾诉你的心声</h1>
+        <p class="care-page-subtitle">这里会安静地接住你想说的话</p>
+      </header>
+
+      <section class="care-card pad treehole-composer">
+        <el-input
+          v-model="entryForm.content"
+          class="quiet-field letter-input"
+          type="textarea"
+          :rows="7"
+          placeholder="把这里当作树洞，说出你的烦恼、痛苦或心事..."
+          maxlength="1000"
+          show-word-limit
+          resize="none"
+        />
+
+        <div class="composer-tools">
+          <button
+            type="button"
+            class="tool-pill care-touch"
+            :class="{ active: activeComposerPanel === 'voice' || recordingTime > 0 }"
+            @click="toggleComposerPanel('voice')"
+          >
+            <img :src="voiceToolIcon" class="tool-image" alt="语音" />
+            <span>语音</span>
+            <small v-if="recordingTime > 0">{{ recordingTime }}s</small>
+          </button>
+          <button
+            type="button"
+            class="tool-pill care-touch"
+            :class="{ active: activeComposerPanel === 'image' || !!uploadedImage }"
+            @click="toggleComposerPanel('image')"
+          >
+            <img :src="imageToolIcon" class="tool-image" alt="图片" />
+            <span>图片</span>
+          </button>
+        </div>
+
+        <transition name="panel-fade">
+          <div v-if="activeComposerPanel === 'voice'" class="care-card soft composer-panel">
+            <button type="button" class="record-button" :class="{ recording: isRecording }" @click="toggleRecording">
+              {{ isRecording ? '停止录音' : '开始录音' }}
+            </button>
+            <span v-if="recordingTime > 0">{{ recordingTime }}s</span>
+            <el-checkbox v-model="entryForm.hasVoiceChange">{{ t('treehole.voiceChange') }}</el-checkbox>
+            <audio v-if="voiceBlobUrl" :src="voiceBlobUrl" controls />
+          </div>
+        </transition>
+
+        <transition name="panel-fade">
+          <div v-if="activeComposerPanel === 'image'" class="care-card soft composer-panel">
+            <el-upload
+              v-if="!uploadedImage"
+              class="image-uploader"
+              action="#"
+              :show-file-list="false"
+              :before-upload="beforeUpload"
+              accept="image/*"
+            >
+              <button type="button" class="record-button">添加图片</button>
+            </el-upload>
+            <div v-else class="image-preview compact-image-preview">
+              <img :src="uploadedImage" alt="preview" />
+              <el-button size="small" type="danger" @click="removeImage" circle class="remove-btn">
+                <component :is="CircleClose" />
+              </el-button>
+            </div>
+          </div>
+        </transition>
+
+        <div class="privacy-switches">
+          <button
+            type="button"
+            class="privacy-option"
+            :class="{ active: entryForm.isAnonymous }"
+            @click="entryForm.isAnonymous = !entryForm.isAnonymous"
+          >
+            <img :src="anonymousIcon" alt="" />
+            匿名
+          </button>
+          <button
+            type="button"
+            class="privacy-option"
+            :class="{ active: entryForm.isPublished }"
+            @click="entryForm.isPublished = !entryForm.isPublished"
+          >
+            发布到广场
+          </button>
+        </div>
+
+        <el-button
+          type="primary"
+          size="large"
+          :loading="submitting"
+          @click="handleSubmit"
+          class="submit-btn send-button"
+          round
+        >
+          发送到树洞
+        </el-button>
+      </section>
+
+      <section v-if="aiResponse" class="care-card pad ai-redesign" :class="riskLevel">
+        <h2 class="care-card-title">{{ t('treehole.aiResponse') }}</h2>
+        <p>{{ aiResponse }}</p>
+      </section>
+
+      <section class="care-card pad square-redesign">
+        <h2 class="care-card-title">树洞广场</h2>
+        <div class="segmented-row square-tabs-redesign" style="--segment-count: 2">
+          <button class="segment-button" :class="{ active: activeTab === 'latest' }" type="button" @click="activeTab = 'latest'">
+            {{ t('treehole.latest') }}
+          </button>
+          <button class="segment-button" :class="{ active: activeTab === 'mine' }" type="button" @click="activeTab = 'mine'">
+            {{ t('treehole.mine') }}
+          </button>
+        </div>
+
+        <div v-if="loading" class="treehole-empty">正在轻轻加载...</div>
+        <div v-else-if="activeTab === 'latest' && entries.length === 0" class="treehole-empty">
+          <span class="image2-badge sage">
+            <img :src="treeholeIcon" class="image2-icon" alt="树洞" />
+          </span>
+          <p>暂无公开条目，等第一句话慢慢长出来。</p>
+        </div>
+        <div v-else class="entries-list redesign-list">
+          <article
+            v-for="entry in activeTab === 'latest' ? paginatedEntries : paginatedMyEntries"
+            :key="entry.id"
+            class="entry-item-redesign"
+            @click="showDetail(entry)"
+          >
+            <h3>{{ entry.is_anonymous ? '有人刚刚放下了一点心事' : '一条新的树洞记录' }}</h3>
+            <p v-if="entry.content">{{ entry.content?.substring(0, 86) }}{{ entry.content?.length > 86 ? '...' : '' }}</p>
+            <p v-else>{{ entry.duration > 0 ? '语音记录' : '图片记录' }}</p>
+            <div class="entry-meta">
+              <span>{{ formatTime(entry.created_at) }}</span>
+              <button
+                type="button"
+                class="entry-social-button"
+                :class="{ active: getEntryInteraction(entry).liked }"
+                @click.stop="toggleLike(entry)"
+              >
+                点赞 {{ getEntryInteraction(entry).likeCount }}
+              </button>
+              <span class="entry-social-count">评论 {{ getEntryInteraction(entry).comments.length }}</span>
+              <button
+                v-if="activeTab === 'mine'"
+                type="button"
+                class="delete-inline"
+                @click.stop="removeEntry(entry.id)"
+              >
+                删除
+              </button>
+            </div>
+          </article>
+          <el-pagination
+            v-if="activeTab === 'latest' && entries.length > pageSize"
+            v-model:current-page="latestPage"
+            class="list-pagination"
+            layout="prev, pager, next"
+            :page-size="pageSize"
+            :total="entries.length"
+            small
+          />
+          <el-pagination
+            v-if="activeTab === 'mine' && myEntries.length > pageSize"
+            v-model:current-page="minePage"
+            class="list-pagination"
+            layout="prev, pager, next"
+            :page-size="pageSize"
+            :total="myEntries.length"
+            small
+          />
+        </div>
+      </section>
+    </div>
+
     <!-- 倾诉卡片 -->
     <section class="confess-card card">
       <header class="card-header">
@@ -339,6 +519,51 @@
           </div>
           <div class="ai-reply-text">{{ selectedEntry.ai_response }}</div>
         </div>
+
+        <div class="interaction-section">
+          <button
+            type="button"
+            class="detail-like-button"
+            :class="{ active: getEntryInteraction(selectedEntry).liked }"
+            @click="toggleLike(selectedEntry)"
+          >
+            点赞 {{ getEntryInteraction(selectedEntry).likeCount }}
+          </button>
+
+          <div class="comment-composer">
+            <el-input
+              v-model="commentDraft"
+              size="large"
+              placeholder="写一句温柔的评论"
+              maxlength="120"
+            />
+            <el-button type="primary" round @click="submitComment(selectedEntry)">评论</el-button>
+          </div>
+
+          <div v-if="getEntryInteraction(selectedEntry).comments.length > 0" class="comment-list">
+            <article
+              v-for="comment in getEntryInteraction(selectedEntry).comments"
+              :key="comment.id"
+              class="comment-item"
+            >
+              <p>{{ comment.content }}</p>
+              <div v-if="comment.replies.length > 0" class="reply-list">
+                <p v-for="reply in comment.replies" :key="reply.id" class="reply-row">
+                  {{ reply.content }}
+                </p>
+              </div>
+              <div class="reply-composer">
+                <el-input
+                  v-model="replyDrafts[comment.id]"
+                  size="small"
+                  placeholder="回复"
+                  maxlength="100"
+                />
+                <el-button size="small" round @click="submitReply(selectedEntry, comment.id)">回复</el-button>
+              </div>
+            </article>
+          </div>
+        </div>
       </div>
 
       <template #footer>
@@ -376,12 +601,25 @@ import { ElMessage } from 'element-plus'
 import {
   deleteLocalEntry,
   getPageItems,
+  hasLocalEntry,
   mergePublishedEntries,
   sortEntriesByNewest,
   upsertSavedEntry
 } from '../../utils/treehole-feed'
+import {
+  addTreeholeComment,
+  addTreeholeReply,
+  detectTreeholeSensitivity,
+  getTreeholeInteraction,
+  normalizeTreeholeInteractions,
+  toggleTreeholeLike
+} from '../../utils/treehole-interactions'
 import { compressImageDataUrl } from '../../utils/image-upload'
 import { togglePanel } from '../../utils/treehole-composer'
+import voiceToolIcon from '../../assets/icons/image2-utility-voice.png'
+import imageToolIcon from '../../assets/icons/image2-utility-image.png'
+import anonymousIcon from '../../assets/icons/image2-utility-anonymous.png'
+import treeholeIcon from '../../assets/icons/image2-treehole.png'
 
 const { t, locale } = useI18n()
 
@@ -419,6 +657,9 @@ const minePage = ref(1)
 const detailVisible = ref(false)
 const selectedEntry = ref(null)
 const activeComposerPanel = ref(null)
+const interactionState = ref(normalizeTreeholeInteractions(readTreeholeInteractions()))
+const commentDraft = ref('')
+const replyDrafts = ref({})
 
 const paginatedEntries = computed(() => getPageItems(entries.value, latestPage.value, pageSize))
 const paginatedMyEntries = computed(() => getPageItems(myEntries.value, minePage.value, pageSize))
@@ -445,6 +686,48 @@ function getTypeLabel(type) {
 
 function toggleComposerPanel(panelName) {
   activeComposerPanel.value = togglePanel(activeComposerPanel.value, panelName)
+}
+
+function getEntryId(entry) {
+  return String(entry?.id ?? entry?.created_at ?? entry?.content ?? 'draft')
+}
+
+function readTreeholeInteractions() {
+  try {
+    return JSON.parse(localStorage.getItem('xinqing_treehole_interactions') || '{}')
+  } catch (error) {
+    console.error('读取树洞互动失败:', error)
+    return {}
+  }
+}
+
+function persistTreeholeInteractions(nextState) {
+  interactionState.value = normalizeTreeholeInteractions(nextState)
+  localStorage.setItem('xinqing_treehole_interactions', JSON.stringify(interactionState.value))
+}
+
+function getEntryInteraction(entry) {
+  return getTreeholeInteraction(interactionState.value, getEntryId(entry))
+}
+
+function toggleLike(entry) {
+  persistTreeholeInteractions(toggleTreeholeLike(interactionState.value, getEntryId(entry)))
+}
+
+function submitComment(entry) {
+  const nextState = addTreeholeComment(interactionState.value, getEntryId(entry), commentDraft.value)
+  persistTreeholeInteractions(nextState)
+  commentDraft.value = ''
+}
+
+function submitReply(entry, commentId) {
+  const draft = replyDrafts.value[commentId] ?? ''
+  const nextState = addTreeholeReply(interactionState.value, getEntryId(entry), commentId, draft)
+  persistTreeholeInteractions(nextState)
+  replyDrafts.value = {
+    ...replyDrafts.value,
+    [commentId]: '',
+  }
 }
 
 // 切换录音状态
@@ -564,6 +847,14 @@ async function handleSubmit() {
     return
   }
 
+  const sensitivity = detectTreeholeSensitivity(entryForm.value.content)
+  if (sensitivity.level === 'severe') {
+    entryForm.value.isPublished = false
+    ElMessage.warning(locale.value === 'zh-CN' ? '检测到高风险表达，我先帮你设为私密；如果此刻有危险，请立刻联系身边可信任的人或当地紧急援助。' : 'High-risk language detected. This entry will stay private. If you are in immediate danger, contact a trusted person or local emergency support now.')
+  } else if (sensitivity.level === 'mild' && entryForm.value.isPublished) {
+    ElMessage.warning(locale.value === 'zh-CN' ? '检测到比较沉重的表达，发布前请确认你愿意公开。' : 'Heavy language detected. Please make sure you want to publish it.')
+  }
+
   submitting.value = true
   try {
     const entryData = {
@@ -622,7 +913,18 @@ async function handleSubmit() {
     localStorage.setItem('xinqing_treehole_records', JSON.stringify(savedEntries))
 
     ElMessage.success(locale.value === 'zh-CN' ? '已保存到本地！' : 'Saved locally!')
+    entryForm.value = {
+      content: '',
+      hasVoiceChange: false,
+      isAnonymous: true,
+      isPublished: false,
+      image_data: null,
+    }
+    uploadedImage.value = null
+    recordingTime.value = 0
+    voiceBlobUrl.value = null
     activeComposerPanel.value = null
+    loadEntries()
     loadMyEntries()
   } finally {
     submitting.value = false
@@ -663,10 +965,13 @@ function loadMyEntries() {
 }
 
 async function removeEntry(entryId) {
+  const savedEntries = JSON.parse(localStorage.getItem('xinqing_treehole_records') || '[]')
+  const isLocalEntry = hasLocalEntry(savedEntries, entryId)
+
   try {
     await treeholeApi.delete(entryId)
   } catch (error) {
-    if (error.response?.status !== 404) {
+    if (!isLocalEntry && error.response?.status !== 404) {
       console.error('删除后端条目失败:', error)
       ElMessage.error(locale.value === 'zh-CN' ? '删除失败' : 'Delete failed')
       return
@@ -674,7 +979,6 @@ async function removeEntry(entryId) {
   }
 
   try {
-    const savedEntries = JSON.parse(localStorage.getItem('xinqing_treehole_records') || '[]')
     const nextEntries = deleteLocalEntry(savedEntries, entryId)
     localStorage.setItem('xinqing_treehole_records', JSON.stringify(nextEntries))
 
@@ -1651,5 +1955,276 @@ onBeforeUnmount(() => {
 
 [data-ui-theme='playful-bloom'] .tool-chip.active {
   background: color-mix(in srgb, var(--color-primary) 14%, white);
+}
+
+.treehole-view > .confess-card,
+.treehole-view > .ai-response-card,
+.treehole-view > .public-square-card {
+  display: none;
+}
+
+.treehole-redesign {
+  gap: 16px;
+}
+
+.treehole-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.letter-input :deep(.el-textarea__inner) {
+  min-height: 126px !important;
+  padding: 18px;
+  border-radius: 20px;
+  background: #FBF7F3;
+  color: var(--color-text-primary);
+  font-size: 15px;
+  line-height: 1.6;
+  box-shadow: inset 0 0 0 1px var(--h5-border);
+}
+
+.composer-tools {
+  display: flex;
+  gap: 10px;
+}
+
+.tool-pill {
+  min-height: 44px;
+  padding: 0 15px;
+  border-radius: 999px;
+  border: 1px solid var(--h5-border);
+  background: var(--h5-surface);
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.tool-pill.active {
+  color: var(--h5-primary);
+  background: #F7D8E1;
+  border-color: rgba(217, 94, 118, 0.22);
+}
+
+.tool-image {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.composer-panel {
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.record-button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--h5-sage);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.record-button.recording {
+  background: var(--h5-primary);
+}
+
+.privacy-switches {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.privacy-option {
+  min-height: 46px;
+  border-radius: 16px;
+  border: 1px solid var(--h5-border);
+  background: var(--h5-surface);
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.privacy-option img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.privacy-option.active {
+  color: var(--h5-primary);
+  background: #F7D8E1;
+  border-color: rgba(217, 94, 118, 0.26);
+}
+
+.send-button {
+  width: 100%;
+  min-height: 56px;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.ai-redesign p {
+  margin: 10px 0 0;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.square-redesign {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.treehole-empty {
+  min-height: 118px;
+  border-radius: 20px;
+  background: #FBF7F3;
+  color: var(--color-text-muted);
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+}
+
+.treehole-empty p {
+  margin: 0;
+}
+
+.redesign-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.entry-item-redesign {
+  padding: 16px;
+  border-radius: 18px;
+  background: #F4ECE7;
+  cursor: pointer;
+}
+
+.entry-item-redesign h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.3;
+  font-weight: 900;
+}
+
+.entry-item-redesign p {
+  margin: 10px 0 0;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  font-weight: 700;
+}
+
+.entry-meta {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.entry-social-button,
+.detail-like-button {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(217, 94, 118, 0.2);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--h5-primary);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.entry-social-button.active,
+.detail-like-button.active {
+  background: #F7D8E1;
+  border-color: rgba(217, 94, 118, 0.34);
+}
+
+.entry-social-count {
+  color: var(--h5-sage);
+}
+
+.delete-inline {
+  border: 0;
+  background: transparent;
+  color: var(--h5-primary);
+  font-weight: 900;
+}
+
+.interaction-section {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--h5-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-like-button {
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.comment-composer,
+.reply-composer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.comment-item {
+  padding: 12px;
+  border-radius: 16px;
+  background: #FBF7F3;
+}
+
+.comment-item p {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.reply-list {
+  margin: 8px 0;
+  padding-left: 10px;
+  border-left: 2px solid rgba(117, 139, 111, 0.24);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reply-row {
+  color: var(--color-text-secondary) !important;
+  font-size: 13px;
 }
 </style>

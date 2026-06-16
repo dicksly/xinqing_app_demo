@@ -1,12 +1,20 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 
 import {
   getMascotLevel,
   getMascotMood,
+  normalizeEngagementState,
   shouldShowReturnPrompt,
   updateStreakState,
 } from '../src/utils/engagement.js'
+import {
+  applySproutCareAction,
+  createDefaultSproutCareState,
+  getSproutMilestone,
+} from '../src/utils/sprout-care.js'
+import { getMoodQuoteCard } from '../src/utils/mood-quote-card.js'
 import { getMoodInsight } from '../src/utils/emotion-insights.js'
 import { scoreAssessment, validateAssessmentConsent } from '../src/utils/assessment.js'
 import { getMonthlyTheme, MONTHLY_BACKGROUND_THEMES } from '../src/utils/meditation-themes.js'
@@ -23,6 +31,41 @@ test('updates continuous app streak and detects return prompt gap', () => {
   assert.equal(shouldShowReturnPrompt(returned), true)
 })
 
+test('normalizes polluted engagement streaks before incrementing', () => {
+  const polluted = {
+    currentStreak: 20,
+    bestStreak: 1,
+    lastSeenDate: '2026-05-01',
+  }
+
+  const normalized = normalizeEngagementState(polluted)
+  const next = updateStreakState(polluted, new Date('2026-05-02T12:00:00.000Z'))
+
+  assert.equal(normalized.currentStreak, 1)
+  assert.equal(next.currentStreak, 2)
+  assert.equal(next.bestStreak, 2)
+})
+
+test('tracks sprout care actions and grants daily sun drops once per action', () => {
+  const initial = createDefaultSproutCareState()
+  const fed = applySproutCareAction(initial, 'feed', new Date('2026-05-01T08:00:00.000Z'))
+  const fedAgain = applySproutCareAction(fed, 'feed', new Date('2026-05-01T09:00:00.000Z'))
+  const washed = applySproutCareAction(fedAgain, 'wash', new Date('2026-05-01T10:00:00.000Z'))
+
+  assert.equal(fed.sunDrops, 15)
+  assert.equal(fedAgain.sunDrops, 15)
+  assert.equal(washed.sunDrops, 30)
+  assert.equal(washed.actions.feed.count, 2)
+  assert.equal(washed.actions.wash.count, 1)
+  assert.match(washed.moodText, /清爽|照顾/)
+})
+
+test('maps sprout milestones from the companion growth document', () => {
+  assert.equal(getSproutMilestone(1).title, '初生与羁绊')
+  assert.equal(getSproutMilestone(21).reward, '疗愈栖息地')
+  assert.equal(getSproutMilestone(90).title, '深度定制')
+})
+
 test('maps streak levels and mood expression for grass mascot', () => {
   assert.equal(getMascotLevel(20).name, 'sprout')
   assert.equal(getMascotLevel(99).name, 'clover')
@@ -34,6 +77,15 @@ test('returns mood tag and comfort sentence after check-in', () => {
 
   assert.equal(insight.tag, '警报器有点敏感')
   assert.match(insight.comfort, /肩膀/)
+})
+
+test('returns illustrated daily quote card content by mood', () => {
+  const card = getMoodQuoteCard('anxious')
+
+  assert.equal(card.mood, 'anxious')
+  assert.match(card.title, /日签|安稳/)
+  assert.match(card.quote, /呼吸|慢/)
+  assert.match(card.tone, /rose|sage|blue|gold|coral/)
 })
 
 test('requires guardian signature for minor assessment consent', () => {
@@ -63,6 +115,24 @@ test('scores detailed psychological analysis answers', () => {
 test('defines twelve monthly meditation background themes', () => {
   assert.equal(MONTHLY_BACKGROUND_THEMES.length, 12)
   assert.equal(getMonthlyTheme(8).key, 'aug-ocean')
+  assert.equal(getMonthlyTheme(1).sourceUrl, 'https://www.youtube.com/watch?v=MbW8YIv28wg')
+  assert.equal(getMonthlyTheme(12).sourceUrl, 'https://www.youtube.com/watch?v=eNPG8jGfJRk')
+})
+
+test('monthly meditation themes expose downloaded cover artwork', () => {
+  MONTHLY_BACKGROUND_THEMES.forEach((theme) => {
+    const paddedMonth = String(theme.month).padStart(2, '0')
+
+    assert.equal(
+      theme.cover_image,
+      `/reference-assets/meditation/months/${paddedMonth}.jpg`
+    )
+    assert.equal(theme.asset_source, 'docs/references.md')
+    assert.ok(
+      existsSync(new URL(`../public/reference-assets/meditation/months/${paddedMonth}.jpg`, import.meta.url)),
+      `missing downloaded meditation cover for month ${paddedMonth}`
+    )
+  })
 })
 
 test('soap game chooses a new skin and cuts at pointer ratio', () => {

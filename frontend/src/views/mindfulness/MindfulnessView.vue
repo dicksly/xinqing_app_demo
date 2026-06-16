@@ -1,165 +1,110 @@
 <template>
-  <div class="mindfulness-view">
-    <!-- 冥想引导卡片 -->
-    <section class="meditation-card card">
-      <header class="card-header">
-        <component :is="Moon" class="header-icon" />
-        <div class="header-copy">
-          <h2 class="card-title">{{ t('mindfulness.meditationTitle') }}</h2>
-          <p class="card-subtitle">{{ locale === 'zh-CN' ? '给自己一小段安静时间，从呼吸和引导开始。' : 'Give yourself a quiet moment and begin with breath and guidance.' }}</p>
-        </div>
-        <span class="panel-chip">{{ locale === 'zh-CN' ? 'Today' : 'Today' }}</span>
-      </header>
+  <div class="care-page mindfulness-view">
+    <header class="care-page-header">
+      <h1 class="care-page-title">正念练习</h1>
+      <p class="care-page-subtitle">给自己一小段安静时间</p>
+    </header>
 
-      <div class="single-meditation-panel">
-        <div class="type-icon icon-purple">
-          <component :is="Moon" />
-        </div>
-        <div class="type-info">
-          <span class="type-label">{{ locale === 'zh-CN' ? '每日冥想' : 'Daily Meditation' }}</span>
-          <span class="type-desc">{{ locale === 'zh-CN' ? '一个入口，直接开始。背景音按月份切换。' : 'One entry, ready to start. Backgrounds follow monthly themes.' }}</span>
-        </div>
+    <section class="care-card pad practice-player">
+      <div class="practice-copy">
+        <span class="care-chip blue">今日推荐</span>
+        <h2>{{ selectedDuration }} 分钟安静练习</h2>
+        <p>背景音：{{ currentThemeLabel }} · 引导呼吸</p>
+        <button type="button" class="practice-start" @click="startMeditation">
+          <span class="play-circle">
+            <component :is="isPlaying ? VideoPause : VideoPlay" />
+          </span>
+          <strong>{{ isPlaying ? t('mindfulness.pauseMeditation') : t('mindfulness.startMeditation') }}</strong>
+        </button>
       </div>
-
-      <!-- 时长选择 -->
-      <div class="section">
-        <h3 class="section-title">{{ t('mindfulness.selectDuration') }}</h3>
-        <el-radio-group v-model="selectedDuration" class="duration-group">
-          <el-radio-button :label="3">{{ locale === 'zh-CN' ? '3分钟' : '3 min' }}</el-radio-button>
-          <el-radio-button :label="10">{{ locale === 'zh-CN' ? '10分钟' : '10 min' }}</el-radio-button>
-          <el-radio-button :label="20">{{ locale === 'zh-CN' ? '20分钟' : '20 min' }}</el-radio-button>
-        </el-radio-group>
-      </div>
-
-      <!-- 音量控制 -->
-      <div class="section">
-        <h3 class="section-title">{{ t('mindfulness.volumeControl') }}</h3>
-        <div class="volume-control">
-          <div class="volume-item">
-            <span class="volume-label">{{ t('mindfulness.voice') }}</span>
-            <el-slider
-              v-model="voiceVolume"
-              :show-tooltip="false"
-              active-color="#10b981"
-            />
-          </div>
-          <div class="volume-item">
-            <span class="volume-label">{{ t('mindfulness.bgMusic') }}</span>
-            <el-slider
-              v-model="bgVolume"
-              :show-tooltip="false"
-              active-color="#8b5cf6"
-            />
-          </div>
-        </div>
-        <div class="bg-music-selector">
-          <span class="selector-label">{{ locale === 'zh-CN' ? '12个月主题背景音' : '12 Monthly Backgrounds' }}</span>
-          <el-select v-model="bgMusicType" :placeholder="locale === 'zh-CN' ? '选择背景音' : 'Select background'" size="small">
-            <el-option
-              v-for="theme in monthlyBackgroundThemes"
-              :key="theme.key"
-              :label="locale === 'zh-CN' ? theme.zh : theme.en"
-              :value="theme.key"
-            />
-          </el-select>
-        </div>
-      </div>
-
-      <!-- 开始按钮 -->
-      <el-button
-        type="primary"
-        size="large"
-        @click="startMeditation"
-        class="start-btn"
-        round
+      <button
+        type="button"
+        class="theme-cover-button"
+        :aria-label="`${currentThemeLabel} 来源`"
+        @click="openThemeSource(currentMonthlyTheme)"
       >
-        <component :is="isPlaying ? VideoPause : VideoPlay" />
-        <span>{{ isPlaying ? t('mindfulness.pauseMeditation') : t('mindfulness.startMeditation') }}</span>
-      </el-button>
+        <img
+          :src="currentMonthlyTheme.cover_image"
+          :alt="currentThemeLabel"
+          class="theme-cover-image"
+        />
+        <span>来源</span>
+      </button>
     </section>
 
-    <!-- 呼吸训练卡片 -->
-    <section class="breathing-card card">
-      <header class="card-header">
-        <component :is="DataLine" class="header-icon" />
-        <h2 class="card-title">{{ t('mindfulness.breathingTitle') }}</h2>
-      </header>
-
-      <div class="breathing-animation">
-        <div class="breathing-circle" :class="{ inhaling: isInhaling, holding: isHolding, exhaling: isExhaling }" :style="breathingCircleStyle">
-          <span class="breathing-text">{{ breathingText }}</span>
-        </div>
-      </div>
-
-      <div class="breathing-info">
-        <p class="info-text">{{ t('mindfulness.breathing.description') }}</p>
-        <div class="steps">
-          <div class="step">
-            <span class="step-num">1</span>
-            <span class="step-text">{{ t('mindfulness.breathing.step1') }}</span>
-          </div>
-          <div class="step">
-            <span class="step-num">2</span>
-            <span class="step-text">{{ t('mindfulness.breathing.step2') }}</span>
-          </div>
-          <div class="step">
-            <span class="step-num">3</span>
-            <span class="step-text">{{ t('mindfulness.breathing.step3') }}</span>
-          </div>
-          <div class="step">
-            <span class="step-num">4</span>
-            <span class="step-text">{{ t('mindfulness.breathing.step4') }}</span>
-          </div>
-        </div>
-      </div>
-
-      <el-button
-        type="primary"
-        @click="toggleBreathing"
-        class="breathing-btn"
-        round
+    <div class="segmented-row duration-tabs" style="--segment-count: 3">
+      <button
+        v-for="duration in [5, 10, 20]"
+        :key="duration"
+        type="button"
+        class="segment-button"
+        :class="{ active: selectedDuration === duration }"
+        @click="selectedDuration = duration"
       >
-        <component :is="isBreathingActive ? VideoPause : VideoPlay" />
-        <span>{{ isBreathingActive ? t('mindfulness.breathing.pauseTraining') : t('mindfulness.breathing.startTraining') }}</span>
-      </el-button>
+        {{ duration }}分钟
+      </button>
+    </div>
+
+    <section class="care-card pad volume-panel">
+      <label>
+        <span>人声</span>
+        <el-slider v-model="voiceVolume" :show-tooltip="false" active-color="#6FAF8B" />
+      </label>
+      <label>
+        <span>背景音</span>
+        <el-slider v-model="bgVolume" :show-tooltip="false" active-color="#F39A74" />
+      </label>
+      <el-select v-model="bgMusicType" size="small" :teleported="false" class="theme-select">
+        <el-option
+          v-for="theme in monthlyBackgroundThemes"
+          :key="theme.key"
+          :label="locale === 'zh-CN' ? theme.zh : theme.en"
+          :value="theme.key"
+        />
+      </el-select>
     </section>
 
-    <!-- 解压小游戏 -->
-    <section class="games-card card">
-      <header class="card-header">
-        <div class="header-left">
-          <component :is="Grid" class="header-icon" />
-          <h2 class="card-title">{{ t('mindfulness.gamesTitle') }}</h2>
-        </div>
-        <div class="header-right">
-          <template v-if="authStore.isAuthenticated">
-            <span class="user-name">{{ authStore.user?.username }}</span>
-            <el-button size="small" @click="handleLogout" text type="info">{{ t('common.logout') }}</el-button>
-          </template>
-          <template v-else>
-            <el-button size="small" type="primary" @click="showAuthDialog = true">
-              {{ t('common.login') }}
-            </el-button>
-          </template>
-        </div>
-      </header>
-
-      <div class="games-grid">
-        <div
-          v-for="game in games"
-          :key="game.id"
-          class="game-item touchable"
-          :class="{ disabled: !game.implemented }"
-          @click="openGame(game)"
-        >
-          <div class="game-icon" :class="game.iconClass">
-            <component :is="game.icon" />
-          </div>
-          <span class="game-title">{{ game.title }}</span>
-          <span class="game-desc">{{ game.desc }}</span>
-          <span v-if="!game.implemented" class="coming-soon">{{ t('mindfulness.games.comingSoon') }}</span>
-        </div>
+    <section class="care-card soft breath-entry" @click="toggleBreathing">
+      <span class="image2-badge sage">
+        <img :src="breathIcon" class="image2-icon" alt="4-7-8 呼吸" />
+      </span>
+      <div>
+        <h2>4-7-8 呼吸</h2>
+        <p>{{ isBreathingActive ? breathingText : '跟随节奏放慢身体' }}</p>
       </div>
+      <div
+        class="breath-pulse"
+        :class="{ inhaling: isInhaling, holding: isHolding, exhaling: isExhaling }"
+        :style="breathingCircleStyle"
+      ></div>
+    </section>
+
+    <section class="games-strip" aria-label="Mindfulness games">
+      <button
+        v-for="game in games"
+        :key="game.id"
+        type="button"
+        class="care-card game-tile care-touch"
+        @click="openGame(game)"
+      >
+        <span class="game-icon">
+          <img :src="game.iconSrc" class="image2-icon" :alt="game.title" />
+        </span>
+        <strong>{{ locale === 'zh-CN' ? game.zhTitle : game.title }}</strong>
+      </button>
+    </section>
+
+    <section class="care-card pad auth-row">
+      <template v-if="authStore.isAuthenticated">
+        <span>{{ authStore.user?.username }}</span>
+        <el-button size="small" @click="handleLogout" text type="info">{{ t('common.logout') }}</el-button>
+      </template>
+      <template v-else>
+        <span>登录后同步小游戏记录</span>
+        <el-button size="small" type="primary" @click="showAuthDialog = true">
+          {{ t('common.login') }}
+        </el-button>
+      </template>
     </section>
 
     <!-- 游戏弹窗 -->
@@ -177,7 +122,7 @@
       <OrganizeGame v-else-if="currentGame?.id === 'organize'" @close="closeGame" />
       <MandalaGame v-else-if="currentGame?.id === 'mandala'" @close="closeGame" />
       <div v-else class="game-placeholder">
-        <p>{{ locale === 'zh-CN' ? '游戏开发中，敬请期待...' : 'Game in development, coming soon...' }}</p>
+        <p>{{ currentGame?.desc || (locale === 'zh-CN' ? '游戏开发中，敬请期待...' : 'Game in development, coming soon...') }}</p>
       </div>
     </el-dialog>
 
@@ -210,6 +155,11 @@ import BubbleGame from './games/BubbleGame.vue'
 import SoapGame from './games/SoapGame.vue'
 import OrganizeGame from './games/OrganizeGame.vue'
 import MandalaGame from './games/MandalaGame.vue'
+import breathIcon from '../../assets/icons/image2-mindful-breath.png'
+import bubbleIcon from '../../assets/icons/image2-mindful-bubble.png'
+import soapIcon from '../../assets/icons/image2-mindful-soap.png'
+import tidyIcon from '../../assets/icons/image2-mindful-tidy.png'
+import mandalaIcon from '../../assets/icons/image2-mindful-mandala.png'
 
 const { t, locale } = useI18n()
 const authStore = useAuthStore()
@@ -232,12 +182,9 @@ let voiceAudioPlayer = ref(null)
 const meditationTimer = ref(null)
 const elapsedTime = ref(0)
 
-// 解压游戏 - 使用 SVG 图标
 const games = computed(() => [
-  { id: 'bubble', title: t('mindfulness.games.bubble'), icon: GridIcon, iconClass: 'icon-primary', desc: t('mindfulness.games.bubbleDesc'), implemented: true },
-  { id: 'soap', title: t('mindfulness.games.soap'), icon: Scissor, iconClass: 'icon-secondary', desc: t('mindfulness.games.soapDesc'), implemented: true },
-  { id: 'organize', title: t('mindfulness.games.organize'), icon: Box, iconClass: 'icon-warm', desc: t('mindfulness.games.organizeDesc'), implemented: true },
-  { id: 'mandala', title: t('mindfulness.games.mandala'), icon: Brush, iconClass: 'icon-pink', desc: t('mindfulness.games.mandalaDesc'), implemented: true },
+  { id: 'match3', title: 'Match-3', zhTitle: '消消乐', icon: GridIcon, iconSrc: tidyIcon, iconClass: 'icon-primary', desc: '把同色小芽连成一片，慢慢释放压力。', implemented: false },
+  { id: 'fruit-slice', title: 'Fruit Slice', zhTitle: '切水果', icon: Scissor, iconSrc: soapIcon, iconClass: 'icon-secondary', desc: '划开水果和烦恼，把注意力带回手指。', implemented: false },
 ])
 
 const selectedType = ref('meditation')
@@ -247,6 +194,12 @@ const bgVolume = ref(50)
 const monthlyBackgroundThemes = MONTHLY_BACKGROUND_THEMES
 const bgMusicType = ref(getMonthlyTheme(new Date().getMonth() + 1).key)
 const isPlaying = ref(false)
+const currentMonthlyTheme = computed(() => (
+  monthlyBackgroundThemes.find((theme) => theme.key === bgMusicType.value) || getMonthlyTheme(new Date().getMonth() + 1)
+))
+const currentThemeLabel = computed(() => (
+  locale.value === 'zh-CN' ? currentMonthlyTheme.value.zh : currentMonthlyTheme.value.en
+))
 
 // 呼吸训练
 const isInhaling = ref(false)
@@ -463,6 +416,11 @@ function stopMeditation() {
   isPlaying.value = false
   stopAllAudio()
   stopMeditationTimer()
+}
+
+function openThemeSource(theme) {
+  if (!theme?.sourceUrl) return
+  window.open(theme.sourceUrl, '_blank', 'noopener,noreferrer')
 }
 
 // 监听音量变化
@@ -1043,6 +1001,16 @@ onMounted(() => {
   .steps {
     grid-template-columns: 1fr;
   }
+
+  .practice-player {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .theme-cover-button {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 22px;
+  }
 }
 
 /* 深色模式 - 温暖紫色系 */
@@ -1182,5 +1150,201 @@ onMounted(() => {
 
 .coming-soon {
   border: 1px solid var(--color-border-light);
+}
+
+.practice-player {
+  min-height: 190px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 118px;
+  align-items: center;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.practice-copy {
+  min-width: 0;
+}
+
+.practice-player h2 {
+  margin: 28px 0 12px;
+  font-size: 27px;
+  line-height: 1.15;
+  font-weight: 900;
+}
+
+.practice-player p {
+  margin: 0 0 24px;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.practice-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  border: 0;
+  background: transparent;
+  color: var(--h5-sage);
+  font-size: 19px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.play-circle {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--h5-sage);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.play-circle svg {
+  width: 28px;
+  height: 28px;
+}
+
+.theme-cover-button {
+  position: relative;
+  width: 118px;
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 26px;
+  overflow: hidden;
+  padding: 0;
+  background: #F5F1E8;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.68);
+  cursor: pointer;
+}
+
+.theme-cover-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.theme-cover-button span {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 900;
+  backdrop-filter: blur(8px);
+}
+
+.volume-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.volume-panel label {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-secondary);
+  font-weight: 900;
+}
+
+.theme-select {
+  width: 100%;
+}
+
+.breath-entry {
+  min-height: 110px;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.breath-entry h2 {
+  margin: 0 0 7px;
+  font-size: 21px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.breath-entry p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.breath-pulse {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #DDEFE5;
+  box-shadow: 0 0 0 7px rgba(111, 175, 139, 0.14);
+}
+
+.breath-pulse.inhaling {
+  transform: scale(1.28);
+}
+
+.breath-pulse.holding {
+  transform: scale(1.08);
+  background: #E2ECF8;
+}
+
+.breath-pulse.exhaling {
+  transform: scale(0.82);
+  background: #F8DFD2;
+}
+
+.games-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.game-tile {
+  min-height: 118px;
+  padding: 12px 8px;
+  border: 1px solid var(--h5-border);
+  background: var(--h5-surface);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.game-icon {
+  width: 48px;
+  height: 48px;
+}
+
+.game-tile strong {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.auth-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 800;
 }
 </style>

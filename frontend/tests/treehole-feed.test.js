@@ -4,9 +4,17 @@ import assert from 'node:assert/strict'
 import {
   deleteLocalEntry,
   getPageItems,
+  hasLocalEntry,
   mergePublishedEntries,
   upsertSavedEntry,
 } from '../src/utils/treehole-feed.js'
+import {
+  addTreeholeComment,
+  addTreeholeReply,
+  detectTreeholeSensitivity,
+  getTreeholeInteraction,
+  toggleTreeholeLike,
+} from '../src/utils/treehole-interactions.js'
 
 test('merges backend and local published entries while preserving media fields', () => {
   const backendEntries = [
@@ -97,6 +105,17 @@ test('deletes a local entry by id', () => {
   assert.deepEqual(nextItems, [{ id: 2, content: 'second' }])
 })
 
+test('detects local entries by string or numeric id before backend delete fallback', () => {
+  const items = [
+    { id: 1, content: 'first' },
+    { id: 'temp-entry', content: 'second' },
+  ]
+
+  assert.equal(hasLocalEntry(items, '1'), true)
+  assert.equal(hasLocalEntry(items, 'temp-entry'), true)
+  assert.equal(hasLocalEntry(items, 'missing'), false)
+})
+
 test('keeps combined text voice and image fields on normalized published entries', () => {
   const merged = mergePublishedEntries([], [
     {
@@ -135,4 +154,45 @@ test('upserts backend-created entry over temporary local entry to avoid duplicat
   assert.equal(nextEntries.length, 1)
   assert.equal(nextEntries[0].id, 10)
   assert.equal(nextEntries[0].is_published, true)
+})
+
+test('toggles one public like per local user without dropping comment state', () => {
+  const initial = {
+    post_1: {
+      liked: false,
+      likeCount: 2,
+      comments: [{ id: 'c1', content: '抱抱你', replies: [] }],
+    },
+  }
+
+  const liked = toggleTreeholeLike(initial, 'post_1')
+  const unliked = toggleTreeholeLike(liked, 'post_1')
+
+  assert.equal(getTreeholeInteraction(liked, 'post_1').liked, true)
+  assert.equal(getTreeholeInteraction(liked, 'post_1').likeCount, 3)
+  assert.equal(getTreeholeInteraction(unliked, 'post_1').liked, false)
+  assert.equal(getTreeholeInteraction(unliked, 'post_1').likeCount, 2)
+  assert.equal(getTreeholeInteraction(unliked, 'post_1').comments.length, 1)
+})
+
+test('adds comments and replies with trimmed content', () => {
+  const withComment = addTreeholeComment({}, 'post_2', '  我也经历过类似的时刻  ', '2026-06-15T08:00:00.000Z')
+  const commentId = getTreeholeInteraction(withComment, 'post_2').comments[0].id
+  const withReply = addTreeholeReply(withComment, 'post_2', commentId, '  谢谢你愿意说出来  ', '2026-06-15T08:01:00.000Z')
+
+  const interaction = getTreeholeInteraction(withReply, 'post_2')
+
+  assert.equal(interaction.comments[0].content, '我也经历过类似的时刻')
+  assert.equal(interaction.comments[0].replies[0].content, '谢谢你愿意说出来')
+})
+
+test('flags self-harm language before public publishing', () => {
+  const severe = detectTreeholeSensitivity('我真的不想活了')
+  const mild = detectTreeholeSensitivity('最近有点崩溃，撑不住')
+  const safe = detectTreeholeSensitivity('今天想慢慢写一点心事')
+
+  assert.equal(severe.level, 'severe')
+  assert.ok(severe.matchedTerms.includes('不想活'))
+  assert.equal(mild.level, 'mild')
+  assert.equal(safe.level, 'safe')
 })

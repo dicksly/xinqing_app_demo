@@ -1,68 +1,70 @@
 <template>
-  <div class="home-view">
-    <section class="home-hero">
-      <div class="fruit-stage" :class="`mascot-${mascotMood.face}`">
-        <div class="fruit-badge" :style="{ '--mascot-accent': mascotLevel.color }">
-          <img :src="homeLogo" alt="Healing Orchard logo" class="fruit-image" />
-          <div class="mascot-face">{{ mascotMood.emoji }}</div>
-          <div class="mascot-accessory">{{ mascotLevel.accessory }}</div>
-        </div>
-        <div class="float-badge badge-bolt">
-          <Lightning />
-        </div>
-        <div class="float-badge badge-leaf">
-          <Opportunity />
-        </div>
+  <div class="care-page home-view">
+    <header class="care-page-header home-header">
+      <div>
+        <h1 class="care-page-title">烦恼小芽成长计划</h1>
+        <p class="care-page-subtitle">今天也和草团子轻轻见面 · {{ currentDateText }}</p>
+      </div>
+    </header>
+
+    <section class="care-card pad sprout-hero">
+      <div class="sprout-copy">
+        <span class="care-kicker">{{ milestone.title }}</span>
+        <h2>连续陪伴 {{ streakState.currentStreak || 1 }} 天</h2>
+        <p>{{ careState.moodText }}</p>
       </div>
 
-      <h1 class="home-title">{{ t('home.title') }}</h1>
-      <p class="home-subtitle">{{ t('home.subtitle') }}</p>
-    </section>
+      <div class="sprout-stage" :style="{ '--mascot-accent': mascotLevel.color }">
+        <img :src="homeLogo" alt="草团子" class="sprout-image" />
+      </div>
 
-    <section class="mascot-card">
-      <div class="mascot-summary">
-        <span class="mascot-kicker">{{ locale === 'zh-CN' ? '草团子成长中' : 'Mascot Growth' }}</span>
-        <h2>{{ locale === 'zh-CN' ? `连续见面 ${streakState.currentStreak || 1} 天` : `${streakState.currentStreak || 1}-day streak` }}</h2>
-        <p>{{ mascotMood.message }} · {{ mascotLevel.action }}</p>
-      </div>
-      <div class="level-pill">
-        <span>{{ mascotLevel.days }}+</span>
-        <small>{{ mascotLevel.name }}</small>
-      </div>
-      <div class="progress-row">
-        <div class="progress-track">
-          <div class="progress-fill" :style="{ width: `${nextLevelProgress}%`, background: mascotLevel.color }"></div>
+      <div class="sprout-stats">
+        <div>
+          <span>阳光露珠</span>
+          <strong>{{ careState.sunDrops }}</strong>
         </div>
-        <span>{{ nextLevelText }}</span>
+        <div>
+          <span>当前奖励</span>
+          <strong>{{ milestone.reward }}</strong>
+        </div>
       </div>
     </section>
 
-    <section class="feature-grid">
-      <button
-        v-for="item in featureCards"
-        :key="item.path"
-        type="button"
-        class="feature-card"
-        :style="{ animationDelay: `${item.delay}ms` }"
-        @click="router.push(item.path)"
-      >
-        <div class="feature-icon" :class="item.colorClass">
-          <component :is="item.icon" />
-        </div>
-        <h2 class="feature-title">{{ item.title }}</h2>
-        <p class="feature-desc">{{ item.desc }}</p>
-      </button>
+    <section class="care-card pad care-actions-card">
+      <div class="section-title-row">
+        <h2 class="care-card-title">照顾一下草团子</h2>
+        <span>每日每项 +15</span>
+      </div>
+      <div class="care-actions-grid">
+        <button
+          v-for="action in careActions"
+          :key="action.key"
+          type="button"
+          class="care-action care-touch"
+          @click="handleCareAction(action.key)"
+        >
+          <span>{{ action.icon }}</span>
+          <strong>{{ action.label }}</strong>
+          <small>{{ action.hint }}</small>
+        </button>
+      </div>
     </section>
 
-    <section class="support-list">
-      <article class="support-card">
-        <div class="support-kicker">{{ t('home.dailyNote') }}</div>
-        <p class="support-desc">{{ t('home.dailyNoteDesc') }}</p>
-      </article>
-      <article class="support-card support-card-accent">
-        <div class="support-kicker">{{ t('home.streak') }}</div>
-        <p class="support-desc">{{ t('home.streakDesc') }}</p>
-      </article>
+    <section class="care-card soft growth-card">
+      <div>
+        <span class="care-kicker">小芽成长中</span>
+        <h2>下一站：{{ milestone.nextText }}</h2>
+      </div>
+      <div class="progress-track" aria-hidden="true">
+        <div class="progress-fill" :style="{ width: `${growthProgress}%`, background: mascotLevel.color }"></div>
+      </div>
+    </section>
+
+    <section class="care-card pad daily-task-card">
+      <span class="care-chip sage">今日疗愈任务</span>
+      <h2>完成一次心情打卡，获得新的阳光露珠</h2>
+      <p>不用表现得很好，只要把此刻的感受放下来。</p>
+      <button type="button" class="soft-button check-button" @click="router.push('/emotion')">去打卡</button>
     </section>
   </div>
 </template>
@@ -71,81 +73,70 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import {
-  Histogram,
-  Moon,
-  ChatDotRound,
-  Reading,
-  Lightning,
-  Opportunity
-} from '@element-plus/icons-vue'
 import homeLogo from '../../assets/home-logo-clean.png'
 import {
   getMascotLevel,
-  getMascotMood,
-  getNextMascotLevel,
   shouldShowReturnPrompt,
   updateStreakState,
 } from '../../utils/engagement'
-import { ElMessageBox } from 'element-plus'
+import {
+  applySproutCareAction,
+  createDefaultSproutCareState,
+  getSproutMilestone,
+  normalizeSproutCareState,
+} from '../../utils/sprout-care'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
-const { t, locale } = useI18n()
-const streakState = ref(JSON.parse(localStorage.getItem('xinqing_engagement_state') || '{}'))
-const todayMood = ref(localStorage.getItem('xinqing_today_mood') || '')
+const { locale } = useI18n()
+
+const careActions = [
+  { key: 'feed', label: '喂食', icon: '☀', hint: '补一点能量' },
+  { key: 'wash', label: '洗澡', icon: '♡', hint: '清爽一下' },
+  { key: 'outing', label: '出门', icon: '↗', hint: '看看外面' },
+  { key: 'comfort', label: '互动', icon: '✦', hint: '贴贴陪伴' },
+]
+
+const streakState = ref(readJson('xinqing_engagement_state', {}))
+const careState = ref(normalizeSproutCareState(readJson('xinqing_sprout_care_state', createDefaultSproutCareState())))
 
 const mascotLevel = computed(() => getMascotLevel(streakState.value.currentStreak || 1))
-const nextLevel = computed(() => getNextMascotLevel(streakState.value.currentStreak || 1))
-const mascotMood = computed(() => getMascotMood(todayMood.value))
-const nextLevelProgress = computed(() => {
-  if (!nextLevel.value) return 100
-  const previousDays = mascotLevel.value.days
-  const current = streakState.value.currentStreak || 1
-  const range = nextLevel.value.days - previousDays
-  return Math.min(100, Math.max(0, ((current - previousDays) / range) * 100))
-})
-const nextLevelText = computed(() => {
-  if (!nextLevel.value) {
-    return locale.value === 'zh-CN' ? '全部成长奖励已解锁' : 'All growth rewards unlocked'
-  }
-  const remaining = nextLevel.value.days - (streakState.value.currentStreak || 1)
-  return locale.value === 'zh-CN' ? `还差 ${remaining} 天解锁 ${nextLevel.value.accessory}` : `${remaining} days to ${nextLevel.value.accessory}`
+const milestone = computed(() => getSproutMilestone(streakState.value.currentStreak || 1))
+
+const currentDateText = computed(() => {
+  const formatter = new Intl.DateTimeFormat(locale.value === 'zh-CN' ? 'zh-CN' : 'en-US', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+  })
+  return formatter.format(new Date())
 })
 
-const featureCards = computed(() => [
-  {
-    path: '/emotion',
-    icon: Histogram,
-    title: t('home.statusRecord'),
-    desc: t('home.statusDesc'),
-    colorClass: 'icon-mood',
-    delay: 40
-  },
-  {
-    path: '/mindfulness',
-    icon: Moon,
-    title: t('home.mindfulness'),
-    desc: t('home.mindfulnessDesc'),
-    colorClass: 'icon-mind',
-    delay: 90
-  },
-  {
-    path: '/treehole',
-    icon: ChatDotRound,
-    title: t('home.treehole'),
-    desc: t('home.treeholeDesc'),
-    colorClass: 'icon-tree',
-    delay: 140
-  },
-  {
-    path: '/knowledge',
-    icon: Reading,
-    title: t('home.knowledge'),
-    desc: t('home.knowledgeDesc'),
-    colorClass: 'icon-know',
-    delay: 190
+const growthProgress = computed(() => {
+  const current = streakState.value.currentStreak || 1
+  const nextAt = milestone.value.nextAt || current
+  const startAt = milestone.value.startsAt || 1
+  if (nextAt <= startAt) return 100
+  return Math.min(100, Math.max(8, ((current - startAt) / (nextAt - startAt)) * 100))
+})
+
+function readJson(key, fallback) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback))
+  } catch {
+    return fallback
   }
-])
+}
+
+function persistCareState() {
+  localStorage.setItem('xinqing_sprout_care_state', JSON.stringify(careState.value))
+}
+
+function handleCareAction(actionKey) {
+  careState.value = applySproutCareAction(careState.value, actionKey)
+  persistCareState()
+  ElMessage.success('草团子收到了你的照顾')
+}
 
 function persistEngagementState() {
   const nextState = updateStreakState(streakState.value)
@@ -154,7 +145,7 @@ function persistEngagementState() {
 
   if (shouldShowReturnPrompt(nextState)) {
     const message = locale.value === 'zh-CN'
-      ? `草团子已经 ${nextState.missedDays} 天没见到你啦，今天要不要先做一个小打卡？`
+      ? `草团子已经 ${nextState.missedDays} 天没见到你啦，今天先回来坐一小会儿。`
       : `Your mascot has missed you for ${nextState.missedDays} days. Want to start with a tiny check-in?`
     ElMessageBox.alert(message, locale.value === 'zh-CN' ? '欢迎回来' : 'Welcome back', {
       confirmButtonText: locale.value === 'zh-CN' ? '去打卡' : 'Check in',
@@ -169,411 +160,240 @@ function persistEngagementState() {
 
 onMounted(() => {
   persistEngagementState()
+  persistCareState()
 })
 </script>
 
 <style scoped>
 .home-view {
+  gap: 18px;
+}
+
+.home-header {
+  min-height: 80px;
   display: flex;
-  flex-direction: column;
-  gap: 22px;
-  padding-top: 10px;
+  align-items: flex-end;
 }
 
-.home-hero {
-  text-align: center;
-  padding: 18px 14px 6px;
-}
-
-.fruit-stage {
+.sprout-hero {
   position: relative;
-  width: 184px;
-  height: 184px;
-  margin: 0 auto 18px;
-  animation: homeFloatIn 0.5s ease both;
-}
-
-.fruit-badge {
-  position: absolute;
-  inset: 20px;
-  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 124px;
+  gap: 14px;
+  min-height: 238px;
   background:
-    radial-gradient(circle at 50% 24%, rgba(255, 255, 255, 0.92) 0 18%, transparent 19%),
-    linear-gradient(180deg, color-mix(in srgb, var(--mascot-accent, #9ad58b) 28%, white) 0%, rgba(251, 247, 242, 0.96) 72%, rgba(244, 237, 232, 0.98) 100%);
-  box-shadow:
-    0 20px 40px rgba(202, 178, 168, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.92);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: fruitPulse 5.6s ease-in-out infinite;
+    radial-gradient(circle at 80% 18%, rgba(119, 190, 138, 0.32), transparent 36%),
+    linear-gradient(145deg, #fffaf4 0%, #f5efe6 100%);
 }
 
-.mascot-face {
-  position: absolute;
-  left: 50%;
-  top: 74px;
-  transform: translateX(-50%);
-  min-width: 72px;
-  text-align: center;
-  font-size: 18px;
-  font-weight: 800;
-  color: #486450;
-  pointer-events: none;
-}
-
-.mascot-accessory {
-  position: absolute;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--mascot-accent, #9ad58b) 36%, white);
-  color: #486450;
-  font-size: 10px;
-  font-weight: 700;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-}
-
-.fruit-badge::after {
+.sprout-hero::after {
   content: '';
   position: absolute;
-  inset: -7px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 0 0 1px rgba(237, 226, 221, 0.68);
+  left: 22px;
+  right: 22px;
+  bottom: 86px;
+  height: 1px;
+  background: rgba(118, 95, 89, 0.12);
 }
 
-.fruit-badge::before {
-  content: none;
+.sprout-copy {
+  position: relative;
+  z-index: 1;
 }
 
-.fruit-image {
-  width: 124px;
-  height: auto;
-  object-fit: contain;
-  filter: drop-shadow(0 10px 14px rgba(77, 121, 63, 0.12));
+.sprout-copy h2 {
+  margin: 16px 0 10px;
+  color: var(--color-text-primary);
+  font-size: 28px;
+  line-height: 1.12;
+  font-weight: 900;
 }
 
-.float-badge {
-  position: absolute;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+.sprout-copy p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 800;
+}
+
+.sprout-stage {
+  width: 118px;
+  height: 118px;
+  align-self: center;
+  justify-self: end;
+  border-radius: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, white 94%, rgba(255, 244, 245, 0.8));
-  border: 1px solid rgba(255, 255, 255, 0.74);
-  box-shadow:
-    0 10px 22px rgba(202, 178, 168, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.84);
-  color: var(--color-primary);
-  animation: homeFloatIn 0.45s ease both;
+  position: relative;
+  background: color-mix(in srgb, var(--mascot-accent, var(--h5-sage)) 22%, white);
+  box-shadow: inset 0 -14px 22px rgba(97, 136, 77, 0.1), 0 18px 30px rgba(75, 92, 72, 0.12);
 }
 
-.float-badge :deep(svg) {
-  width: 15px;
-  height: 15px;
-  stroke-width: 1.7;
+.sprout-image {
+  width: 84px;
+  filter: drop-shadow(0 12px 14px rgba(64, 99, 70, 0.18));
 }
 
-.badge-bolt {
-  top: 10px;
-  right: 18px;
-}
-
-.badge-leaf {
-  top: 48px;
-  right: 6px;
-  color: var(--color-green);
-}
-
-.home-title {
-  margin: 0 0 10px;
-  font-size: 34px;
-  line-height: 1.08;
-  color: var(--color-text-primary);
-  animation: homeFloatIn 0.42s ease both;
-  animation-delay: 50ms;
-}
-
-.home-subtitle {
-  margin: 0 auto;
-  max-width: 286px;
-  min-height: 38px;
-  padding: 10px 16px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--surface-1) 94%, white);
-  border: 1px solid rgba(255, 255, 255, 0.58);
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  line-height: 1.45;
-  box-shadow: 0 10px 20px rgba(219, 198, 191, 0.14);
-  animation: homeFloatIn 0.42s ease both;
-  animation-delay: 90ms;
-}
-
-.mascot-card {
+.sprout-stats {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  padding: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.sprout-stats div {
+  min-height: 68px;
   border-radius: 20px;
-  background: color-mix(in srgb, var(--surface-1) 92%, white);
-  border: 1px solid var(--color-outline);
-  box-shadow: var(--shadow-md);
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.85);
 }
 
-.mascot-summary {
-  min-width: 0;
-}
-
-.mascot-kicker {
+.sprout-stats span,
+.section-title-row span {
   display: block;
-  margin-bottom: 4px;
   color: var(--color-text-muted);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
 }
 
-.mascot-summary h2 {
-  margin: 0 0 5px;
+.sprout-stats strong {
+  display: block;
+  margin-top: 7px;
   color: var(--color-text-primary);
   font-size: 18px;
   line-height: 1.2;
+  font-weight: 900;
 }
 
-.mascot-summary p {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  line-height: 1.45;
+.care-actions-card {
+  background: var(--h5-surface);
 }
 
-.level-pill {
-  width: 58px;
-  height: 58px;
-  border-radius: 18px;
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.care-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.care-action {
+  min-width: 0;
+  min-height: 94px;
+  border: 1px solid var(--h5-border);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--h5-blush) 34%, white);
+  color: var(--color-text-primary);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  gap: 6px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.care-action span {
+  width: 36px;
+  height: 36px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--h5-primary);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.care-action strong {
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.care-action small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.2;
   font-weight: 800;
 }
 
-.level-pill span {
-  font-size: 15px;
+.growth-card {
+  padding: 18px 16px;
+  background: linear-gradient(135deg, rgba(221, 239, 229, 0.78), rgba(255, 250, 244, 0.92));
 }
 
-.level-pill small {
-  font-size: 9px;
-  text-transform: uppercase;
-}
-
-.progress-row {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  color: var(--color-text-muted);
-  font-size: 11px;
+.growth-card h2 {
+  margin: 8px 0 0;
+  color: var(--color-text-primary);
+  font-size: 20px;
+  line-height: 1.28;
+  font-weight: 900;
 }
 
 .progress-track {
   height: 8px;
+  margin-top: 15px;
   border-radius: 999px;
   overflow: hidden;
-  background: var(--surface-2);
+  background: rgba(118, 95, 89, 0.12);
 }
 
 .progress-fill {
   height: 100%;
   border-radius: inherit;
-  transition: width 0.25s ease;
 }
 
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.feature-card {
-  border: none;
-  min-height: 190px;
-  padding: 22px 16px 18px;
-  border-radius: 28px;
-  background: color-mix(in srgb, var(--surface-2) 92%, transparent);
-  border: 1px solid var(--color-border-light);
-  box-shadow: var(--shadow-sm);
-  text-align: center;
-  display: grid;
-  grid-template-rows: 58px 42px 36px;
-  align-content: center;
-  justify-items: center;
-  row-gap: 10px;
-  transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
-  animation: cardRiseIn 0.45s ease both;
-}
-
-.feature-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.feature-card:active {
-  transform: translateY(0) scale(0.985);
-  box-shadow: var(--shadow-sm);
-}
-
-.feature-icon {
-  width: 54px;
-  height: 54px;
-  margin: 0;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.08);
-  transition: transform var(--transition-base), box-shadow var(--transition-base);
-}
-
-.feature-icon svg {
-  width: 24px;
-  height: 24px;
-}
-
-.feature-card:hover .feature-icon {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 24px rgba(0, 0, 0, 0.1);
-}
-
-.icon-mood {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary-light) 88%, white) 0%, var(--color-primary) 100%);
-}
-
-.icon-mind {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--color-secondary-light) 88%, white) 0%, var(--color-secondary) 100%);
-}
-
-.icon-tree {
-  background: linear-gradient(180deg, var(--color-green-light) 0%, var(--color-green) 100%);
-}
-
-.icon-know {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 64%, var(--color-green-light)) 0%, color-mix(in srgb, var(--color-primary-dark) 58%, var(--color-green)) 100%);
-}
-
-.feature-title {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: 0.01em;
+.daily-task-card h2 {
+  margin: 13px 0 8px;
   color: var(--color-text-primary);
-  min-height: 40px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  text-align: center;
+  font-size: 22px;
+  line-height: 1.22;
+  font-weight: 900;
 }
 
-.feature-desc {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--color-text-muted);
-  white-space: pre-line;
-  min-height: 34px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  text-align: center;
-}
-
-.support-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.support-card {
-  padding: 16px 18px;
-  border-radius: 22px;
-  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
-  border: 1px solid var(--color-border-light);
-  box-shadow: var(--shadow-sm);
-  animation: cardRiseIn 0.45s ease both;
-  animation-delay: 230ms;
-}
-
-.support-card-accent {
-  background: linear-gradient(135deg, rgba(255, 235, 240, 0.96) 0%, rgba(255, 245, 232, 0.96) 100%);
-}
-
-.support-kicker {
-  margin-bottom: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--color-primary);
-}
-
-.support-desc {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.65;
+.daily-task-card p {
+  margin: 0 0 14px;
   color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+  font-weight: 800;
 }
 
-@keyframes homeFloatIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes cardRiseIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fruitPulse {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-2px);
-  }
+.check-button {
+  width: 100%;
 }
 
 @media (max-width: 360px) {
-  .fruit-stage {
-    transform: scale(0.92);
-    margin-bottom: 6px;
+  .sprout-hero {
+    grid-template-columns: minmax(0, 1fr) 104px;
   }
 
-  .feature-grid {
-    gap: 12px;
+  .sprout-stage {
+    width: 100px;
+    height: 100px;
+    border-radius: 32px;
+  }
+
+  .sprout-image {
+    width: 74px;
+  }
+
+  .care-actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

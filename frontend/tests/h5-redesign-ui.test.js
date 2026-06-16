@@ -1,0 +1,146 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+
+const readSource = (path) => readFileSync(new URL(path, import.meta.url), 'utf8')
+
+const appVue = readSource('../src/App.vue')
+const globalCss = readSource('../src/styles/global.css')
+const homeView = readSource('../src/views/home/HomeView.vue')
+const emotionView = readSource('../src/views/emotion/EmotionView.vue')
+const mindfulnessView = readSource('../src/views/mindfulness/MindfulnessView.vue')
+const treeholeView = readSource('../src/views/treehole/TreeholeView.vue')
+const knowledgeView = readSource('../src/views/knowledge/KnowledgeView.vue')
+const profileView = readSource('../src/views/profile/ProfileView.vue')
+
+test('app shell uses five bottom tabs and moves profile to top controls', () => {
+  const navItemsMatch = appVue.match(/const navItems = computed\(\(\) => \[([\s\S]*?)\]\)/)
+
+  assert.ok(navItemsMatch, 'expected a navItems computed array')
+  assert.equal((navItemsMatch[1].match(/path:/g) || []).length, 5)
+  assert.doesNotMatch(navItemsMatch[1], /\/profile/)
+  assert.match(navItemsMatch[1], /label:\s*locale\.value === 'zh-CN' \? '知识'/)
+  assert.match(appVue, /class="control-btn profile-entry"/)
+  assert.match(appVue, /router\.push\('\/profile'\)/)
+})
+
+test('bottom nav emotion icon uses corrected artwork crop', () => {
+  assert.match(appVue, /class="image2-icon nav-image-icon"/)
+  assert.match(appVue, /iconClass:\s*'emotion-nav-icon'/)
+  assert.match(appVue, /--nav-icon-x/)
+  assert.match(appVue, /--nav-icon-scale/)
+})
+
+test('bottom nav treehole icon uses corrected artwork crop', () => {
+  const treeholeItemStart = appVue.indexOf("path: '/treehole'")
+  const treeholeItemEnd = appVue.indexOf("path: '/knowledge'", treeholeItemStart)
+  const treeholeItem = appVue.slice(treeholeItemStart, treeholeItemEnd)
+
+  assert.notEqual(treeholeItemStart, -1, 'expected a treehole nav item')
+  assert.match(treeholeItem, /iconClass:\s*'treehole-nav-icon'/)
+  assert.match(treeholeItem, /--nav-icon-y/)
+  assert.match(treeholeItem, /--nav-icon-scale/)
+})
+
+test('frontend references bundled image-2 icon assets', () => {
+  assert.match(appVue + homeView + emotionView + mindfulnessView + treeholeView + knowledgeView, /assets\/icons\/image2-/)
+  assert.match(globalCss, /--h5-primary:\s*#D95E76/i)
+  assert.match(globalCss, /\.image2-icon/)
+})
+
+test('home page matches the approved daily-care dashboard', () => {
+  assert.match(homeView, /烦恼小芽成长计划/)
+  assert.match(homeView, /阳光露珠/)
+  assert.match(homeView, /喂食/)
+  assert.match(homeView, /洗澡/)
+  assert.match(homeView, /出门/)
+  assert.match(homeView, /互动/)
+  assert.match(homeView, /连续陪伴/)
+  assert.doesNotMatch(homeView, /home-shortcuts/)
+  assert.doesNotMatch(homeView, /title:\s*'情绪记录'/)
+  assert.doesNotMatch(homeView, /title:\s*'开始正念'/)
+  assert.doesNotMatch(homeView, /title:\s*'写给树洞'/)
+})
+
+test('home companion care actions are local-first and route to daily task', () => {
+  assert.match(homeView, /applySproutCareAction/)
+  assert.match(homeView, /xinqing_sprout_care_state/)
+  assert.match(homeView, /router\.push\('\/emotion'\)/)
+})
+
+test('home companion uses a single mascot artwork without an emoji face overlay', () => {
+  assert.match(homeView, /<img :src="homeLogo" alt="草团子" class="sprout-image" \/>/)
+  assert.doesNotMatch(homeView, /class="sprout-face"/)
+  assert.doesNotMatch(homeView, /\.sprout-face/)
+  assert.doesNotMatch(homeView, /mascotMood\.emoji/)
+})
+
+test('emotion page keeps check-in behavior in the redesigned ritual layout', () => {
+  assert.match(emotionView, /今日心情打卡/)
+  assert.match(emotionView, /基础状态/)
+  assert.match(emotionView, /微光时刻/)
+  assert.match(emotionView, /保存今日状态/)
+  assert.match(emotionView, /日签语录/)
+  assert.match(emotionView, /保存日签/)
+  assert.match(emotionView, /分享/)
+  assert.match(emotionView, /quoteCardVisible/)
+  assert.match(emotionView, /handleSubmit/)
+})
+
+test('mindfulness page exposes practice player, breathing entry, and games', () => {
+  assert.match(mindfulnessView, /selectedDuration }} 分钟安静练习/)
+  assert.match(mindfulnessView, /\[5,\s*10,\s*20\]/)
+  assert.match(mindfulnessView, /currentMonthlyTheme\.cover_image/)
+  assert.match(mindfulnessView, /openThemeSource/)
+  assert.match(mindfulnessView, /4-7-8 呼吸/)
+  assert.match(mindfulnessView, /消消乐/)
+  assert.match(mindfulnessView, /切水果/)
+  assert.doesNotMatch(mindfulnessView, /泡泡/)
+  assert.match(mindfulnessView, /startMeditation/)
+  assert.match(mindfulnessView, /toggleBreathing/)
+})
+
+test('treehole page exposes safe composer, privacy controls, and square feed', () => {
+  assert.match(treeholeView, /倾诉你的心声/)
+  assert.match(treeholeView, /把这里当作树洞/)
+  assert.match(treeholeView, /发送到树洞/)
+  assert.match(treeholeView, /树洞广场/)
+  assert.match(treeholeView, /点赞/)
+  assert.match(treeholeView, /评论/)
+  assert.match(treeholeView, /回复/)
+  assert.match(treeholeView, /detectTreeholeSensitivity/)
+  assert.match(treeholeView, /xinqing_treehole_interactions/)
+  assert.match(treeholeView, /hasLocalEntry/)
+  const localFallbackStart = treeholeView.indexOf('Saved locally!')
+  const localFallbackEnd = treeholeView.indexOf('} finally', localFallbackStart)
+  const localFallbackBlock = treeholeView.slice(localFallbackStart, localFallbackEnd)
+  assert.match(localFallbackBlock, /loadEntries\(\)/)
+  assert.match(localFallbackBlock, /entryForm\.value = \{[\s\S]*content:\s*''/)
+  assert.match(treeholeView, /handleSubmit/)
+})
+
+test('knowledge page exposes editorial hub while preserving content actions', () => {
+  assert.match(knowledgeView, /知识充电站/)
+  assert.match(knowledgeView, /晨曦语录/)
+  assert.match(knowledgeView, /先看一点轻内容/)
+  assert.match(knowledgeView, /测试你的恢复能量/)
+  assert.match(knowledgeView, /SBTI_TEST/)
+  assert.match(knowledgeView, /openContentSource/)
+  assert.match(knowledgeView, /source_url/)
+  assert.match(knowledgeView, /item\.thumbnail_url/)
+  assert.match(knowledgeView, /article\.cover_image/)
+  assert.match(knowledgeView, /viewContent/)
+  assert.match(knowledgeView, /startTest/)
+})
+
+test('profile settings hides admin entry and exposes font sizing controls', () => {
+  assert.doesNotMatch(profileView, /class="menu-item touchable" @click="openPage\('admin'\)"/)
+  assert.match(profileView, /settings-admin-entry/)
+  assert.match(profileView, /openAdminConsole/)
+  assert.match(profileView, /字号/)
+  assert.match(profileView, /fontSizeScale/)
+  assert.match(profileView, /applyFontScale/)
+  assert.match(appVue, /xinqing_settings/)
+  assert.match(appVue, /fontScale/)
+  assert.match(globalCss, /data-font-scale/)
+})

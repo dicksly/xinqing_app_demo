@@ -1,8 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 import {
+  KNOWLEDGE_ARTICLE_LINKS,
+  KNOWLEDGE_VIDEO_LINKS,
+  SBTI_TEST,
   mapKnowledgePageData,
   splitKnowledgeContents,
 } from '../src/views/knowledge/knowledge-public-data.js'
@@ -35,6 +38,20 @@ test('quote content and topics come from api responses', () => {
   )
 })
 
+test('api knowledge content without media receives reference visuals by type order', () => {
+  const mapped = mapKnowledgePageData({
+    contents: [
+      { id: 1, title: '视频 A', content_type: 'video' },
+      { id: 2, title: '视频 B', content_type: 'video' },
+      { id: 3, title: '文章 A', content_type: 'article' },
+    ],
+  })
+
+  assert.equal(mapped.videoContent[0].thumbnail_url, '/reference-assets/knowledge/videos/01.jpg')
+  assert.equal(mapped.videoContent[1].thumbnail_url, '/reference-assets/knowledge/videos/02.jpg')
+  assert.equal(mapped.articles[0].cover_image, '/reference-assets/knowledge/articles/01.jpg')
+})
+
 test('fallback hardcoded production content is removed', () => {
   const source = readFileSync(
     new URL('../src/views/knowledge/KnowledgeView.vue', import.meta.url),
@@ -45,4 +62,67 @@ test('fallback hardcoded production content is removed', () => {
   assert.match(source, /knowledgeApi\.getTopics/)
   assert.doesNotMatch(source, /videoContent\.value = \[\s*\{/)
   assert.doesNotMatch(source, /const topics = computed\(\[/)
+})
+
+test('knowledge page falls back to document materials when api loading fails', () => {
+  const source = readFileSync(
+    new URL('../src/views/knowledge/KnowledgeView.vue', import.meta.url),
+    'utf8'
+  )
+
+  assert.match(source, /const fallback = mapKnowledgePageData\(\{\s*contents:\s*\[\],\s*\}\)/)
+  assert.match(source, /videoContent\.value = fallback\.videoContent/)
+  assert.match(source, /articles\.value = fallback\.articles/)
+})
+
+test('document supplied knowledge materials are used when api content is empty', () => {
+  const mapped = mapKnowledgePageData({
+    contents: [],
+  })
+
+  assert.equal(KNOWLEDGE_VIDEO_LINKS.length, 12)
+  assert.equal(KNOWLEDGE_ARTICLE_LINKS.length, 12)
+  assert.equal(mapped.videoContent.length, 12)
+  assert.equal(mapped.articles.length, 12)
+  assert.equal(mapped.videoContent[0].source_url, 'https://www.youtube.com/watch?v=30VMIEmA114')
+  assert.equal(mapped.articles[11].source_url, 'https://www.6seconds.org/2025/07/01/the-power-of-gratitude-change-your-brain-and-life/')
+})
+
+test('document supplied knowledge materials include downloaded visual assets', () => {
+  const mapped = mapKnowledgePageData({
+    contents: [],
+  })
+
+  mapped.videoContent.forEach((item, index) => {
+    const paddedIndex = String(index + 1).padStart(2, '0')
+    assert.equal(item.thumbnail_url, `/reference-assets/knowledge/videos/${paddedIndex}.jpg`)
+    assert.equal(item.asset_source, 'docs/references.md')
+    assert.ok(
+      existsSync(new URL(`../public/reference-assets/knowledge/videos/${paddedIndex}.jpg`, import.meta.url)),
+      `missing downloaded video thumbnail ${paddedIndex}`
+    )
+  })
+
+  mapped.articles.forEach((item, index) => {
+    const paddedIndex = String(index + 1).padStart(2, '0')
+    assert.equal(item.cover_image, `/reference-assets/knowledge/articles/${paddedIndex}.jpg`)
+    assert.equal(item.asset_source, 'docs/references.md')
+    assert.ok(
+      existsSync(new URL(`../public/reference-assets/knowledge/articles/${paddedIndex}.jpg`, import.meta.url)),
+      `missing downloaded article cover ${paddedIndex}`
+    )
+  })
+})
+
+test('SBTI replaces the simplified MBTI feature entry', () => {
+  const source = readFileSync(
+    new URL('../src/views/knowledge/KnowledgeView.vue', import.meta.url),
+    'utf8'
+  )
+
+  assert.equal(SBTI_TEST.title, 'SBTI 心理能量测试')
+  assert.equal(SBTI_TEST.externalUrl, 'https://www.fengyunzhice.com/sbti?ver=8bdpc-6234&bd_vid=12439061078742734187')
+  assert.match(source, /SBTI_TEST/)
+  assert.match(source, /window\.open\(test\.externalUrl/)
+  assert.doesNotMatch(source, /MBTI 简化版/)
 })

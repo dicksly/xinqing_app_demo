@@ -1,5 +1,127 @@
 <template>
   <div class="knowledge-view">
+    <div class="care-page knowledge-redesign">
+      <header class="care-page-header">
+        <h1 class="care-page-title">知识充电站</h1>
+        <p class="care-page-subtitle">用轻内容慢慢理解自己</p>
+      </header>
+
+      <section class="care-card pad quote-redesign">
+        <div class="quote-topline">
+          <span class="care-kicker">晨曦语录</span>
+          <span>{{ currentDate }}</span>
+        </div>
+        <p>“{{ dailyQuote.text || '把今天过完，也是一种向前。' }}”</p>
+        <small>— {{ dailyQuote.author || '心灵疗愈站' }}</small>
+      </section>
+
+      <div class="segmented-row knowledge-tabs-redesign" style="--segment-count: 4">
+        <button
+          v-for="tab in knowledgeTabs"
+          :key="tab.name"
+          type="button"
+          class="segment-button"
+          :class="{ active: activeCategory === tab.name }"
+          @click="activeCategory = tab.name"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
+
+      <section v-if="activeCategory === 'video'" class="care-card pad featured-content featured-content-media">
+        <div class="featured-copy-block">
+          <span class="care-chip sage">轻量内容</span>
+          <h2>先看一点轻内容</h2>
+          <p>让理解从更轻的入口开始。</p>
+        </div>
+        <img
+          v-if="videoContent[0]?.thumbnail_url"
+          :src="videoContent[0].thumbnail_url"
+          :alt="videoContent[0].title"
+          class="featured-thumb"
+        />
+        <button
+          type="button"
+          class="content-action"
+          :disabled="videoContent.length === 0"
+          @click="videoContent[0] && viewContent(videoContent[0])"
+        >
+          <span class="play-dot">▶</span>
+          <span>{{ videoContent[0]?.title || '2 分钟短视频 · 情绪科普' }}</span>
+        </button>
+      </section>
+
+      <section v-else-if="activeCategory === 'test'" class="care-card pad featured-content">
+        <span class="care-chip blue">心理测试</span>
+        <h2>{{ featuredTest?.title || '测试你的恢复能量' }}</h2>
+        <p>用几个问题看看最近的能量、压力和恢复节奏。</p>
+        <button
+          type="button"
+          class="content-action"
+          :disabled="!featuredTest"
+          @click="featuredTest && startTest(featuredTest)"
+        >
+          <img :src="quizIcon" alt="" />
+          <span>立即开始</span>
+        </button>
+      </section>
+
+      <section v-else-if="activeCategory === 'article'" class="care-card pad featured-content featured-content-media">
+        <div class="featured-copy-block">
+          <span class="care-chip blue">文章</span>
+          <h2>{{ articles[0]?.title || '压力来临时，身体在说什么？' }}</h2>
+          <p>{{ articles[0]?.content?.substring(0, 38) || '读一点短文，把感受和理解慢慢接起来。' }}</p>
+        </div>
+        <img
+          v-if="articles[0]?.cover_image"
+          :src="articles[0].cover_image"
+          :alt="articles[0].title"
+          class="featured-thumb"
+        />
+        <button
+          type="button"
+          class="content-action"
+          :disabled="articles.length === 0"
+          @click="articles[0] && viewArticle(articles[0])"
+        >
+          <img :src="articleIcon" alt="" />
+          <span>继续阅读</span>
+        </button>
+      </section>
+
+      <section v-else class="care-card pad featured-content">
+        <span class="care-chip sage">专题</span>
+        <h2>{{ topics[0]?.title || '给自己一点恢复空间' }}</h2>
+        <p>{{ topics[0]?.desc || '把零散内容整理成一个更完整的主题入口。' }}</p>
+      </section>
+
+      <section class="knowledge-list-redesign">
+        <article class="care-card knowledge-row" @click="articles[0] && viewArticle(articles[0])">
+          <span class="knowledge-thumb">
+            <img
+              v-if="articles[0]?.cover_image"
+              :src="articles[0].cover_image"
+              :alt="articles[0].title"
+            />
+            <img v-else :src="articleIcon" class="image2-icon" alt="文章" />
+          </span>
+          <div>
+            <h3>{{ articles[0]?.title || '压力来临时，身体在说什么？' }}</h3>
+            <p>文章 · 5分钟</p>
+          </div>
+        </article>
+        <article class="care-card knowledge-row" @click="featuredTest && startTest(featuredTest)">
+          <span class="image2-badge blue">
+            <img :src="quizIcon" class="image2-icon" alt="测试" />
+          </span>
+          <div>
+            <h3>{{ featuredTest?.title || '测试你的恢复能量' }}</h3>
+            <p>测试 · 12题</p>
+          </div>
+        </article>
+      </section>
+    </div>
+
     <!-- 每日金句卡片 -->
     <section class="quote-card card">
       <header class="card-header">
@@ -42,6 +164,12 @@
               @click="viewContent(item)"
             >
               <div class="video-thumb">
+                <img
+                  v-if="item.thumbnail_url"
+                  :src="item.thumbnail_url"
+                  :alt="item.title"
+                  class="video-thumb-image"
+                />
                 <component :is="VideoPlay" class="play-icon" />
               </div>
               <div class="video-info">
@@ -135,6 +263,9 @@
               shadow="hover"
               @click="viewArticle(article)"
             >
+              <div v-if="article.cover_image" class="article-cover">
+                <img :src="article.cover_image" :alt="article.title" />
+              </div>
               <div class="article-header">
                 <h3 class="article-title">{{ article.title }}</h3>
                 <span class="article-tag">{{ article.category }}</span>
@@ -210,6 +341,9 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="showContentDialog = false">{{ t('common.close') }}</el-button>
+          <el-button v-if="currentContent.source_url" @click="openContentSource(currentContent)">
+            {{ locale === 'zh-CN' ? '打开来源' : 'Open source' }}
+          </el-button>
           <el-button type="primary" @click="likeContent">
             <component :is="StarFilled" />
             <span>{{ t('knowledge.favorite') }}</span>
@@ -285,7 +419,9 @@ import {
 } from '@element-plus/icons-vue'
 import { knowledgeApi } from '../../api/index.js'
 import { ElMessage } from 'element-plus'
-import { mapKnowledgePageData } from './knowledge-public-data.js'
+import { SBTI_TEST, mapKnowledgePageData } from './knowledge-public-data.js'
+import articleIcon from '../../assets/icons/image2-content-article.png'
+import quizIcon from '../../assets/icons/image2-content-quiz.png'
 
 const { t, locale } = useI18n()
 
@@ -296,6 +432,13 @@ const dailyQuote = ref({
 })
 
 const currentDate = ref('')
+
+const knowledgeTabs = computed(() => [
+  { name: 'video', label: t('knowledge.video') },
+  { name: 'test', label: t('knowledge.test') },
+  { name: 'article', label: t('knowledge.article') },
+  { name: 'topic', label: t('knowledge.topic') },
+])
 
 // 压力自测题目
 function getStressTestQuestions() {
@@ -591,60 +734,13 @@ const topics = ref([])
 // 测试数据
 const tests = computed(() => [
   {
-    id: 1,
-    title: t('knowledge.tests.mbti'),
+    ...SBTI_TEST,
     icon: Cpu,
     iconClass: 'icon-blue',
-    desc: t('knowledge.tests.mbtiDesc'),
-    duration: locale.value === 'zh-CN' ? '5分钟' : '5 min',
+    duration: locale.value === 'zh-CN' ? SBTI_TEST.duration : '5 min',
+    desc: locale.value === 'zh-CN' ? SBTI_TEST.desc : 'Open the full SBTI test to understand your psychological energy pattern.',
     questions_count: 12,
-    questions: [
-      {
-        text: locale.value === 'zh-CN' ? '在社交场合中，你通常会？' : 'In social situations, you usually?',
-        options: locale.value === 'zh-CN' ? [
-          { value: 'A', text: '主动与人交谈' },
-          { value: 'B', text: '偶尔参与对话' },
-          { value: 'C', text: '更多时间倾听' },
-          { value: 'D', text: '希望早点离开' },
-        ] : [
-          { value: 'A', text: 'Actively engage' },
-          { value: 'B', text: 'Occasionally participate' },
-          { value: 'C', text: 'Listen more' },
-          { value: 'D', text: 'Want to leave early' },
-        ],
-        selectedAnswer: '',
-      },
-      {
-        text: locale.value === 'zh-CN' ? '做决定时，你更倾向于？' : 'When making decisions, you tend to?',
-        options: locale.value === 'zh-CN' ? [
-          { value: 'A', text: '凭感觉和直觉' },
-          { value: 'B', text: '分析利弊后决定' },
-          { value: 'C', text: '参考他人意见' },
-          { value: 'D', text: '纠结很久才决定' },
-        ] : [
-          { value: 'A', text: 'Follow intuition' },
-          { value: 'B', text: 'Analyze pros and cons' },
-          { value: 'C', text: 'Seek others\' opinions' },
-          { value: 'D', text: 'Hesitate for a long time' },
-        ],
-        selectedAnswer: '',
-      },
-      {
-        text: locale.value === 'zh-CN' ? '面对压力时，你会？' : 'When facing stress, you would?',
-        options: locale.value === 'zh-CN' ? [
-          { value: 'A', text: '积极寻找解决方案' },
-          { value: 'B', text: '先放松一下再处理' },
-          { value: 'C', text: '寻求他人帮助' },
-          { value: 'D', text: '感到焦虑和无助' },
-        ] : [
-          { value: 'A', text: 'Actively find solutions' },
-          { value: 'B', text: 'Relax first, then handle' },
-          { value: 'C', text: 'Seek help from others' },
-          { value: 'D', text: 'Feel anxious and helpless' },
-        ],
-        selectedAnswer: '',
-      },
-    ],
+    questions: [],
   },
   {
     id: 2,
@@ -752,6 +848,11 @@ function viewContent(item) {
 
 // 开始测试
 function startTest(test) {
+  if (test.externalUrl) {
+    window.open(test.externalUrl, '_blank', 'noopener,noreferrer')
+    return
+  }
+
   currentTest.value = test
   testCompleted.value = false
   showTestDialog.value = true
@@ -790,6 +891,11 @@ function viewArticle(article) {
   showContentDialog.value = true
 }
 
+function openContentSource(item) {
+  if (!item?.source_url) return
+  window.open(item.source_url, '_blank', 'noopener,noreferrer')
+}
+
 // 提交测试
 function submitTest() {
   // 检查是否所有问题都已回答
@@ -803,7 +909,7 @@ function submitTest() {
 
   // 根据测试类型计算结果
   if (currentTest.value.id === 1) {
-    // MBTI 简化版
+    // 性格倾向本地兜底
     const results = ['INTJ', 'INFJ', 'ISTJ', 'ISFJ', 'ENTP', 'ENFP', 'ESTP', 'ESFP']
     const randomResult = results[Math.floor(Math.random() * results.length)]
     testResult.value = isZh ? `您的性格类型倾向：${randomResult}` : `Your personality type tendency: ${randomResult}`
@@ -877,10 +983,14 @@ async function loadContent() {
     topics.value = mapped.topics
   } catch (error) {
     console.error('加载内容失败:', error)
-    dailyQuote.value = { text: '', author: '' }
-    videoContent.value = []
-    articles.value = []
-    topics.value = []
+    const fallback = mapKnowledgePageData({
+      contents: [],
+    })
+
+    dailyQuote.value = fallback.dailyQuote
+    videoContent.value = fallback.videoContent
+    articles.value = fallback.articles
+    topics.value = fallback.topics
   } finally {
     loading.value = false
   }
@@ -1721,11 +1831,26 @@ onMounted(() => {
   overflow: hidden;
 }
 
+.video-thumb-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
 .video-thumb::after {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(34, 15, 24, 0.14) 100%);
+}
+
+.video-thumb .play-icon {
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 4px 12px rgba(35, 27, 31, 0.24));
 }
 
 .video-info {
@@ -1772,6 +1897,22 @@ onMounted(() => {
   border-radius: 20px;
   border: 1px solid var(--color-border-light);
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.article-cover {
+  height: 124px;
+  margin: 0 0 10px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--accent-gradient-soft);
+}
+
+.article-cover img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .article-header {
@@ -2094,5 +2235,188 @@ onMounted(() => {
 
 .topic-count {
   font-size: 11px;
+}
+
+.knowledge-view > .quote-card,
+.knowledge-view > .content-section {
+  display: none;
+}
+
+.knowledge-redesign {
+  gap: 16px;
+}
+
+.quote-redesign {
+  min-height: 132px;
+}
+
+.quote-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.quote-redesign p {
+  margin: 24px 0 10px;
+  font-size: 23px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.quote-redesign small {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.featured-content {
+  min-height: 210px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.featured-content-media {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  align-items: start;
+  gap: 14px;
+}
+
+.featured-copy-block {
+  min-width: 0;
+}
+
+.featured-thumb {
+  width: 112px;
+  aspect-ratio: 1;
+  border-radius: 24px;
+  object-fit: cover;
+  display: block;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.62);
+}
+
+.featured-content h2 {
+  margin: 24px 0 9px;
+  font-size: 25px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.featured-content p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 800;
+}
+
+.content-action {
+  margin-top: auto;
+  grid-column: 1 / -1;
+  min-height: 48px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.content-action:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.content-action img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.play-dot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--h5-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+}
+
+.knowledge-list-redesign {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.knowledge-row {
+  min-height: 106px;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.knowledge-thumb {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-gradient-soft);
+}
+
+.knowledge-thumb img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.knowledge-thumb .image2-icon {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.knowledge-row h3 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.knowledge-row p {
+  margin: 7px 0 0;
+  color: var(--color-text-muted);
+  font-weight: 800;
+}
+
+@media (max-width: 360px) {
+  .featured-content-media {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .featured-thumb {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 20px;
+  }
 }
 </style>
