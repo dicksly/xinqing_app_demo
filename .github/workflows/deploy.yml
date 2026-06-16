@@ -12,6 +12,7 @@ jobs:
     steps:
       - name: Pull latest code
         run: |
+          git config --global --add safe.directory /opt/xinqing_app_demo
           cd /opt/xinqing_app_demo
           git fetch origin
           git reset --hard origin/main
