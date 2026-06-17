@@ -15,6 +15,7 @@
       </div>
 
       <div class="sprout-stage" :style="{ '--mascot-accent': mascotLevel.color }">
+        <span v-if="equippedAccessory" class="sprout-accessory-tag">{{ equippedAccessory.label }}</span>
         <img :src="homeLogo" alt="草团子" class="sprout-image" />
       </div>
 
@@ -60,6 +61,76 @@
       </div>
     </section>
 
+    <section class="care-card pad companion-card">
+      <div class="section-title-row">
+        <h2 class="care-card-title">草团子的衣柜</h2>
+        <button type="button" class="text-action" @click="handleClaimReward">领取解锁</button>
+      </div>
+      <div v-if="careState.inventory.accessories.length > 0" class="inventory-row">
+        <button
+          v-for="accessory in careState.inventory.accessories"
+          :key="accessory.id"
+          type="button"
+          class="inventory-chip"
+          :class="{ active: careState.equipped.accessory === accessory.id }"
+          @click="handleEquipAccessory(accessory.id)"
+        >
+          {{ accessory.label }}
+        </button>
+      </div>
+      <p v-else class="empty-copy">第 3 天会遇见第一只盲盒配饰。</p>
+    </section>
+
+    <section class="care-card pad habitat-card">
+      <div class="section-title-row">
+        <h2 class="care-card-title">疗愈栖息地</h2>
+        <span>{{ unlockedFeatures.habitat ? '已开启' : '第 21 天' }}</span>
+      </div>
+      <div class="habitat-scene" :class="{ locked: !careState.habitat.unlocked }">
+        <div class="room-floor"></div>
+        <span
+          v-for="item in habitatFurniture"
+          :key="item.id"
+          class="furniture-pill"
+        >
+          {{ item.label }}
+        </span>
+        <strong v-if="!careState.habitat.unlocked">小窝还在慢慢搭建</strong>
+      </div>
+    </section>
+
+    <section class="care-card pad garden-card">
+      <div class="section-title-row">
+        <h2 class="care-card-title">忘忧小庭院</h2>
+        <button type="button" class="text-action" :disabled="careState.sunDrops < 30" @click="handlePlantGarden">
+          种下
+        </button>
+      </div>
+      <div class="garden-plots">
+        <div v-for="plot in careState.garden.plots" :key="plot.id" class="garden-plot">
+          <span></span>
+          <strong>{{ plot.label }}</strong>
+          <small>{{ plot.status === 'growing' ? '生长中' : '已收获' }}</small>
+        </div>
+        <p v-if="careState.garden.plots.length === 0" class="empty-copy">
+          30 颗阳光露珠可以种下一株忘忧草。
+        </p>
+      </div>
+    </section>
+
+    <section class="care-card pad diary-card">
+      <div class="section-title-row">
+        <h2 class="care-card-title">记忆墙</h2>
+        <button type="button" class="text-action" @click="handleWriteDiary">写一条</button>
+      </div>
+      <div v-if="latestDiary" class="diary-entry">
+        <span>{{ latestDiary.date }}</span>
+        <strong>{{ latestDiary.title }}</strong>
+        <p>{{ latestDiary.content }}</p>
+      </div>
+      <p v-else class="empty-copy">把一次照顾、一点心情，留给以后的自己。</p>
+    </section>
+
     <section class="care-card pad daily-task-card">
       <span class="care-chip sage">今日疗愈任务</span>
       <h2>完成一次心情打卡，获得新的阳光露珠</h2>
@@ -80,10 +151,15 @@ import {
   updateStreakState,
 } from '../../utils/engagement'
 import {
+  addSproutDiaryEntry,
   applySproutCareAction,
+  claimSproutMilestoneReward,
   createDefaultSproutCareState,
+  equipSproutAccessory,
   getSproutMilestone,
+  getUnlockedSproutFeatures,
   normalizeSproutCareState,
+  plantSproutGardenItem,
 } from '../../utils/sprout-care'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -102,6 +178,16 @@ const careState = ref(normalizeSproutCareState(readJson('xinqing_sprout_care_sta
 
 const mascotLevel = computed(() => getMascotLevel(streakState.value.currentStreak || 1))
 const milestone = computed(() => getSproutMilestone(streakState.value.currentStreak || 1))
+const unlockedFeatures = computed(() => getUnlockedSproutFeatures(streakState.value.currentStreak || 1))
+const equippedAccessory = computed(() => (
+  careState.value.inventory.accessories.find((item) => item.id === careState.value.equipped.accessory) || null
+))
+const habitatFurniture = computed(() => (
+  careState.value.habitat.furniture.length > 0
+    ? careState.value.habitat.furniture
+    : careState.value.inventory.supplies.filter((item) => item.type === 'furniture')
+))
+const latestDiary = computed(() => careState.value.diary[0] || null)
 
 const currentDateText = computed(() => {
   const formatter = new Intl.DateTimeFormat(locale.value === 'zh-CN' ? 'zh-CN' : 'en-US', {
@@ -138,6 +224,54 @@ function handleCareAction(actionKey) {
   ElMessage.success('草团子收到了你的照顾')
 }
 
+function handleClaimReward() {
+  const before = careState.value.claimedRewards.length
+  careState.value = claimSproutMilestoneReward(careState.value, streakState.value.currentStreak || 1)
+  persistCareState()
+  if (careState.value.claimedRewards.length > before) {
+    ElMessage.success('新的成长奖励已经放进小窝')
+  } else {
+    ElMessage.info('今天可领取的成长奖励已经收好')
+  }
+}
+
+function handleEquipAccessory(accessoryId) {
+  careState.value = equipSproutAccessory(careState.value, accessoryId)
+  persistCareState()
+  ElMessage.success('草团子换好了新配饰')
+}
+
+function handlePlantGarden() {
+  const beforeDrops = careState.value.sunDrops
+  careState.value = plantSproutGardenItem(careState.value, 'forget-worry-grass')
+  persistCareState()
+  if (careState.value.sunDrops < beforeDrops) {
+    ElMessage.success('忘忧草已经种下')
+  } else {
+    ElMessage.info(careState.value.moodText)
+  }
+}
+
+async function handleWriteDiary() {
+  try {
+    const result = await ElMessageBox.prompt('写给草团子的一小段记忆', '记忆墙', {
+      confirmButtonText: '保存',
+      cancelButtonText: '取消',
+      inputType: 'textarea',
+      inputPlaceholder: '今天的小窝发生了什么？',
+    })
+    careState.value = addSproutDiaryEntry(careState.value, {
+      title: '今天的小窝',
+      mood: localStorage.getItem('xinqing_today_mood') || 'calm',
+      content: result.value,
+    })
+    persistCareState()
+    ElMessage.success('草团子把这段记忆收好了')
+  } catch {
+    // 用户取消时不提示。
+  }
+}
+
 function persistEngagementState() {
   const nextState = updateStreakState(streakState.value)
   streakState.value = nextState
@@ -160,6 +294,7 @@ function persistEngagementState() {
 
 onMounted(() => {
   persistEngagementState()
+  careState.value = claimSproutMilestoneReward(careState.value, streakState.value.currentStreak || 1)
   persistCareState()
 })
 </script>
@@ -230,6 +365,25 @@ onMounted(() => {
   position: relative;
   background: color-mix(in srgb, var(--mascot-accent, var(--h5-sage)) 22%, white);
   box-shadow: inset 0 -14px 22px rgba(97, 136, 77, 0.1), 0 18px 30px rgba(75, 92, 72, 0.12);
+}
+
+.sprout-accessory-tag {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  z-index: 1;
+  transform: translateX(-50%);
+  max-width: 96px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--h5-primary);
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sprout-image {
@@ -355,6 +509,160 @@ onMounted(() => {
 .progress-fill {
   height: 100%;
   border-radius: inherit;
+}
+
+.companion-card,
+.habitat-card,
+.garden-card,
+.diary-card {
+  background: var(--h5-surface);
+}
+
+.text-action {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--h5-primary);
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.text-action:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.inventory-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inventory-chip {
+  border: 1px solid var(--h5-border);
+  border-radius: 999px;
+  padding: 9px 12px;
+  background: #FBF7F3;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.inventory-chip.active {
+  border-color: rgba(217, 94, 118, 0.38);
+  background: color-mix(in srgb, var(--h5-blush) 46%, white);
+  color: var(--h5-primary);
+}
+
+.empty-copy {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 800;
+}
+
+.habitat-scene {
+  min-height: 126px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--h5-border);
+  border-radius: 22px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  background: linear-gradient(145deg, #FFF8EF 0%, #E7F2EA 100%);
+}
+
+.habitat-scene.locked {
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+}
+
+.habitat-scene.locked strong {
+  position: relative;
+  z-index: 1;
+  font-size: 14px;
+}
+
+.room-floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 42px;
+  background: rgba(201, 177, 151, 0.24);
+}
+
+.furniture-pill {
+  position: relative;
+  z-index: 1;
+  border-radius: 16px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(89, 75, 66, 0.08);
+}
+
+.garden-plots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.garden-plot {
+  width: calc(50% - 5px);
+  min-height: 96px;
+  border-radius: 20px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  background: linear-gradient(145deg, #E5F2D8, #FFF8EC);
+  border: 1px solid rgba(124, 166, 99, 0.2);
+}
+
+.garden-plot span {
+  width: 28px;
+  height: 28px;
+  border-radius: 16px 16px 18px 18px;
+  background: #85BF72;
+  box-shadow: 14px -5px 0 -8px #6AAE64, -12px -4px 0 -8px #9CCB7F;
+}
+
+.garden-plot strong,
+.diary-entry strong {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.garden-plot small,
+.diary-entry span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.diary-entry {
+  border-radius: 20px;
+  padding: 14px;
+  background: #FBF7F3;
+}
+
+.diary-entry p {
+  margin: 8px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 800;
 }
 
 .daily-task-card h2 {

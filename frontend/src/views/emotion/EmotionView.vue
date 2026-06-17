@@ -231,7 +231,13 @@ import happyIcon from '../../assets/icons/image2-mood-happy.png'
 import energeticIcon from '../../assets/icons/image2-mood-energetic.png'
 import { getMoodInsight } from '../../utils/emotion-insights'
 import { buildMoodQuoteShareText, getMoodQuoteCard } from '../../utils/mood-quote-card'
-import { scoreAssessment, validateAssessmentConsent } from '../../utils/assessment'
+import {
+  buildAssessmentPayload,
+  normalizeAssessmentResult,
+  scoreAssessment,
+  validateAssessmentConsent,
+} from '../../utils/assessment'
+import { emotionApi } from '../../api'
 
 const { t, locale } = useI18n()
 const emotionStore = useEmotionStore()
@@ -421,8 +427,54 @@ function saveAssessmentConsent() {
   assessmentConsentSaved.value = true
 }
 
-function submitAssessment() {
-  assessmentResult.value = scoreAssessment(assessmentAnswers.value)
+function getClientId() {
+  const saved = localStorage.getItem('xinqing_client_id')
+  if (saved) return saved
+  const next = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `client-${Date.now()}-${Math.floor(Math.random() * 100000)}`
+  localStorage.setItem('xinqing_client_id', next)
+  return next
+}
+
+async function submitAssessment() {
+  const savedConsent = readSavedAssessmentConsent()
+  const payload = buildAssessmentPayload(
+    {
+      accepted: true,
+      userSignature: savedConsent.userSignature || assessmentConsent.value.userSignature,
+      isMinor: Boolean(savedConsent.isMinor || assessmentConsent.value.isMinor),
+      guardianSignature: savedConsent.guardianSignature || assessmentConsent.value.guardianSignature,
+    },
+    assessmentAnswers.value,
+    getClientId()
+  )
+
+  try {
+    const response = await emotionApi.submitAssessment(payload)
+    assessmentResult.value = normalizeAssessmentResult(response.data)
+    localStorage.setItem('xinqing_last_assessment_result', JSON.stringify(assessmentResult.value))
+    ElMessage.success('详细心理分析已生成')
+  } catch (error) {
+    const localResult = scoreAssessment(assessmentAnswers.value)
+    assessmentResult.value = {
+      ...localResult,
+      id: null,
+      score: null,
+      title: localResult.title,
+      summary: localResult.summary,
+      suggestions: [],
+    }
+    ElMessage.warning('后端暂不可用，已先生成本地分析')
+  }
+}
+
+function readSavedAssessmentConsent() {
+  try {
+    return JSON.parse(localStorage.getItem('xinqing_assessment_consent') || '{}')
+  } catch {
+    return {}
+  }
 }
 
 async function loadWeeklyReport() {

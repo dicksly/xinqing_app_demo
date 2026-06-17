@@ -64,6 +64,71 @@ class AdminAuthTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 401)
 
+    def test_demo_password_recovery_resets_user_password(self):
+        register = self.client.post(
+            "/api/v1/auth/register",
+            json={
+                "username": "student",
+                "password": "old-password",
+                "email": "student@example.com",
+            },
+        )
+        self.assertEqual(register.status_code, 200)
+
+        request = self.client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"account": "student"},
+        )
+        self.assertEqual(request.status_code, 200)
+        request_payload = request.json()
+        self.assertEqual(request_payload["delivery"], "demo")
+        self.assertRegex(request_payload["reset_code"], r"^\d{6}$")
+
+        confirm = self.client.post(
+            "/api/v1/auth/password-reset/confirm",
+            json={
+                "account": "student",
+                "resetCode": request_payload["reset_code"],
+                "newPassword": "new-password",
+            },
+        )
+        self.assertEqual(confirm.status_code, 200)
+
+        old_login = self.client.post(
+            "/api/v1/auth/login",
+            json={"username": "student", "password": "old-password"},
+        )
+        self.assertEqual(old_login.status_code, 401)
+
+        new_login = self.client.post(
+            "/api/v1/auth/login",
+            json={"username": "student", "password": "new-password"},
+        )
+        self.assertEqual(new_login.status_code, 200)
+
+    def test_demo_password_recovery_rejects_wrong_code(self):
+        register = self.client.post(
+            "/api/v1/auth/register",
+            json={"username": "student2", "password": "old-password"},
+        )
+        self.assertEqual(register.status_code, 200)
+
+        self.client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"account": "student2"},
+        )
+
+        response = self.client.post(
+            "/api/v1/auth/password-reset/confirm",
+            json={
+                "account": "student2",
+                "resetCode": "000000",
+                "newPassword": "new-password",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+
 
 if __name__ == "__main__":
     unittest.main()

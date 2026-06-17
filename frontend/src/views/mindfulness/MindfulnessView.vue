@@ -62,6 +62,7 @@
           :value="theme.key"
         />
       </el-select>
+      <p v-if="voiceFallbackActive" class="voice-status">系统语音引导中</p>
     </section>
 
     <section class="care-card soft breath-entry" @click="toggleBreathing">
@@ -122,7 +123,9 @@
       <OrganizeGame v-else-if="currentGame?.id === 'organize'" @close="closeGame" />
       <MandalaGame v-else-if="currentGame?.id === 'mandala'" @close="closeGame" />
       <div v-else class="game-placeholder">
-        <p>{{ currentGame?.desc || (locale === 'zh-CN' ? '游戏开发中，敬请期待...' : 'Game in development, coming soon...') }}</p>
+        <Match3Game v-if="currentGame?.id === 'match3'" @close="closeGame" />
+        <FruitSliceGame v-else-if="currentGame?.id === 'fruit-slice'" @close="closeGame" />
+        <p v-else>{{ currentGame?.desc || (locale === 'zh-CN' ? '游戏开发中，敬请期待...' : 'Game in development, coming soon...') }}</p>
       </div>
     </el-dialog>
 
@@ -155,6 +158,8 @@ import BubbleGame from './games/BubbleGame.vue'
 import SoapGame from './games/SoapGame.vue'
 import OrganizeGame from './games/OrganizeGame.vue'
 import MandalaGame from './games/MandalaGame.vue'
+import Match3Game from './games/Match3Game.vue'
+import FruitSliceGame from './games/FruitSliceGame.vue'
 import breathIcon from '../../assets/icons/image2-mindful-breath.png'
 import bubbleIcon from '../../assets/icons/image2-mindful-bubble.png'
 import soapIcon from '../../assets/icons/image2-mindful-soap.png'
@@ -183,8 +188,8 @@ const meditationTimer = ref(null)
 const elapsedTime = ref(0)
 
 const games = computed(() => [
-  { id: 'match3', title: 'Match-3', zhTitle: '消消乐', icon: GridIcon, iconSrc: tidyIcon, iconClass: 'icon-primary', desc: '把同色小芽连成一片，慢慢释放压力。', implemented: false },
-  { id: 'fruit-slice', title: 'Fruit Slice', zhTitle: '切水果', icon: Scissor, iconSrc: soapIcon, iconClass: 'icon-secondary', desc: '划开水果和烦恼，把注意力带回手指。', implemented: false },
+  { id: 'match3', title: 'Match-3', zhTitle: '消消乐', icon: GridIcon, iconSrc: tidyIcon, iconClass: 'icon-primary', desc: '把同色小芽连成一片，慢慢释放压力。', implemented: true },
+  { id: 'fruit-slice', title: 'Fruit Slice', zhTitle: '切水果', icon: Scissor, iconSrc: soapIcon, iconClass: 'icon-secondary', desc: '划开水果和烦恼，把注意力带回手指。', implemented: true },
 ])
 
 const selectedType = ref('meditation')
@@ -194,6 +199,7 @@ const bgVolume = ref(50)
 const monthlyBackgroundThemes = MONTHLY_BACKGROUND_THEMES
 const bgMusicType = ref(getMonthlyTheme(new Date().getMonth() + 1).key)
 const isPlaying = ref(false)
+const voiceFallbackActive = ref(false)
 const currentMonthlyTheme = computed(() => (
   monthlyBackgroundThemes.find((theme) => theme.key === bgMusicType.value) || getMonthlyTheme(new Date().getMonth() + 1)
 ))
@@ -365,6 +371,7 @@ async function playVoiceGuide() {
   const audioSrc = audioResources.voiceGuide[selectedType.value]
   if (!audioSrc) return
 
+  voiceFallbackActive.value = false
   voiceAudioPlayer.value.src = audioSrc
   voiceAudioPlayer.value.volume = voiceVolume.value / 100
 
@@ -372,7 +379,28 @@ async function playVoiceGuide() {
     await voiceAudioPlayer.value.play()
   } catch (e) {
     console.warn('引导语音播放失败:', e)
+    speakVoiceGuide()
   }
+}
+
+function speakVoiceGuide() {
+  if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+    return
+  }
+
+  const text = locale.value === 'zh-CN'
+    ? `接下来 ${selectedDuration.value} 分钟，把注意力放在呼吸上。吸气时放松肩膀，呼气时让身体慢慢落下来。`
+    : `For the next ${selectedDuration.value} minutes, rest your attention on the breath. Soften your shoulders as you inhale, and settle as you exhale.`
+  window.speechSynthesis.cancel()
+  const utterance = new SpeechSynthesisUtterance(text)
+  utterance.lang = locale.value === 'zh-CN' ? 'zh-CN' : 'en-US'
+  utterance.volume = voiceVolume.value / 100
+  utterance.rate = 0.86
+  utterance.onend = () => {
+    voiceFallbackActive.value = false
+  }
+  voiceFallbackActive.value = true
+  window.speechSynthesis.speak(utterance)
 }
 
 // 开始冥想计时器
@@ -409,6 +437,10 @@ function stopAllAudio() {
     voiceAudioPlayer.value.pause()
     voiceAudioPlayer.value.currentTime = 0
   }
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel()
+  }
+  voiceFallbackActive.value = false
 }
 
 // 完全停止冥想
@@ -987,7 +1019,14 @@ onMounted(() => {
 }
 
 .game-placeholder {
+  padding: 0;
+  text-align: initial;
+  color: inherit;
+}
+
+.game-placeholder > p {
   padding: var(--spacing-xl, 32px) 0;
+  margin: 0;
   text-align: center;
   color: var(--color-text-muted, #94a3b8);
 }
@@ -1260,6 +1299,13 @@ onMounted(() => {
 
 .theme-select {
   width: 100%;
+}
+
+.voice-status {
+  margin: -4px 0 0;
+  color: var(--color-primary, #10b981);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .breath-entry {

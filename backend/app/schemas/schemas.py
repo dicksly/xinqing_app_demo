@@ -424,6 +424,37 @@ class UserLogin(BaseModel):
     password: str = Field(..., description="密码")
 
 
+class PasswordResetRequest(BaseModel):
+    """Demo 密码找回请求。"""
+    account: str = Field(..., min_length=1, max_length=100, description="用户名或邮箱")
+
+
+class PasswordResetRequestResponse(BaseModel):
+    """Demo 密码找回响应。真实产品应通过邮件或短信发送 reset_code。"""
+    account: str
+    delivery: str
+    reset_code: str
+    expires_in_minutes: int
+    message: str
+
+
+class PasswordResetConfirm(BaseModel):
+    """Demo 密码重置确认。"""
+    account: str = Field(..., min_length=1, max_length=100, description="用户名或邮箱")
+    reset_code: str = Field(
+        ...,
+        min_length=6,
+        max_length=6,
+        validation_alias=AliasChoices("reset_code", "resetCode"),
+    )
+    new_password: str = Field(
+        ...,
+        min_length=6,
+        max_length=100,
+        validation_alias=AliasChoices("new_password", "newPassword"),
+    )
+
+
 class UserResponse(BaseModel):
     """用户信息响应"""
     id: int

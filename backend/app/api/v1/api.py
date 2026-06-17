@@ -38,6 +38,7 @@ from ...schemas.schemas import (
     KnowledgeContentCreate, KnowledgeContentUpdate, KnowledgeContentResponse,
     WeeklyReportResponse,
     UserCreate, UserLogin, UserResponse, TokenResponse,
+    PasswordResetRequest, PasswordResetRequestResponse, PasswordResetConfirm,
     AdminLogin, AdminUserResponse, AdminTokenResponse,
     GameProgressUpdate, GameProgressResponse, GameSyncRequest, GameRecordCreate
 )
@@ -59,6 +60,8 @@ ai_service = AIService()
 
 CONSENT_VERSION = "2026-05-anonymized-research-product-business"
 CONSENT_USAGE = "匿名化后用于研究/产品分析/商业合作"
+PASSWORD_RESET_EXPIRES_MINUTES = 15
+PASSWORD_RESET_CODES = {}
 
 MASCOT_LEVELS = [
     {
@@ -823,6 +826,18 @@ async def delete_admin_knowledge_topic(
 
 # ============ 用户认证路由 ============
 
+def find_user_by_account(db: Session, account: str) -> Optional[User]:
+    normalized = account.strip()
+    if not normalized:
+        return None
+
+    user = db.query(User).filter(User.username == normalized).first()
+    if user:
+        return user
+
+    return db.query(User).filter(User.email == normalized).first()
+
+
 @router.post("/auth/register", response_model=TokenResponse)
 async def register(
     user_data: UserCreate,
@@ -861,6 +876,67 @@ async def register(
         access_token=access_token,
         user=UserResponse.model_validate(db_user)
     )
+
+
+@router.post("/auth/password-reset/request", response_model=PasswordResetRequestResponse)
+async def request_password_reset(
+    reset_request: PasswordResetRequest,
+    db: Session = Depends(get_db)
+):
+    """Demo 密码找回：返回 6 位验证码。生产环境应改为邮件/短信发送。"""
+    user = find_user_by_account(db, reset_request.account)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="未找到该账号"
+        )
+
+    reset_code = f"{uuid.uuid4().int % 1_000_000:06d}"
+    expires_at = datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_EXPIRES_MINUTES)
+    PASSWORD_RESET_CODES[reset_request.account.strip().lower()] = {
+        "user_id": user.id,
+        "code": reset_code,
+        "expires_at": expires_at,
+    }
+
+    return PasswordResetRequestResponse(
+        account=user.username,
+        delivery="demo",
+        reset_code=reset_code,
+        expires_in_minutes=PASSWORD_RESET_EXPIRES_MINUTES,
+        message="演示环境已直接返回验证码；生产环境应通过邮件或短信发送。",
+    )
+
+
+@router.post("/auth/password-reset/confirm")
+async def confirm_password_reset(
+    reset_confirm: PasswordResetConfirm,
+    db: Session = Depends(get_db)
+):
+    """使用 demo 验证码重置密码。"""
+    account_key = reset_confirm.account.strip().lower()
+    reset_state = PASSWORD_RESET_CODES.get(account_key)
+    if (
+        reset_state is None
+        or reset_state["code"] != reset_confirm.reset_code
+        or reset_state["expires_at"] < datetime.utcnow()
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="验证码无效或已过期"
+        )
+
+    user = db.query(User).filter(User.id == reset_state["user_id"]).first()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="未找到该账号"
+        )
+
+    user.password_hash = get_password_hash(reset_confirm.new_password)
+    db.commit()
+    PASSWORD_RESET_CODES.pop(account_key, None)
+    return {"success": True, "message": "密码已重置"}
 
 
 @router.post("/auth/login", response_model=TokenResponse)

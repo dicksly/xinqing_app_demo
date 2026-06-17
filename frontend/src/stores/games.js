@@ -35,6 +35,16 @@ const SKIN_UNLOCK_CONDITIONS = {
     { name: 'fish', condition: 120 },
     { name: 'complex', condition: 150 },
   ],
+  match3: [
+    { name: 'default', condition: 0 },
+    { name: 'morning', condition: 180 },
+    { name: 'night', condition: 420 },
+  ],
+  'fruit-slice': [
+    { name: 'default', condition: 0 },
+    { name: 'citrus', condition: 160 },
+    { name: 'garden', condition: 360 },
+  ],
 }
 
 // 默认进度模板
@@ -70,6 +80,22 @@ const defaultProgress = {
     unlockedSkins: ['default'],
     currentSkin: 'default',
     stats: { totalColored: 0, completedWorks: 0 },
+  },
+  match3: {
+    gameType: 'match3',
+    totalPlayCount: 0,
+    totalPlayTime: 0,
+    unlockedSkins: ['default'],
+    currentSkin: 'default',
+    stats: { totalCleared: 0, bestScore: 0 },
+  },
+  'fruit-slice': {
+    gameType: 'fruit-slice',
+    totalPlayCount: 0,
+    totalPlayTime: 0,
+    unlockedSkins: ['default'],
+    currentSkin: 'default',
+    stats: { totalScore: 0, bestCombo: 0 },
   },
 }
 
@@ -264,6 +290,50 @@ export const useGamesStore = defineStore('games', () => {
     return newSkins.length > progress.unlockedSkins.length
   }
 
+  function recordMatch3(cleared = 0, score = 0) {
+    const gameType = 'match3'
+    const progress = getProgress(gameType)
+    if (!progress) return
+
+    const totalCleared = (progress.stats.totalCleared || 0) + cleared
+    const bestScore = Math.max(progress.stats.bestScore || 0, score)
+    const newSkins = checkUnlocks(gameType, totalCleared, progress.unlockedSkins)
+
+    updateProgress(gameType, {
+      totalPlayCount: (progress.totalPlayCount || 0) + 1,
+      stats: {
+        ...progress.stats,
+        totalCleared,
+        bestScore,
+      },
+      unlockedSkins: newSkins,
+    })
+
+    return newSkins.length > progress.unlockedSkins.length
+  }
+
+  function recordFruitSlice(score = 0, bestCombo = 0) {
+    const gameType = 'fruit-slice'
+    const progress = getProgress(gameType)
+    if (!progress) return
+
+    const totalScore = (progress.stats.totalScore || 0) + score
+    const nextBestCombo = Math.max(progress.stats.bestCombo || 0, bestCombo)
+    const newSkins = checkUnlocks(gameType, totalScore, progress.unlockedSkins)
+
+    updateProgress(gameType, {
+      totalPlayCount: (progress.totalPlayCount || 0) + 1,
+      stats: {
+        ...progress.stats,
+        totalScore,
+        bestCombo: nextBestCombo,
+      },
+      unlockedSkins: newSkins,
+    })
+
+    return newSkins.length > progress.unlockedSkins.length
+  }
+
   // 检查皮肤解锁
   function checkUnlocks(gameType, totalPops, currentSkins) {
     const conditions = SKIN_UNLOCK_CONDITIONS[gameType] || []
@@ -342,6 +412,8 @@ export const useGamesStore = defineStore('games', () => {
     recordCut,
     recordOrganize,
     recordColoring,
+    recordMatch3,
+    recordFruitSlice,
     setCurrentSkin,
     syncLocalToServer,
     recordSession,

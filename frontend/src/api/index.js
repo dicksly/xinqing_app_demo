@@ -57,6 +57,9 @@ export const emotionApi = {
 
   // 获取周报
   getWeeklyReport: () => api.get('/emotion-records/weekly-report'),
+
+  // 提交详细心理分析
+  submitAssessment: (data) => api.post('/psychological-assessments', data),
 }
 
 // 正念练习 API
@@ -94,6 +97,10 @@ export const authApi = {
 
   // 获取当前用户信息
   getMe: () => api.get('/auth/me'),
+
+  requestPasswordReset: (data) => api.post('/auth/password-reset/request', data),
+
+  confirmPasswordReset: (data) => api.post('/auth/password-reset/confirm', data),
 }
 
 // 后台管理员认证 API

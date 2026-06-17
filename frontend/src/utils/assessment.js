@@ -15,6 +15,43 @@ export function validateAssessmentConsent(form = {}) {
   }
 }
 
+function clampAnswerToBackendScale(value) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return 1
+  return Math.min(5, Math.max(1, Math.round(numeric) + 1))
+}
+
+export function buildAssessmentPayload(consent = {}, answers = {}, clientId = 'anonymous') {
+  return {
+    clientId: String(clientId || 'anonymous'),
+    consentAccepted: Boolean(consent.accepted),
+    userSignature: String(consent.userSignature || '').trim(),
+    isMinor: Boolean(consent.isMinor),
+    guardianSignature: String(consent.guardianSignature || '').trim(),
+    answers: {
+      sleep: clampAnswerToBackendScale(answers.sleep),
+      anxiety: clampAnswerToBackendScale(answers.anxiety),
+      sadness: clampAnswerToBackendScale(answers.sadness),
+      energy: clampAnswerToBackendScale(answers.energy),
+      focus: clampAnswerToBackendScale(answers.focus),
+    },
+  }
+}
+
+export function normalizeAssessmentResult(response = {}) {
+  const payload = response?.data && typeof response.data === 'object' ? response.data : response
+  return {
+    id: payload.assessment_id ?? payload.id ?? null,
+    score: Number(payload.score || 0),
+    level: payload.level || 'low',
+    title: payload.tag || payload.title || '详细心理分析',
+    summary: payload.diagnosis || payload.summary || '',
+    suggestions: Array.isArray(payload.suggestions) ? payload.suggestions : [],
+    consentUsage: payload.consent_usage || payload.consentUsage || '',
+    createdAt: payload.created_at || payload.createdAt || new Date().toISOString(),
+  }
+}
+
 export function scoreAssessment(answers = {}) {
   const values = Object.values(answers).map(Number).filter((value) => Number.isFinite(value))
   const total = values.reduce((sum, value) => sum + value, 0)
