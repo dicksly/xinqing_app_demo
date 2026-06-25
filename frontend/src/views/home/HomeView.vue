@@ -2,15 +2,15 @@
   <div class="care-page home-view">
     <header class="care-page-header home-header">
       <div>
-        <h1 class="care-page-title">烦恼小芽成长计划</h1>
-        <p class="care-page-subtitle">今天也和草团子轻轻见面 · {{ currentDateText }}</p>
+        <h1 class="care-page-title">{{ isZh ? '烦恼小芽成长计划' : 'Sprout Care Plan' }}</h1>
+        <p class="care-page-subtitle">{{ isZh ? '今天也和草团子轻轻见面' : 'Meet your little sprout gently today' }} · {{ currentDateText }}</p>
       </div>
     </header>
 
     <section class="care-card pad sprout-hero">
       <div class="sprout-copy">
         <span class="care-kicker">{{ milestone.title }}</span>
-        <h2>连续陪伴 {{ streakState.currentStreak || 1 }} 天</h2>
+        <h2>{{ isZh ? `连续陪伴 ${streakState.currentStreak || 1} 天` : `${streakState.currentStreak || 1} Day Companion Streak` }}</h2>
         <p>{{ careState.moodText }}</p>
       </div>
 
@@ -21,20 +21,44 @@
 
       <div class="sprout-stats">
         <div>
-          <span>阳光露珠</span>
+          <span>{{ isZh ? '阳光露珠' : 'Sun Drops' }}</span>
           <strong>{{ careState.sunDrops }}</strong>
         </div>
         <div>
-          <span>当前奖励</span>
+          <span>{{ isZh ? '当前奖励' : 'Current Reward' }}</span>
           <strong>{{ milestone.reward }}</strong>
         </div>
       </div>
     </section>
 
+    <section class="care-card pad daily-task-card">
+      <span class="care-chip sage">{{ isZh ? '今日疗愈任务' : 'Today Care Task' }}</span>
+      <h2>{{ isZh ? '完成一次心情打卡，获得新的阳光露珠' : 'Check in once to collect new Sun Drops' }}</h2>
+      <p>{{ isZh ? '不用表现得很好，只要把此刻的感受放下来。' : 'No need to perform well. Just set down what you feel right now.' }}</p>
+      <button type="button" class="soft-button check-button" @click="router.push('/emotion')">{{ isZh ? '去打卡' : 'Check In' }}</button>
+    </section>
+
+    <section class="care-card pad quest-progress-card">
+      <div class="section-title-row">
+        <div>
+          <span class="care-chip blue">{{ isZh ? '今日照护闯关' : 'Daily Care Quest' }}</span>
+          <h2 class="care-card-title">{{ isZh ? '给草团子补一点能量' : 'Charge your sprout with gentle energy' }}</h2>
+        </div>
+        <strong>{{ questProgress.completed }}/{{ questProgress.total }}</strong>
+      </div>
+      <div class="quest-energy-row">
+        <span>{{ isZh ? '能量' : 'Energy' }} +{{ questProgress.energy }}</span>
+        <span>{{ isZh ? (questProgress.isComplete ? '今日已完成' : questProgress.nextHint) : (questProgress.isComplete ? 'Quest complete' : questProgress.nextHintEn) }}</span>
+      </div>
+      <div class="progress-track quest-track" aria-hidden="true">
+        <div class="progress-fill" :style="{ width: `${questProgress.percent}%` }"></div>
+      </div>
+    </section>
+
     <section class="care-card pad care-actions-card">
       <div class="section-title-row">
-        <h2 class="care-card-title">照顾一下草团子</h2>
-        <span>每日每项 +15</span>
+        <h2 class="care-card-title">{{ isZh ? '照顾一下草团子' : 'Care For Your Sprout' }}</h2>
+        <span>{{ isZh ? '每日每项 +15' : '+15 each daily' }}</span>
       </div>
       <div class="care-actions-grid">
         <button
@@ -45,16 +69,16 @@
           @click="handleCareAction(action.key)"
         >
           <span>{{ action.icon }}</span>
-          <strong>{{ action.label }}</strong>
-          <small>{{ action.hint }}</small>
+          <strong>{{ isZh ? action.label : action.enLabel }}</strong>
+          <small>{{ isZh ? action.hint : action.enHint }}</small>
         </button>
       </div>
     </section>
 
     <section class="care-card soft growth-card">
       <div>
-        <span class="care-kicker">小芽成长中</span>
-        <h2>下一站：{{ milestone.nextText }}</h2>
+        <span class="care-kicker">{{ isZh ? '小芽成长中' : 'Sprout Growing' }}</span>
+        <h2>{{ isZh ? `下一站：${milestone.nextText}` : `Next: ${milestone.nextTextEn || milestone.nextText}` }}</h2>
       </div>
       <div class="progress-track" aria-hidden="true">
         <div class="progress-fill" :style="{ width: `${growthProgress}%`, background: mascotLevel.color }"></div>
@@ -120,22 +144,23 @@
 
     <section class="care-card pad diary-card">
       <div class="section-title-row">
-        <h2 class="care-card-title">记忆墙</h2>
-        <button type="button" class="text-action" @click="handleWriteDiary">写一条</button>
+        <h2 class="care-card-title">{{ isZh ? '记忆墙' : 'Memory Wall' }}</h2>
+        <button type="button" class="text-action" @click="handleWriteDiary">{{ isZh ? '写一条' : 'Write' }}</button>
       </div>
-      <div v-if="latestDiary" class="diary-entry">
-        <span>{{ latestDiary.date }}</span>
-        <strong>{{ latestDiary.title }}</strong>
-        <p>{{ latestDiary.content }}</p>
+      <div v-if="memoryWall.length > 0" class="memory-wall-grid">
+        <article
+          v-for="memory in memoryWall"
+          :key="memory.id"
+          class="diary-entry memory-card"
+          :class="`memory-${memory.type}`"
+        >
+          <img v-if="memory.image" :src="memory.image" :alt="memory.title" />
+          <span>{{ memory.date }}</span>
+          <strong>{{ memory.title }}</strong>
+          <p>{{ memory.text }}</p>
+        </article>
       </div>
-      <p v-else class="empty-copy">把一次照顾、一点心情，留给以后的自己。</p>
-    </section>
-
-    <section class="care-card pad daily-task-card">
-      <span class="care-chip sage">今日疗愈任务</span>
-      <h2>完成一次心情打卡，获得新的阳光露珠</h2>
-      <p>不用表现得很好，只要把此刻的感受放下来。</p>
-      <button type="button" class="soft-button check-button" @click="router.push('/emotion')">去打卡</button>
+      <p v-else class="empty-copy">{{ isZh ? '把一次照顾、一点心情，留给以后的自己。' : 'Leave one care moment and one feeling for your future self.' }}</p>
     </section>
   </div>
 </template>
@@ -153,10 +178,12 @@ import {
 import {
   addSproutDiaryEntry,
   applySproutCareAction,
+  buildSproutMemoryWall,
   claimSproutMilestoneReward,
   createDefaultSproutCareState,
   equipSproutAccessory,
   getSproutMilestone,
+  getSproutQuestProgress,
   getUnlockedSproutFeatures,
   normalizeSproutCareState,
   plantSproutGardenItem,
@@ -165,12 +192,13 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 const { locale } = useI18n()
+const isZh = computed(() => locale.value === 'zh-CN')
 
 const careActions = [
-  { key: 'feed', label: '喂食', icon: '☀', hint: '补一点能量' },
-  { key: 'wash', label: '洗澡', icon: '♡', hint: '清爽一下' },
-  { key: 'outing', label: '出门', icon: '↗', hint: '看看外面' },
-  { key: 'comfort', label: '互动', icon: '✦', hint: '贴贴陪伴' },
+  { key: 'feed', label: '喂食', enLabel: 'Feed', icon: '☀', hint: '补一点能量', enHint: 'A little energy' },
+  { key: 'wash', label: '洗澡', enLabel: 'Wash', icon: '♡', hint: '清爽一下', enHint: 'Freshen up' },
+  { key: 'outing', label: '出门', enLabel: 'Outing', icon: '↗', hint: '看看外面', enHint: 'Look outside' },
+  { key: 'comfort', label: '互动', enLabel: 'Comfort', icon: '✦', hint: '贴贴陪伴', enHint: 'Gentle company' },
 ]
 
 const streakState = ref(readJson('xinqing_engagement_state', {}))
@@ -187,7 +215,14 @@ const habitatFurniture = computed(() => (
     ? careState.value.habitat.furniture
     : careState.value.inventory.supplies.filter((item) => item.type === 'furniture')
 ))
-const latestDiary = computed(() => careState.value.diary[0] || null)
+const questProgress = computed(() => getSproutQuestProgress(careState.value))
+const memoryWall = computed(() => buildSproutMemoryWall({
+  careState: careState.value,
+  emotionRecords: readJson('xinqing_emotion_records', []),
+  treeholeEntries: readJson('xinqing_treehole_records', []),
+  quoteCards: readJson('xinqing_mood_quote_cards', []),
+  limit: 4,
+}))
 
 const currentDateText = computed(() => {
   const formatter = new Intl.DateTimeFormat(locale.value === 'zh-CN' ? 'zh-CN' : 'en-US', {
@@ -429,6 +464,42 @@ onMounted(() => {
   background: var(--h5-surface);
 }
 
+.quest-progress-card {
+  background:
+    radial-gradient(circle at 92% 18%, rgba(242, 199, 92, 0.2), transparent 34%),
+    linear-gradient(145deg, #FFF8EF 0%, #F7FBF6 100%);
+}
+
+.quest-progress-card .section-title-row {
+  align-items: flex-start;
+}
+
+.quest-progress-card .care-card-title {
+  margin-top: 9px;
+}
+
+.quest-progress-card .section-title-row strong {
+  color: var(--h5-primary);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.quest-energy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.quest-track {
+  margin-top: 12px;
+}
+
 .section-title-row {
   display: flex;
   align-items: center;
@@ -651,10 +722,44 @@ onMounted(() => {
   font-weight: 800;
 }
 
+.memory-wall-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .diary-entry {
   border-radius: 20px;
   padding: 14px;
   background: #FBF7F3;
+}
+
+.memory-card {
+  min-width: 0;
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.memory-card img {
+  width: 100%;
+  height: 76px;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.memory-mood {
+  background: #F7D8E1;
+}
+
+.memory-treehole {
+  background: #F8DFD2;
+}
+
+.memory-quote {
+  background: #DDEFE5;
 }
 
 .diary-entry p {

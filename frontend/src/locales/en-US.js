@@ -28,6 +28,7 @@ export default {
     treehole: 'Tree Hole',
     knowledge: 'Learn',
     profile: 'Me',
+    profileShort: 'Me',
   },
 
   home: {
@@ -285,6 +286,8 @@ export default {
   theme: {
     lightMode: 'Light Mode',
     darkMode: 'Dark Mode',
+    lightShort: 'Day',
+    darkShort: 'Night',
   },
 
   // Language

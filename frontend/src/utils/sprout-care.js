@@ -3,18 +3,22 @@ import { toDateKey } from './engagement.js'
 export const SPROUT_ACTIONS = {
   feed: {
     label: '喂食',
+    enLabel: 'Feed',
     moodText: '草团子吃饱了，悄悄攒下一点勇气。',
   },
   wash: {
     label: '洗澡',
+    enLabel: 'Wash',
     moodText: '草团子变得清爽，照顾自己也可以很轻。',
   },
   outing: {
     label: '出门',
+    enLabel: 'Outing',
     moodText: '草团子去外面看了看，把风带回小窝。',
   },
   comfort: {
     label: '互动',
+    enLabel: 'Comfort',
     moodText: '草团子贴近你，今天也有人在认真陪你。',
   },
 }
@@ -148,6 +152,105 @@ export function applySproutCareAction(state = {}, action, now = new Date()) {
       },
     },
   }
+}
+
+export function getSproutQuestProgress(state = {}, now = new Date()) {
+  const normalized = normalizeSproutCareState(state)
+  const today = toDateKey(now)
+  const actionKeys = Object.keys(SPROUT_ACTIONS)
+  const completedKeys = actionKeys.filter((key) => normalized.actions[key]?.lastRewardDate === today)
+  const completed = completedKeys.length
+  const total = actionKeys.length
+  const nextKey = actionKeys.find((key) => !completedKeys.includes(key))
+
+  return {
+    completed,
+    total,
+    energy: completed * SUN_DROPS_PER_DAILY_ACTION,
+    percent: Math.round((completed / total) * 100),
+    isComplete: completed === total,
+    completedKeys,
+    nextKey,
+    nextHint: nextKey
+      ? `下一步：${SPROUT_ACTIONS[nextKey].label}`
+      : '今日照护闯关已完成',
+    nextHintEn: nextKey
+      ? `Next: ${SPROUT_ACTIONS[nextKey].enLabel}`
+      : 'Daily care quest complete',
+  }
+}
+
+function normalizeMemoryDate(value) {
+  const date = value ? new Date(value) : new Date()
+  if (Number.isNaN(date.getTime())) return new Date().toISOString()
+  return date.toISOString()
+}
+
+function formatMemoryDate(value) {
+  return normalizeMemoryDate(value).slice(0, 10)
+}
+
+export function buildSproutMemoryWall({
+  careState = {},
+  emotionRecords = [],
+  treeholeEntries = [],
+  quoteCards = [],
+  limit = 4,
+  random = Math.random,
+} = {}) {
+  const normalized = normalizeSproutCareState(careState)
+  const diaryMemories = normalized.diary.map((entry, index) => ({
+    id: `diary-${entry.id || index}`,
+    type: 'diary',
+    title: entry.title || '草团子的记忆',
+    text: entry.content || '今天也留下了一点照护的痕迹。',
+    date: entry.date || formatMemoryDate(entry.createdAt),
+    createdAt: normalizeMemoryDate(entry.createdAt || entry.date),
+  }))
+
+  const moodMemories = emotionRecords.map((record, index) => ({
+    id: `mood-${record.id || index}`,
+    type: 'mood',
+    title: record.mood ? `心情旅程：${record.mood}` : '心情旅程',
+    text: record.happy_moment || record.happyMoment || '你认真记录过一次当下的感受。',
+    date: formatMemoryDate(record.created_at || record.createdAt),
+    createdAt: normalizeMemoryDate(record.created_at || record.createdAt),
+  }))
+
+  const treeholeMemories = treeholeEntries.map((entry, index) => ({
+    id: `treehole-${entry.id || index}`,
+    type: 'treehole',
+    title: '树洞里的一句话',
+    text: entry.content || entry.text || '你曾经把一点心事放在这里。',
+    image: entry.image_data || entry.imageData || entry.image || '',
+    date: formatMemoryDate(entry.created_at || entry.createdAt),
+    createdAt: normalizeMemoryDate(entry.created_at || entry.createdAt),
+  }))
+
+  const quoteMemories = quoteCards.map((card, index) => ({
+    id: `quote-${card.id || index}`,
+    type: 'quote',
+    title: card.title || '日签语录',
+    text: card.quote || card.caption || '有一句话曾经陪过你。',
+    date: formatMemoryDate(card.createdAt || card.created_at),
+    createdAt: normalizeMemoryDate(card.createdAt || card.created_at),
+  }))
+
+  const allMemories = [
+    ...diaryMemories,
+    ...moodMemories,
+    ...treeholeMemories,
+    ...quoteMemories,
+  ]
+    .filter((item) => item.text)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+  if (allMemories.length <= limit) return allMemories
+
+  const offset = Math.floor(random() * allMemories.length)
+  return Array.from({ length: limit }, (_, index) => (
+    allMemories[(offset + index) % allMemories.length]
+  ))
 }
 
 export function getSproutMilestone(streakDays = 1) {

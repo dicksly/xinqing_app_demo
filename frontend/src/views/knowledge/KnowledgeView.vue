@@ -2,17 +2,17 @@
   <div class="knowledge-view">
     <div class="care-page knowledge-redesign">
       <header class="care-page-header">
-        <h1 class="care-page-title">知识充电站</h1>
-        <p class="care-page-subtitle">用轻内容慢慢理解自己</p>
+        <h1 class="care-page-title">{{ locale === 'zh-CN' ? '知识充电站' : 'Knowledge Hub' }}</h1>
+        <p class="care-page-subtitle">{{ locale === 'zh-CN' ? '用轻内容慢慢理解自己' : 'Understand yourself through lighter content.' }}</p>
       </header>
 
       <section class="care-card pad quote-redesign">
         <div class="quote-topline">
-          <span class="care-kicker">晨曦语录</span>
+          <span class="care-kicker">{{ locale === 'zh-CN' ? '晨曦语录' : 'Dawn Quote' }}</span>
           <span>{{ currentDate }}</span>
         </div>
-        <p>“{{ dailyQuote.text || '把今天过完，也是一种向前。' }}”</p>
-        <small>— {{ dailyQuote.author || '心灵疗愈站' }}</small>
+        <p>“{{ dailyQuote.text || (locale === 'zh-CN' ? '把今天过完，也是一种向前。' : 'Getting through today is also a way forward.') }}”</p>
+        <small>— {{ dailyQuote.author || (locale === 'zh-CN' ? '心灵疗愈站' : 'Xinqing') }}</small>
       </section>
 
       <div class="segmented-row knowledge-tabs-redesign" style="--segment-count: 4">
@@ -30,9 +30,9 @@
 
       <section v-if="activeCategory === 'video'" class="care-card pad featured-content featured-content-media">
         <div class="featured-copy-block">
-          <span class="care-chip sage">轻量内容</span>
-          <h2>先看一点轻内容</h2>
-          <p>让理解从更轻的入口开始。</p>
+          <span class="care-chip sage">{{ locale === 'zh-CN' ? '轻量内容' : 'Light Content' }}</span>
+          <h2>{{ locale === 'zh-CN' ? '先看一点轻内容' : 'Start With Something Light' }}</h2>
+          <p>{{ locale === 'zh-CN' ? '让理解从更轻的入口开始。' : 'Let understanding begin from an easier entry point.' }}</p>
         </div>
         <img
           v-if="videoContent[0]?.thumbnail_url"
@@ -52,9 +52,9 @@
       </section>
 
       <section v-else-if="activeCategory === 'test'" class="care-card pad featured-content">
-        <span class="care-chip blue">心理测试</span>
+          <span class="care-chip blue">{{ locale === 'zh-CN' ? '心理测试' : 'Self Test' }}</span>
         <h2>{{ featuredTest?.title || '测试你的恢复能量' }}</h2>
-        <p>用几个问题看看最近的能量、压力和恢复节奏。</p>
+        <p>{{ locale === 'zh-CN' ? '用几个问题看看最近的能量、压力和恢复节奏。' : 'Use a few questions to check your energy, stress, and recovery rhythm.' }}</p>
         <button
           type="button"
           class="content-action"
@@ -62,13 +62,13 @@
           @click="featuredTest && startTest(featuredTest)"
         >
           <img :src="quizIcon" alt="" />
-          <span>立即开始</span>
+          <span>{{ locale === 'zh-CN' ? '立即开始' : 'Start' }}</span>
         </button>
       </section>
 
       <section v-else-if="activeCategory === 'article'" class="care-card pad featured-content featured-content-media">
         <div class="featured-copy-block">
-          <span class="care-chip blue">文章</span>
+          <span class="care-chip blue">{{ locale === 'zh-CN' ? '文章' : 'Article' }}</span>
           <h2>{{ articles[0]?.title || '压力来临时，身体在说什么？' }}</h2>
           <p>{{ articles[0]?.content?.substring(0, 38) || '读一点短文，把感受和理解慢慢接起来。' }}</p>
         </div>
@@ -85,12 +85,12 @@
           @click="articles[0] && viewArticle(articles[0])"
         >
           <img :src="articleIcon" alt="" />
-          <span>继续阅读</span>
+          <span>{{ locale === 'zh-CN' ? '继续阅读' : 'Read' }}</span>
         </button>
       </section>
 
       <section v-else class="care-card pad featured-content">
-        <span class="care-chip sage">专题</span>
+        <span class="care-chip sage">{{ locale === 'zh-CN' ? '专题' : 'Topic' }}</span>
         <h2>{{ topics[0]?.title || '给自己一点恢复空间' }}</h2>
         <p>{{ topics[0]?.desc || '把零散内容整理成一个更完整的主题入口。' }}</p>
       </section>
@@ -119,6 +119,44 @@
             <p>测试 · 12题</p>
           </div>
         </article>
+      </section>
+
+      <section class="care-card pad prepared-materials-section">
+        <div class="section-title-row">
+          <div>
+            <span class="care-chip sage">{{ locale === 'zh-CN' ? '资料库' : 'Library' }}</span>
+            <h2 class="care-card-title">{{ locale === 'zh-CN' ? '已准备内容' : 'Prepared Materials' }}</h2>
+          </div>
+          <span>{{ locale === 'zh-CN' ? preparedMaterialSummary.label : `${preparedMaterialSummary.videoCount} videos · ${preparedMaterialSummary.articleCount} articles` }}</span>
+        </div>
+
+        <div class="full-video-list">
+          <h3>{{ locale === 'zh-CN' ? '全部视频' : 'All Videos' }} · {{ videoContent.length }}</h3>
+          <button
+            v-for="item in videoContent"
+            :key="item.id"
+            type="button"
+            class="material-row"
+            @click="viewContent(item)"
+          >
+            <img v-if="item.thumbnail_url" :src="item.thumbnail_url" :alt="item.title" />
+            <span>{{ item.title }}</span>
+          </button>
+        </div>
+
+        <div class="full-article-list">
+          <h3>{{ locale === 'zh-CN' ? '全部文章' : 'All Articles' }} · {{ articles.length }}</h3>
+          <button
+            v-for="article in articles"
+            :key="article.id"
+            type="button"
+            class="material-row"
+            @click="viewArticle(article)"
+          >
+            <img v-if="article.cover_image" :src="article.cover_image" :alt="article.title" />
+            <span>{{ article.title }}</span>
+          </button>
+        </div>
       </section>
     </div>
 
@@ -419,7 +457,7 @@ import {
 } from '@element-plus/icons-vue'
 import { knowledgeApi } from '../../api/index.js'
 import { ElMessage } from 'element-plus'
-import { SBTI_TEST, mapKnowledgePageData } from './knowledge-public-data.js'
+import { SBTI_TEST, getPreparedMaterialSummary, mapKnowledgePageData } from './knowledge-public-data.js'
 import articleIcon from '../../assets/icons/image2-content-article.png'
 import quizIcon from '../../assets/icons/image2-content-quiz.png'
 
@@ -439,6 +477,7 @@ const knowledgeTabs = computed(() => [
   { name: 'article', label: t('knowledge.article') },
   { name: 'topic', label: t('knowledge.topic') },
 ])
+const preparedMaterialSummary = computed(() => getPreparedMaterialSummary())
 
 // 压力自测题目
 function getStressTestQuestions() {
@@ -1007,6 +1046,75 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md, 16px);
+}
+
+.prepared-materials-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.prepared-materials-section .section-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.prepared-materials-section .section-title-row > span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.full-video-list,
+.full-article-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.full-video-list h3,
+.full-article-list h3 {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.material-row {
+  width: 100%;
+  min-height: 58px;
+  border: 1px solid var(--h5-border);
+  border-radius: 16px;
+  padding: 8px;
+  background: #FBF7F3;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.material-row img {
+  width: 48px;
+  height: 42px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.material-row span {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 900;
 }
 
 /* 卡片头部 */

@@ -19,14 +19,18 @@ test('app shell uses five bottom tabs and moves profile to top controls', () => 
   assert.ok(navItemsMatch, 'expected a navItems computed array')
   assert.equal((navItemsMatch[1].match(/path:/g) || []).length, 5)
   assert.doesNotMatch(navItemsMatch[1], /\/profile/)
-  assert.match(navItemsMatch[1], /label:\s*locale\.value === 'zh-CN' \? '知识'/)
+  assert.match(navItemsMatch[1], /label:\s*t\('nav\.knowledge'\)/)
   assert.match(appVue, /class="control-btn profile-entry"/)
+  assert.match(appVue, /t\('nav\.profileShort'\)/)
+  assert.match(appVue, /t\('theme\.lightShort'\)/)
+  assert.match(appVue, /t\('theme\.darkShort'\)/)
   assert.match(appVue, /router\.push\('\/profile'\)/)
 })
 
 test('bottom nav emotion icon uses corrected artwork crop', () => {
   assert.match(appVue, /class="image2-icon nav-image-icon"/)
   assert.match(appVue, /iconClass:\s*'emotion-nav-icon'/)
+  assert.match(appVue, /emotionIconStyle/)
   assert.match(appVue, /--nav-icon-x/)
   assert.match(appVue, /--nav-icon-scale/)
 })
@@ -64,8 +68,25 @@ test('home page matches the approved daily-care dashboard', () => {
 
 test('home companion care actions are local-first and route to daily task', () => {
   assert.match(homeView, /applySproutCareAction/)
+  assert.match(homeView, /getSproutQuestProgress/)
   assert.match(homeView, /xinqing_sprout_care_state/)
   assert.match(homeView, /router\.push\('\/emotion'\)/)
+})
+
+test('home page moves daily healing task above care quest and adds memory wall aggregation', () => {
+  const heroIndex = homeView.indexOf('sprout-hero')
+  const taskIndex = homeView.indexOf('daily-task-card')
+  const careIndex = homeView.indexOf('care-actions-card')
+
+  assert.ok(heroIndex > -1, 'expected hero section')
+  assert.ok(taskIndex > heroIndex, 'daily task should be after hero')
+  assert.ok(careIndex > taskIndex, 'care actions should come after daily task')
+  assert.match(homeView, /quest-progress-card/)
+  assert.match(homeView, /questProgress\.percent/)
+  assert.match(homeView, /memory-wall-grid/)
+  assert.match(homeView, /buildSproutMemoryWall/)
+  assert.match(homeView, /xinqing_treehole_records/)
+  assert.match(homeView, /xinqing_mood_quote_cards/)
 })
 
 test('home companion uses a single mascot artwork without an emoji face overlay', () => {
@@ -76,10 +97,10 @@ test('home companion uses a single mascot artwork without an emoji face overlay'
 })
 
 test('emotion page keeps check-in behavior in the redesigned ritual layout', () => {
-  assert.match(emotionView, /今日心情打卡/)
-  assert.match(emotionView, /基础状态/)
-  assert.match(emotionView, /微光时刻/)
-  assert.match(emotionView, /保存今日状态/)
+  assert.match(emotionView, /t\('emotion\.title'\)/)
+  assert.match(emotionView, /t\('emotion\.basicStatus'\)/)
+  assert.match(emotionView, /t\('emotion\.happyMoment'\)/)
+  assert.match(emotionView, /Save Today/)
   assert.match(emotionView, /日签语录/)
   assert.match(emotionView, /保存日签/)
   assert.match(emotionView, /分享/)
@@ -87,12 +108,18 @@ test('emotion page keeps check-in behavior in the redesigned ritual layout', () 
   assert.match(emotionView, /handleSubmit/)
 })
 
+test('emotion detailed assessment uses the configurable question source', () => {
+  assert.match(emotionView, /getAssessmentQuestions/)
+  assert.match(emotionView, /createAssessmentAnswers/)
+  assert.doesNotMatch(emotionView, /const assessmentQuestions = computed\(\(\) => \[\s*\{/)
+})
+
 test('mindfulness page exposes practice player, breathing entry, and games', () => {
-  assert.match(mindfulnessView, /selectedDuration }} 分钟安静练习/)
+  assert.match(mindfulnessView, /min quiet practice/)
   assert.match(mindfulnessView, /\[5,\s*10,\s*20\]/)
   assert.match(mindfulnessView, /currentMonthlyTheme\.cover_image/)
   assert.match(mindfulnessView, /openThemeSource/)
-  assert.match(mindfulnessView, /4-7-8 呼吸/)
+  assert.match(mindfulnessView, /4-7-8 Breathing/)
   assert.match(mindfulnessView, /消消乐/)
   assert.match(mindfulnessView, /切水果/)
   assert.doesNotMatch(mindfulnessView, /泡泡/)
@@ -100,11 +127,19 @@ test('mindfulness page exposes practice player, breathing entry, and games', () 
   assert.match(mindfulnessView, /toggleBreathing/)
 })
 
+test('mindfulness page has source fallback player and configurable external game links', () => {
+  assert.match(mindfulnessView, /audioFallbackTheme/)
+  assert.match(mindfulnessView, /source-player-panel/)
+  assert.match(mindfulnessView, /openThemeSourcePlayer/)
+  assert.match(mindfulnessView, /EXTERNAL_MINI_GAMES/)
+  assert.match(mindfulnessView, /external-game-tile/)
+})
+
 test('treehole page exposes safe composer, privacy controls, and square feed', () => {
-  assert.match(treeholeView, /倾诉你的心声/)
-  assert.match(treeholeView, /把这里当作树洞/)
-  assert.match(treeholeView, /发送到树洞/)
-  assert.match(treeholeView, /树洞广场/)
+  assert.match(treeholeView, /t\('treehole\.title'\)/)
+  assert.match(treeholeView, /t\('treehole\.placeholder'\)/)
+  assert.match(treeholeView, /t\('treehole\.sendToTreehole'\)/)
+  assert.match(treeholeView, /t\('treehole\.squareTitle'\)/)
   assert.match(treeholeView, /点赞/)
   assert.match(treeholeView, /评论/)
   assert.match(treeholeView, /回复/)
@@ -131,6 +166,15 @@ test('knowledge page exposes editorial hub while preserving content actions', ()
   assert.match(knowledgeView, /article\.cover_image/)
   assert.match(knowledgeView, /viewContent/)
   assert.match(knowledgeView, /startTest/)
+})
+
+test('knowledge page surfaces all prepared videos and articles in the redesigned view', () => {
+  assert.match(knowledgeView, /prepared-materials-section/)
+  assert.match(knowledgeView, /full-video-list/)
+  assert.match(knowledgeView, /full-article-list/)
+  assert.match(knowledgeView, /preparedMaterialSummary/)
+  assert.match(knowledgeView, /videoContent\.length/)
+  assert.match(knowledgeView, /articles\.length/)
 })
 
 test('profile settings hides admin entry and exposes font sizing controls', () => {

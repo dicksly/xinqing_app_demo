@@ -12,10 +12,12 @@ import {
 import {
   applySproutCareAction,
   addSproutDiaryEntry,
+  buildSproutMemoryWall,
   claimSproutMilestoneReward,
   createDefaultSproutCareState,
   equipSproutAccessory,
   getSproutMilestone,
+  getSproutQuestProgress,
   getUnlockedSproutFeatures,
   plantSproutGardenItem,
 } from '../src/utils/sprout-care.js'
@@ -27,6 +29,16 @@ import {
   scoreAssessment,
   validateAssessmentConsent,
 } from '../src/utils/assessment.js'
+import {
+  ASSESSMENT_QUESTIONS,
+  createAssessmentAnswers,
+  getAssessmentQuestions,
+  mapAssessmentAnswersToBackendScale,
+} from '../src/utils/assessment-questions.js'
+import {
+  EXTERNAL_MINI_GAMES,
+  getExternalGameLinks,
+} from '../src/utils/external-games.js'
 import { getMonthlyTheme, MONTHLY_BACKGROUND_THEMES } from '../src/utils/meditation-themes.js'
 import { getCutRatio, getRandomSoapSkin } from '../src/utils/soap-game.js'
 
@@ -68,6 +80,47 @@ test('tracks sprout care actions and grants daily sun drops once per action', ()
   assert.equal(washed.actions.feed.count, 2)
   assert.equal(washed.actions.wash.count, 1)
   assert.match(washed.moodText, /清爽|照顾/)
+})
+
+test('summarizes daily sprout care as a quest energy loop', () => {
+  const now = new Date('2026-06-25T08:00:00.000Z')
+  const initial = createDefaultSproutCareState()
+  const fed = applySproutCareAction(initial, 'feed', now)
+  const washed = applySproutCareAction(fed, 'wash', now)
+  const quest = getSproutQuestProgress(washed, now)
+
+  assert.equal(quest.completed, 2)
+  assert.equal(quest.total, 4)
+  assert.equal(quest.energy, 30)
+  assert.equal(quest.percent, 50)
+  assert.equal(quest.isComplete, false)
+  assert.match(quest.nextHint, /出门|互动/)
+})
+
+test('builds sprout memory wall from diary, mood, treehole, and quote cards', () => {
+  const careState = addSproutDiaryEntry(createDefaultSproutCareState(), {
+    title: '今天的小窝',
+    content: '草团子听完了我的一点心事。',
+  }, new Date('2026-06-20T08:00:00.000Z'))
+
+  const memories = buildSproutMemoryWall({
+    careState,
+    emotionRecords: [
+      { id: 1, mood: 'calm', happy_moment: '晚风很好', created_at: '2026-06-21T08:00:00.000Z' },
+    ],
+    treeholeEntries: [
+      { id: 2, content: '今天想把压力先放在这里。', image_data: 'data:image/png;base64,abc', created_at: '2026-06-22T08:00:00.000Z' },
+    ],
+    quoteCards: [
+      { id: 3, title: '安稳日签', quote: '慢慢呼吸。', createdAt: '2026-06-23T08:00:00.000Z' },
+    ],
+    random: () => 0,
+    limit: 4,
+  })
+
+  assert.deepEqual(new Set(memories.map((item) => item.type)), new Set(['diary', 'mood', 'treehole', 'quote']))
+  assert.equal(memories.find((item) => item.type === 'treehole').image, 'data:image/png;base64,abc')
+  assert.ok(memories.every((item) => item.title && item.text))
 })
 
 test('maps sprout milestones from the companion growth document', () => {
@@ -221,6 +274,30 @@ test('builds backend payload for detailed psychological assessment', () => {
   })
 })
 
+test('detailed psychological assessment questions are configurable and backend-compatible', () => {
+  const zhQuestions = getAssessmentQuestions('zh-CN')
+  const enQuestions = getAssessmentQuestions('en-US')
+
+  assert.equal(ASSESSMENT_QUESTIONS.length, 5)
+  assert.deepEqual(zhQuestions.map((question) => question.key), ['sleep', 'anxiety', 'sadness', 'energy', 'focus'])
+  assert.match(zhQuestions[0].label, /睡眠/)
+  assert.match(enQuestions[0].label, /Sleep/)
+  assert.deepEqual(createAssessmentAnswers(), {
+    sleep: 0,
+    anxiety: 0,
+    sadness: 0,
+    energy: 0,
+    focus: 0,
+  })
+  assert.deepEqual(mapAssessmentAnswersToBackendScale({ sleep: 0, anxiety: 4 }), {
+    sleep: 1,
+    anxiety: 5,
+    sadness: 1,
+    energy: 1,
+    focus: 1,
+  })
+})
+
 test('normalizes backend psychological assessment result for display', () => {
   const result = normalizeAssessmentResult({
     assessment_id: 12,
@@ -244,6 +321,8 @@ test('defines twelve monthly meditation background themes', () => {
   assert.equal(getMonthlyTheme(8).key, 'aug-ocean')
   assert.equal(getMonthlyTheme(1).sourceUrl, 'https://www.youtube.com/watch?v=MbW8YIv28wg')
   assert.equal(getMonthlyTheme(12).sourceUrl, 'https://www.youtube.com/watch?v=eNPG8jGfJRk')
+  assert.equal(getMonthlyTheme(1).sourcePlaybackMode, 'embed')
+  assert.match(getMonthlyTheme(1).embedUrl, /youtube\.com\/embed\/MbW8YIv28wg/)
 })
 
 test('monthly meditation themes expose downloaded cover artwork', () => {
@@ -260,6 +339,13 @@ test('monthly meditation themes expose downloaded cover artwork', () => {
       `missing downloaded meditation cover for month ${paddedMonth}`
     )
   })
+})
+
+test('external mini game links are configurable placeholders until product links are provided', () => {
+  assert.deepEqual(EXTERNAL_MINI_GAMES.map((game) => game.title), ['抓大鹅', '消消乐', '切水果'])
+  assert.equal(EXTERNAL_MINI_GAMES.every((game) => game.needsProvidedLink), true)
+  assert.equal(getExternalGameLinks().length, 3)
+  assert.equal(getExternalGameLinks({ goose: 'https://example.com/goose' })[0].url, 'https://example.com/goose')
 })
 
 test('soap game chooses a new skin and cuts at pointer ratio', () => {

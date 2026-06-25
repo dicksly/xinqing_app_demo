@@ -7,7 +7,7 @@
         :title="t('nav.profile')"
         @click="router.push('/profile')"
       >
-        我
+        {{ t('nav.profileShort') }}
       </button>
 
       <button class="control-btn lang-toggle" type="button" @click="toggleLanguage" :title="currentLangName">
@@ -20,7 +20,7 @@
         @click="toggleTheme"
         :title="themeStore.isDark ? t('theme.lightMode') : t('theme.darkMode')"
       >
-        <span class="theme-pill">{{ themeStore.isDark ? '日' : '夜' }}</span>
+        <span class="theme-pill">{{ themeStore.isDark ? t('theme.lightShort') : t('theme.darkShort') }}</span>
       </button>
     </div>
 
@@ -70,24 +70,25 @@ const activeTab = ref('/home')
 
 const currentLangCode = computed(() => locale.value === 'zh-CN' ? 'EN' : '中')
 const currentLangName = computed(() => locale.value === 'zh-CN' ? 'Switch to English' : '切换到中文')
+const emotionIconStyle = {
+  '--nav-icon-x': '0px',
+  '--nav-icon-y': '-2px',
+  '--nav-icon-scale': '1.08',
+}
 
 const navItems = computed(() => [
-  { path: '/home', label: locale.value === 'zh-CN' ? '首页' : t('nav.home'), icon: homeIcon, iconClass: 'home-nav-icon' },
+  { path: '/home', label: t('nav.home'), icon: homeIcon, iconClass: 'home-nav-icon' },
   {
     path: '/emotion',
-    label: locale.value === 'zh-CN' ? '情绪' : t('nav.emotion'),
+    label: t('nav.emotion'),
     icon: emotionIcon,
     iconClass: 'emotion-nav-icon',
-    iconStyle: {
-      '--nav-icon-x': '-3px',
-      '--nav-icon-y': '-1px',
-      '--nav-icon-scale': '1.2',
-    },
+    iconStyle: emotionIconStyle,
   },
-  { path: '/mindfulness', label: locale.value === 'zh-CN' ? '正念' : t('nav.mindfulness'), icon: mindfulnessIcon, iconClass: 'mindfulness-nav-icon' },
+  { path: '/mindfulness', label: t('nav.mindfulness'), icon: mindfulnessIcon, iconClass: 'mindfulness-nav-icon' },
   {
     path: '/treehole',
-    label: locale.value === 'zh-CN' ? '树洞' : t('nav.treehole'),
+    label: t('nav.treehole'),
     icon: treeholeIcon,
     iconClass: 'treehole-nav-icon',
     iconStyle: {
@@ -96,7 +97,7 @@ const navItems = computed(() => [
       '--nav-icon-scale': '1.08',
     },
   },
-  { path: '/knowledge', label: locale.value === 'zh-CN' ? '知识' : t('nav.knowledge'), icon: knowledgeIcon, iconClass: 'knowledge-nav-icon' },
+  { path: '/knowledge', label: t('nav.knowledge'), icon: knowledgeIcon, iconClass: 'knowledge-nav-icon' },
 ])
 
 function toggleTheme() {
@@ -258,6 +259,11 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+}
+
+.nav-item .emotion-nav-icon {
+  border-radius: 50%;
+  filter: saturate(1.04) drop-shadow(0 3px 5px rgba(89, 122, 82, 0.16));
 }
 
 .nav-image-icon {

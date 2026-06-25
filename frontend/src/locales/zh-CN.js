@@ -26,8 +26,9 @@ export default {
     emotion: '情绪',
     mindfulness: '正念',
     treehole: '树洞',
-    knowledge: '充电站',
+    knowledge: '知识',
     profile: '我的',
+    profileShort: '我',
   },
 
   home: {
@@ -285,6 +286,8 @@ export default {
   theme: {
     lightMode: '亮色模式',
     darkMode: '暗色模式',
+    lightShort: '日',
+    darkShort: '夜',
   },
 
   // 语言

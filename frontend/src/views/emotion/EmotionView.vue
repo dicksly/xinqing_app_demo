@@ -1,12 +1,12 @@
 <template>
   <div class="care-page emotion-view">
     <header class="care-page-header">
-      <h1 class="care-page-title">今日心情打卡</h1>
-      <p class="care-page-subtitle">慢慢来，选一个最接近的状态</p>
+      <h1 class="care-page-title">{{ t('emotion.title') }}</h1>
+      <p class="care-page-subtitle">{{ locale === 'zh-CN' ? '慢慢来，选一个最接近的状态' : 'Take it slowly and choose the state that feels closest.' }}</p>
     </header>
 
     <section class="care-card pad checkin-panel">
-      <h2 class="care-card-title">基础状态</h2>
+      <h2 class="care-card-title">{{ t('emotion.basicStatus') }}</h2>
       <div class="mood-grid">
         <button
           v-for="mood in moods"
@@ -24,7 +24,7 @@
       </div>
 
       <div v-if="showAttribution" class="attribution-panel">
-        <h3>是什么压住了你？</h3>
+        <h3>{{ locale === 'zh-CN' ? '是什么压住了你？' : 'What feels heavy today?' }}</h3>
         <div class="stress-tags">
           <el-check-tag
             v-for="tag in stressSources"
@@ -58,7 +58,7 @@
 
     <section class="care-card pad slider-panel">
       <div class="slider-header">
-        <h2 class="care-card-title">能量水平</h2>
+        <h2 class="care-card-title">{{ t('emotion.energyLevel') }}</h2>
         <strong>{{ currentRecord.energyLevel }}%</strong>
       </div>
       <el-slider
@@ -68,7 +68,7 @@
         active-color="#6E9DD8"
       />
       <div class="sleep-row">
-        <h2 class="care-card-title">睡眠质量</h2>
+        <h2 class="care-card-title">{{ t('emotion.sleepQuality') }}</h2>
         <el-rate
           v-model="currentRecord.sleepQuality"
           :max="5"
@@ -80,19 +80,19 @@
     </section>
 
     <section class="care-card pad journal-panel">
-      <h2 class="care-card-title">微光时刻</h2>
+      <h2 class="care-card-title">{{ t('emotion.happyMoment') }}</h2>
       <el-input
         v-model="currentRecord.happyMoment"
         class="quiet-field"
         type="textarea"
         :rows="3"
-        placeholder="今天有一点点值得记下的事吗？"
+        :placeholder="locale === 'zh-CN' ? '今天有一点点值得记下的事吗？' : 'Was there one tiny thing worth keeping today?'"
         maxlength="50"
         show-word-limit
         resize="none"
       />
       <button v-if="!currentRecord.happyMoment" type="button" class="inspiration-link" @click="getInspiration">
-        给我一点灵感
+        {{ t('emotion.getInspiration') }}
       </button>
     </section>
 
@@ -104,20 +104,20 @@
       class="submit-btn soft-submit"
       round
     >
-      保存今日状态
+      {{ locale === 'zh-CN' ? '保存今日状态' : 'Save Today' }}
     </el-button>
 
     <section class="care-card pad analysis-entry-card">
       <div>
-        <h2 class="care-card-title">详细心理分析</h2>
-        <p class="care-card-copy">填写问卷前需要阅读知情同意书并签名。</p>
+        <h2 class="care-card-title">{{ locale === 'zh-CN' ? '详细心理分析' : 'Detailed Psychological Analysis' }}</h2>
+        <p class="care-card-copy">{{ locale === 'zh-CN' ? '填写问卷前需要阅读知情同意书并签名。' : 'Read and sign the consent form before taking the questionnaire.' }}</p>
       </div>
-      <el-button type="primary" round @click="openAssessment">进入问卷</el-button>
+      <el-button type="primary" round @click="openAssessment">{{ locale === 'zh-CN' ? '进入问卷' : 'Start' }}</el-button>
     </section>
 
     <section class="care-card pad report-card">
-      <h2 class="care-card-title">本周情绪小结</h2>
-      <p class="care-card-copy">记录 3 天后会生成更清晰的趋势</p>
+      <h2 class="care-card-title">{{ locale === 'zh-CN' ? '本周情绪小结' : 'Weekly Mood Summary' }}</h2>
+      <p class="care-card-copy">{{ locale === 'zh-CN' ? '记录 3 天后会生成更清晰的趋势' : 'After 3 check-ins, your trend will become clearer.' }}</p>
       <div v-if="weeklyReport" class="report-stats">
         <div class="stat-item">
           <strong>{{ weeklyReport.total_records }}</strong>
@@ -237,6 +237,10 @@ import {
   scoreAssessment,
   validateAssessmentConsent,
 } from '../../utils/assessment'
+import {
+  createAssessmentAnswers,
+  getAssessmentQuestions,
+} from '../../utils/assessment-questions'
 import { emotionApi } from '../../api'
 
 const { t, locale } = useI18n()
@@ -256,13 +260,7 @@ const assessmentConsent = ref({
   isMinor: false,
   guardianSignature: '',
 })
-const assessmentAnswers = ref({
-  sleep: 0,
-  anxiety: 0,
-  sadness: 0,
-  energy: 0,
-  focus: 0,
-})
+const assessmentAnswers = ref(createAssessmentAnswers())
 const assessmentResult = ref(null)
 
 const moods = computed(() => [
@@ -306,13 +304,7 @@ const inspirations = computed(() => locale.value === 'zh-CN' ? [
 
 const showAttribution = computed(() => ['anxious', 'sad'].includes(currentRecord.value.mood))
 
-const assessmentQuestions = computed(() => [
-  { key: 'sleep', label: locale.value === 'zh-CN' ? '最近睡眠受影响的程度' : 'Sleep disruption recently' },
-  { key: 'anxiety', label: locale.value === 'zh-CN' ? '焦虑或紧绷的程度' : 'Anxiety or tension level' },
-  { key: 'sadness', label: locale.value === 'zh-CN' ? '低落或无力的程度' : 'Sadness or exhaustion level' },
-  { key: 'energy', label: locale.value === 'zh-CN' ? '日常能量被消耗的程度' : 'Daily energy drain' },
-  { key: 'focus', label: locale.value === 'zh-CN' ? '注意力受影响的程度' : 'Focus disruption' },
-])
+const assessmentQuestions = computed(() => getAssessmentQuestions(locale.value))
 
 function toggleStressSource(value) {
   const index = currentRecord.value.stressSources.indexOf(value)
@@ -337,6 +329,13 @@ async function handleSubmit() {
   submitting.value = true
   try {
     const savedMood = currentRecord.value.mood
+    const localRecord = {
+      mood: savedMood,
+      energy_level: currentRecord.value.energyLevel,
+      sleep_quality: currentRecord.value.sleepQuality,
+      happy_moment: currentRecord.value.happyMoment,
+      created_at: new Date().toISOString(),
+    }
     await emotionStore.createRecord({
       ...currentRecord.value,
       stressSources: JSON.stringify(currentRecord.value.stressSources),
@@ -345,6 +344,8 @@ async function handleSubmit() {
     localStorage.setItem('xinqing_today_mood', savedMood)
     latestInsight.value = getMoodInsight(savedMood)
     latestQuoteCard.value = getMoodQuoteCard(savedMood)
+    persistLocalMoodRecord(localRecord)
+    persistLocalQuoteCard(latestQuoteCard.value)
     quoteCardVisible.value = true
     ElMessage.success(locale.value === 'zh-CN' ? '打卡成功！' : 'Check-in successful!')
     emotionStore.resetCurrentRecord()
@@ -354,6 +355,31 @@ async function handleSubmit() {
   } finally {
     submitting.value = false
   }
+}
+
+function readLocalList(key) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || '[]')
+    return Array.isArray(value) ? value : []
+  } catch {
+    return []
+  }
+}
+
+function persistLocalMoodRecord(record) {
+  const records = readLocalList('xinqing_emotion_records')
+  localStorage.setItem('xinqing_emotion_records', JSON.stringify([
+    { id: `local-mood-${Date.now()}`, ...record },
+    ...records,
+  ].slice(0, 30)))
+}
+
+function persistLocalQuoteCard(card) {
+  const cards = readLocalList('xinqing_mood_quote_cards')
+  localStorage.setItem('xinqing_mood_quote_cards', JSON.stringify([
+    { id: `local-quote-${Date.now()}`, ...card, createdAt: new Date().toISOString() },
+    ...cards,
+  ].slice(0, 30)))
 }
 
 function escapeSvgText(text = '') {

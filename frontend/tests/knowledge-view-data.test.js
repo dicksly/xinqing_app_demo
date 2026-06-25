@@ -6,6 +6,7 @@ import {
   KNOWLEDGE_ARTICLE_LINKS,
   KNOWLEDGE_VIDEO_LINKS,
   SBTI_TEST,
+  getPreparedMaterialSummary,
   mapKnowledgePageData,
   splitKnowledgeContents,
 } from '../src/views/knowledge/knowledge-public-data.js'
@@ -22,8 +23,10 @@ test('quote content and topics come from api responses', () => {
   })
 
   assert.equal(mapped.dailyQuote.text, '今天也可以慢慢来。')
-  assert.equal(mapped.videoContent.length, 1)
-  assert.equal(mapped.articles.length, 1)
+  assert.ok(mapped.videoContent.some((item) => item.title === '视频 A'))
+  assert.ok(mapped.articles.some((item) => item.title === '文章 B'))
+  assert.ok(mapped.videoContent.length >= 12)
+  assert.ok(mapped.articles.length >= 12)
   assert.equal(mapped.topics.length, 1)
 
   assert.deepEqual(
@@ -36,6 +39,22 @@ test('quote content and topics come from api responses', () => {
       articles: [{ id: 2, content_type: 'article' }],
     }
   )
+})
+
+test('api knowledge content is merged with missing document supplied materials', () => {
+  const mapped = mapKnowledgePageData({
+    contents: [
+      { id: 'custom-video', title: '自定义视频', content_type: 'video', source_url: 'https://example.com/custom-video' },
+      { id: 'custom-article', title: '自定义文章', content_type: 'article', source_url: 'https://example.com/custom-article' },
+    ],
+  })
+
+  assert.ok(mapped.videoContent.some((item) => item.title === '自定义视频'))
+  assert.ok(mapped.articles.some((item) => item.title === '自定义文章'))
+  assert.ok(mapped.videoContent.some((item) => item.source_url === KNOWLEDGE_VIDEO_LINKS[0]))
+  assert.ok(mapped.articles.some((item) => item.source_url === KNOWLEDGE_ARTICLE_LINKS[0]))
+  assert.equal(mapped.videoContent.length, 13)
+  assert.equal(mapped.articles.length, 13)
 })
 
 test('api knowledge content without media receives reference visuals by type order', () => {
@@ -86,6 +105,15 @@ test('document supplied knowledge materials are used when api content is empty',
   assert.equal(mapped.articles.length, 12)
   assert.equal(mapped.videoContent[0].source_url, 'https://www.youtube.com/watch?v=30VMIEmA114')
   assert.equal(mapped.articles[11].source_url, 'https://www.6seconds.org/2025/07/01/the-power-of-gratitude-change-your-brain-and-life/')
+})
+
+test('prepared material summary reports the complete document supplied library', () => {
+  const summary = getPreparedMaterialSummary()
+
+  assert.equal(summary.videoCount, 12)
+  assert.equal(summary.articleCount, 12)
+  assert.equal(summary.totalCount, 24)
+  assert.match(summary.label, /12.*12/)
 })
 
 test('document supplied knowledge materials include downloaded visual assets', () => {

@@ -3,8 +3,27 @@ const REFERENCE_ASSET_SOURCE = 'docs/references.md'
 function withReferenceCover(theme) {
   return {
     ...theme,
+    embedUrl: getYoutubeEmbedUrl(theme.sourceUrl),
+    sourcePlaybackMode: 'embed',
     cover_image: `/reference-assets/meditation/months/${String(theme.month).padStart(2, '0')}.jpg`,
     asset_source: REFERENCE_ASSET_SOURCE,
+  }
+}
+
+export function getYoutubeEmbedUrl(sourceUrl = '') {
+  try {
+    const url = new URL(sourceUrl)
+    let videoId = ''
+
+    if (url.hostname.includes('youtu.be')) {
+      videoId = url.pathname.split('/').filter(Boolean)[0] || ''
+    } else if (url.hostname.includes('youtube.com')) {
+      videoId = url.searchParams.get('v') || ''
+    }
+
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : ''
+  } catch {
+    return ''
   }
 }
 

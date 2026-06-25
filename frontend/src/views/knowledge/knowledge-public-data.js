@@ -144,11 +144,38 @@ export const FALLBACK_KNOWLEDGE_CONTENTS = [
   ...buildFallbackContent(KNOWLEDGE_ARTICLE_LINKS, ARTICLE_TITLES, 'article'),
 ]
 
+export function getPreparedMaterialSummary() {
+  const videoCount = KNOWLEDGE_VIDEO_LINKS.length
+  const articleCount = KNOWLEDGE_ARTICLE_LINKS.length
+
+  return {
+    videoCount,
+    articleCount,
+    totalCount: videoCount + articleCount,
+    label: `${videoCount} 个视频 · ${articleCount} 篇文章`,
+  }
+}
+
 export function splitKnowledgeContents(contents = []) {
   return {
     videoContent: contents.filter((item) => item.content_type === 'video'),
     articles: contents.filter((item) => item.content_type === 'article'),
   }
+}
+
+function mergeWithFallbackContents(contents = []) {
+  if (contents.length === 0) return FALLBACK_KNOWLEDGE_CONTENTS
+
+  const seenSourceUrls = new Set(
+    contents
+      .map((item) => item.source_url)
+      .filter(Boolean)
+  )
+  const missingFallbacks = FALLBACK_KNOWLEDGE_CONTENTS.filter((item) => (
+    !seenSourceUrls.has(item.source_url)
+  ))
+
+  return [...contents, ...missingFallbacks]
 }
 
 function mapTopic(topic) {
@@ -165,7 +192,7 @@ function mapTopic(topic) {
 }
 
 export function mapKnowledgePageData({ quote = null, contents = [], topics = [] }) {
-  const effectiveContents = contents.length > 0 ? contents : FALLBACK_KNOWLEDGE_CONTENTS
+  const effectiveContents = mergeWithFallbackContents(contents)
   const splitContents = splitKnowledgeContents(effectiveContents)
   const videoContent = splitContents.videoContent.map((item, index) => withReferenceAsset(item, 'video', index))
   const articles = splitContents.articles.map((item, index) => withReferenceAsset(item, 'article', index))

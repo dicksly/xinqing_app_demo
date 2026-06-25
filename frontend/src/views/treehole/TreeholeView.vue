@@ -2,8 +2,8 @@
   <div class="treehole-view">
     <div class="care-page treehole-redesign">
       <header class="care-page-header">
-        <h1 class="care-page-title">倾诉你的心声</h1>
-        <p class="care-page-subtitle">这里会安静地接住你想说的话</p>
+        <h1 class="care-page-title">{{ t('treehole.title') }}</h1>
+        <p class="care-page-subtitle">{{ locale === 'zh-CN' ? '这里会安静地接住你想说的话' : 'A quiet place to hold what you need to say.' }}</p>
       </header>
 
       <section class="care-card pad treehole-composer">
@@ -12,7 +12,7 @@
           class="quiet-field letter-input"
           type="textarea"
           :rows="7"
-          placeholder="把这里当作树洞，说出你的烦恼、痛苦或心事..."
+          :placeholder="t('treehole.placeholder')"
           maxlength="1000"
           show-word-limit
           resize="none"
@@ -25,8 +25,8 @@
             :class="{ active: activeComposerPanel === 'voice' || recordingTime > 0 }"
             @click="toggleComposerPanel('voice')"
           >
-            <img :src="voiceToolIcon" class="tool-image" alt="语音" />
-            <span>语音</span>
+            <img :src="voiceToolIcon" class="tool-image" :alt="locale === 'zh-CN' ? '语音' : 'Voice'" />
+            <span>{{ locale === 'zh-CN' ? '语音' : 'Voice' }}</span>
             <small v-if="recordingTime > 0">{{ recordingTime }}s</small>
           </button>
           <button
@@ -35,15 +35,15 @@
             :class="{ active: activeComposerPanel === 'image' || !!uploadedImage }"
             @click="toggleComposerPanel('image')"
           >
-            <img :src="imageToolIcon" class="tool-image" alt="图片" />
-            <span>图片</span>
+            <img :src="imageToolIcon" class="tool-image" :alt="locale === 'zh-CN' ? '图片' : 'Image'" />
+            <span>{{ locale === 'zh-CN' ? '图片' : 'Image' }}</span>
           </button>
         </div>
 
         <transition name="panel-fade">
           <div v-if="activeComposerPanel === 'voice'" class="care-card soft composer-panel">
             <button type="button" class="record-button" :class="{ recording: isRecording }" @click="toggleRecording">
-              {{ isRecording ? '停止录音' : '开始录音' }}
+              {{ isRecording ? (locale === 'zh-CN' ? '停止录音' : 'Stop') : (locale === 'zh-CN' ? '开始录音' : 'Record') }}
             </button>
             <span v-if="recordingTime > 0">{{ recordingTime }}s</span>
             <el-checkbox v-model="entryForm.hasVoiceChange">{{ t('treehole.voiceChange') }}</el-checkbox>
@@ -61,7 +61,7 @@
               :before-upload="beforeUpload"
               accept="image/*"
             >
-              <button type="button" class="record-button">添加图片</button>
+              <button type="button" class="record-button">{{ locale === 'zh-CN' ? '添加图片' : 'Add Image' }}</button>
             </el-upload>
             <div v-else class="image-preview compact-image-preview">
               <img :src="uploadedImage" alt="preview" />
@@ -80,7 +80,7 @@
             @click="entryForm.isAnonymous = !entryForm.isAnonymous"
           >
             <img :src="anonymousIcon" alt="" />
-            匿名
+            {{ t('treehole.anonymous') }}
           </button>
           <button
             type="button"
@@ -88,7 +88,7 @@
             :class="{ active: entryForm.isPublished }"
             @click="entryForm.isPublished = !entryForm.isPublished"
           >
-            发布到广场
+            {{ t('treehole.publishToSquare') }}
           </button>
         </div>
 
@@ -100,7 +100,7 @@
           class="submit-btn send-button"
           round
         >
-          发送到树洞
+          {{ t('treehole.sendToTreehole') }}
         </el-button>
       </section>
 
@@ -110,7 +110,7 @@
       </section>
 
       <section class="care-card pad square-redesign">
-        <h2 class="care-card-title">树洞广场</h2>
+        <h2 class="care-card-title">{{ t('treehole.squareTitle') }}</h2>
         <div class="segmented-row square-tabs-redesign" style="--segment-count: 2">
           <button class="segment-button" :class="{ active: activeTab === 'latest' }" type="button" @click="activeTab = 'latest'">
             {{ t('treehole.latest') }}
@@ -120,7 +120,7 @@
           </button>
         </div>
 
-        <div v-if="loading" class="treehole-empty">正在轻轻加载...</div>
+        <div v-if="loading" class="treehole-empty">{{ locale === 'zh-CN' ? '正在轻轻加载...' : 'Loading softly...' }}</div>
         <div v-else-if="activeTab === 'latest' && entries.length === 0" class="treehole-empty">
           <span class="image2-badge sage">
             <img :src="treeholeIcon" class="image2-icon" alt="树洞" />

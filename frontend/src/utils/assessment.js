@@ -1,3 +1,5 @@
+import { mapAssessmentAnswersToBackendScale } from './assessment-questions.js'
+
 export function validateAssessmentConsent(form = {}) {
   const errors = []
   if (!form.accepted) {
@@ -15,12 +17,6 @@ export function validateAssessmentConsent(form = {}) {
   }
 }
 
-function clampAnswerToBackendScale(value) {
-  const numeric = Number(value)
-  if (!Number.isFinite(numeric)) return 1
-  return Math.min(5, Math.max(1, Math.round(numeric) + 1))
-}
-
 export function buildAssessmentPayload(consent = {}, answers = {}, clientId = 'anonymous') {
   return {
     clientId: String(clientId || 'anonymous'),
@@ -28,13 +24,7 @@ export function buildAssessmentPayload(consent = {}, answers = {}, clientId = 'a
     userSignature: String(consent.userSignature || '').trim(),
     isMinor: Boolean(consent.isMinor),
     guardianSignature: String(consent.guardianSignature || '').trim(),
-    answers: {
-      sleep: clampAnswerToBackendScale(answers.sleep),
-      anxiety: clampAnswerToBackendScale(answers.anxiety),
-      sadness: clampAnswerToBackendScale(answers.sadness),
-      energy: clampAnswerToBackendScale(answers.energy),
-      focus: clampAnswerToBackendScale(answers.focus),
-    },
+    answers: mapAssessmentAnswersToBackendScale(answers),
   }
 }
 

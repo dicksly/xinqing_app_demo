@@ -1,15 +1,15 @@
 <template>
   <div class="care-page mindfulness-view">
     <header class="care-page-header">
-      <h1 class="care-page-title">正念练习</h1>
-      <p class="care-page-subtitle">给自己一小段安静时间</p>
+      <h1 class="care-page-title">{{ locale === 'zh-CN' ? '正念练习' : 'Mindful Practice' }}</h1>
+      <p class="care-page-subtitle">{{ locale === 'zh-CN' ? '给自己一小段安静时间' : 'Give yourself a small pocket of quiet.' }}</p>
     </header>
 
     <section class="care-card pad practice-player">
       <div class="practice-copy">
-        <span class="care-chip blue">今日推荐</span>
-        <h2>{{ selectedDuration }} 分钟安静练习</h2>
-        <p>背景音：{{ currentThemeLabel }} · 引导呼吸</p>
+        <span class="care-chip blue">{{ locale === 'zh-CN' ? '今日推荐' : 'Today Pick' }}</span>
+        <h2>{{ selectedDuration }} {{ locale === 'zh-CN' ? '分钟安静练习' : 'min quiet practice' }}</h2>
+        <p>{{ locale === 'zh-CN' ? '背景音' : 'Background' }}：{{ currentThemeLabel }} · {{ locale === 'zh-CN' ? '引导呼吸' : 'guided breathing' }}</p>
         <button type="button" class="practice-start" @click="startMeditation">
           <span class="play-circle">
             <component :is="isPlaying ? VideoPause : VideoPlay" />
@@ -28,8 +28,28 @@
           :alt="currentThemeLabel"
           class="theme-cover-image"
         />
-        <span>来源</span>
+        <span>{{ locale === 'zh-CN' ? '来源' : 'Source' }}</span>
       </button>
+    </section>
+
+    <section v-if="audioFallbackTheme" class="care-card pad source-player-panel">
+      <div class="section-title-row">
+        <div>
+          <span class="care-chip blue">{{ locale === 'zh-CN' ? '音乐来源' : 'Music Source' }}</span>
+          <h2 class="care-card-title">{{ locale === 'zh-CN' ? audioFallbackTheme.zh : audioFallbackTheme.en }}</h2>
+        </div>
+        <button type="button" class="text-action" @click="openThemeSource(audioFallbackTheme)">
+          {{ locale === 'zh-CN' ? '打开来源' : 'Open' }}
+        </button>
+      </div>
+      <iframe
+        v-if="audioFallbackTheme.embedUrl"
+        :src="audioFallbackTheme.embedUrl"
+        title="meditation source player"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen
+      ></iframe>
+      <p>{{ locale === 'zh-CN' ? '本地音频暂不可用，先使用资料链接播放。' : 'Local audio is unavailable, using the source link instead.' }}</p>
     </section>
 
     <div class="segmented-row duration-tabs" style="--segment-count: 3">
@@ -41,17 +61,17 @@
         :class="{ active: selectedDuration === duration }"
         @click="selectedDuration = duration"
       >
-        {{ duration }}分钟
+        {{ duration }}{{ locale === 'zh-CN' ? '分钟' : ' min' }}
       </button>
     </div>
 
     <section class="care-card pad volume-panel">
       <label>
-        <span>人声</span>
+        <span>{{ t('mindfulness.voice') }}</span>
         <el-slider v-model="voiceVolume" :show-tooltip="false" active-color="#6FAF8B" />
       </label>
       <label>
-        <span>背景音</span>
+        <span>{{ t('mindfulness.bgMusic') }}</span>
         <el-slider v-model="bgVolume" :show-tooltip="false" active-color="#F39A74" />
       </label>
       <el-select v-model="bgMusicType" size="small" :teleported="false" class="theme-select">
@@ -62,7 +82,7 @@
           :value="theme.key"
         />
       </el-select>
-      <p v-if="voiceFallbackActive" class="voice-status">系统语音引导中</p>
+      <p v-if="voiceFallbackActive" class="voice-status">{{ locale === 'zh-CN' ? '系统语音引导中' : 'System voice guidance active' }}</p>
     </section>
 
     <section class="care-card soft breath-entry" @click="toggleBreathing">
@@ -70,8 +90,8 @@
         <img :src="breathIcon" class="image2-icon" alt="4-7-8 呼吸" />
       </span>
       <div>
-        <h2>4-7-8 呼吸</h2>
-        <p>{{ isBreathingActive ? breathingText : '跟随节奏放慢身体' }}</p>
+        <h2>{{ locale === 'zh-CN' ? '4-7-8 呼吸' : '4-7-8 Breathing' }}</h2>
+        <p>{{ isBreathingActive ? breathingText : (locale === 'zh-CN' ? '跟随节奏放慢身体' : 'Follow the rhythm and slow the body.') }}</p>
       </div>
       <div
         class="breath-pulse"
@@ -95,13 +115,26 @@
       </button>
     </section>
 
+    <section class="external-games-strip" aria-label="External mindfulness games">
+      <button
+        v-for="game in externalGameLinks"
+        :key="game.key"
+        type="button"
+        class="care-card external-game-tile care-touch"
+        @click="openExternalGame(game)"
+      >
+        <strong>{{ locale === 'zh-CN' ? game.title : game.enTitle }}</strong>
+        <span>{{ game.needsProvidedLink ? (locale === 'zh-CN' ? '链接待补充' : 'Link pending') : (locale === 'zh-CN' ? '打开小游戏' : 'Open game') }}</span>
+      </button>
+    </section>
+
     <section class="care-card pad auth-row">
       <template v-if="authStore.isAuthenticated">
         <span>{{ authStore.user?.username }}</span>
         <el-button size="small" @click="handleLogout" text type="info">{{ t('common.logout') }}</el-button>
       </template>
       <template v-else>
-        <span>登录后同步小游戏记录</span>
+        <span>{{ locale === 'zh-CN' ? '登录后同步小游戏记录' : 'Log in to sync game records' }}</span>
         <el-button size="small" type="primary" @click="showAuthDialog = true">
           {{ t('common.login') }}
         </el-button>
@@ -153,6 +186,7 @@ import { ElMessage } from 'element-plus'
 import { useAuthStore } from '../../stores/auth'
 import { useGamesStore } from '../../stores/games'
 import { getMonthlyTheme, MONTHLY_BACKGROUND_THEMES } from '../../utils/meditation-themes'
+import { EXTERNAL_MINI_GAMES, getExternalGameLinks } from '../../utils/external-games'
 import AuthDialog from '../../components/auth/AuthDialog.vue'
 import BubbleGame from './games/BubbleGame.vue'
 import SoapGame from './games/SoapGame.vue'
@@ -191,6 +225,9 @@ const games = computed(() => [
   { id: 'match3', title: 'Match-3', zhTitle: '消消乐', icon: GridIcon, iconSrc: tidyIcon, iconClass: 'icon-primary', desc: '把同色小芽连成一片，慢慢释放压力。', implemented: true },
   { id: 'fruit-slice', title: 'Fruit Slice', zhTitle: '切水果', icon: Scissor, iconSrc: soapIcon, iconClass: 'icon-secondary', desc: '划开水果和烦恼，把注意力带回手指。', implemented: true },
 ])
+const externalGameLinks = computed(() => getExternalGameLinks(
+  Object.fromEntries(EXTERNAL_MINI_GAMES.map((game) => [game.key, game.url]))
+))
 
 const selectedType = ref('meditation')
 const selectedDuration = ref(10)
@@ -200,6 +237,7 @@ const monthlyBackgroundThemes = MONTHLY_BACKGROUND_THEMES
 const bgMusicType = ref(getMonthlyTheme(new Date().getMonth() + 1).key)
 const isPlaying = ref(false)
 const voiceFallbackActive = ref(false)
+const audioFallbackTheme = ref(null)
 const currentMonthlyTheme = computed(() => (
   monthlyBackgroundThemes.find((theme) => theme.key === bgMusicType.value) || getMonthlyTheme(new Date().getMonth() + 1)
 ))
@@ -360,9 +398,10 @@ async function playBgMusic() {
 
   try {
     await bgAudioPlayer.value.play()
+    audioFallbackTheme.value = null
   } catch (e) {
     console.warn('背景音乐播放失败:', e)
-    // 如果本地文件不存在，可以尝试使用在线资源或忽略
+    openThemeSourcePlayer(currentMonthlyTheme.value)
   }
 }
 
@@ -453,6 +492,10 @@ function stopMeditation() {
 function openThemeSource(theme) {
   if (!theme?.sourceUrl) return
   window.open(theme.sourceUrl, '_blank', 'noopener,noreferrer')
+}
+
+function openThemeSourcePlayer(theme) {
+  audioFallbackTheme.value = theme
 }
 
 // 监听音量变化
@@ -597,6 +640,15 @@ function openGame(game) {
 
   // 初始化游戏数据
   gamesStore.init()
+}
+
+function openExternalGame(game) {
+  if (!game?.url) {
+    ElMessage.info(locale.value === 'zh-CN' ? '外部小游戏链接待补充' : 'External game link pending')
+    return
+  }
+
+  window.open(game.url, '_blank', 'noopener,noreferrer')
 }
 
 // 关闭游戏
@@ -1308,6 +1360,38 @@ onMounted(() => {
   font-weight: 800;
 }
 
+.source-player-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.source-player-panel iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 18px;
+  background: #111;
+}
+
+.source-player-panel p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 800;
+}
+
+.text-action {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--h5-primary);
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .breath-entry {
   min-height: 110px;
   padding: 16px;
@@ -1358,6 +1442,38 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
+}
+
+.external-games-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.external-game-tile {
+  min-height: 82px;
+  border: 1px dashed color-mix(in srgb, var(--h5-primary) 42%, var(--h5-border));
+  background: color-mix(in srgb, var(--h5-blush) 26%, var(--h5-surface));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.external-game-tile strong {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  line-height: 1.15;
+  font-weight: 900;
+}
+
+.external-game-tile span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 800;
 }
 
 .game-tile {
