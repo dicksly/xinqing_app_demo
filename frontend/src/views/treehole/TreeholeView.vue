@@ -611,6 +611,7 @@ import {
   addTreeholeReply,
   detectTreeholeSensitivity,
   getTreeholeInteraction,
+  normalizeRemoteTreeholeInteraction,
   normalizeTreeholeInteractions,
   toggleTreeholeLike
 } from '../../utils/treehole-interactions'
@@ -692,6 +693,20 @@ function getEntryId(entry) {
   return String(entry?.id ?? entry?.created_at ?? entry?.content ?? 'draft')
 }
 
+function getTreeholeClientId() {
+  const saved = localStorage.getItem('xinqing_client_id')
+  if (saved) return saved
+  const next = `client-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  localStorage.setItem('xinqing_client_id', next)
+  return next
+}
+
+function canUseRemoteInteraction(entry) {
+  const numericId = Number(entry?.id)
+  const isPublished = entry?.is_published ?? entry?.isPublished
+  return Number.isInteger(numericId) && numericId > 0 && isPublished !== false
+}
+
 function readTreeholeInteractions() {
   try {
     return JSON.parse(localStorage.getItem('xinqing_treehole_interactions') || '{}')
@@ -710,19 +725,101 @@ function getEntryInteraction(entry) {
   return getTreeholeInteraction(interactionState.value, getEntryId(entry))
 }
 
-function toggleLike(entry) {
+function persistRemoteTreeholeInteraction(entry, payload) {
+  persistTreeholeInteractions({
+    ...interactionState.value,
+    [getEntryId(entry)]: normalizeRemoteTreeholeInteraction(payload),
+  })
+}
+
+async function refreshEntryInteraction(entry) {
+  if (!canUseRemoteInteraction(entry)) return
+
+  try {
+    const response = await treeholeApi.getInteractions(entry.id, {
+      clientId: getTreeholeClientId(),
+    })
+    persistRemoteTreeholeInteraction(entry, response.data)
+  } catch (error) {
+    console.warn('加载树洞互动失败，保留本地状态:', error)
+  }
+}
+
+async function refreshVisibleInteractions(items = []) {
+  const targets = items.filter(canUseRemoteInteraction).slice(0, 20)
+  await Promise.allSettled(targets.map((entry) => refreshEntryInteraction(entry)))
+}
+
+async function toggleLike(entry) {
+  if (canUseRemoteInteraction(entry)) {
+    try {
+      const response = await treeholeApi.toggleLike(entry.id, {
+        clientId: getTreeholeClientId(),
+      })
+      const current = getEntryInteraction(entry)
+      persistTreeholeInteractions({
+        ...interactionState.value,
+        [getEntryId(entry)]: {
+          ...current,
+          liked: response.data.liked,
+          likeCount: response.data.like_count,
+        },
+      })
+      return
+    } catch (error) {
+      console.warn('同步树洞点赞失败，使用本地兜底:', error)
+    }
+  }
+
   persistTreeholeInteractions(toggleTreeholeLike(interactionState.value, getEntryId(entry)))
 }
 
-function submitComment(entry) {
-  const nextState = addTreeholeComment(interactionState.value, getEntryId(entry), commentDraft.value)
+async function submitComment(entry) {
+  const content = commentDraft.value.trim()
+  if (!content) return
+
+  if (canUseRemoteInteraction(entry)) {
+    try {
+      await treeholeApi.addComment(entry.id, {
+        clientId: getTreeholeClientId(),
+        content,
+      })
+      commentDraft.value = ''
+      await refreshEntryInteraction(entry)
+      return
+    } catch (error) {
+      console.warn('同步树洞评论失败，使用本地兜底:', error)
+    }
+  }
+
+  const nextState = addTreeholeComment(interactionState.value, getEntryId(entry), content)
   persistTreeholeInteractions(nextState)
   commentDraft.value = ''
 }
 
-function submitReply(entry, commentId) {
+async function submitReply(entry, commentId) {
   const draft = replyDrafts.value[commentId] ?? ''
-  const nextState = addTreeholeReply(interactionState.value, getEntryId(entry), commentId, draft)
+  const content = draft.trim()
+  if (!content) return
+
+  if (canUseRemoteInteraction(entry)) {
+    try {
+      await treeholeApi.addReply(entry.id, commentId, {
+        clientId: getTreeholeClientId(),
+        content,
+      })
+      replyDrafts.value = {
+        ...replyDrafts.value,
+        [commentId]: '',
+      }
+      await refreshEntryInteraction(entry)
+      return
+    } catch (error) {
+      console.warn('同步树洞回复失败，使用本地兜底:', error)
+    }
+  }
+
+  const nextState = addTreeholeReply(interactionState.value, getEntryId(entry), commentId, content)
   persistTreeholeInteractions(nextState)
   replyDrafts.value = {
     ...replyDrafts.value,
@@ -939,6 +1036,7 @@ async function loadEntries() {
     const backendEntries = response.data || []
     const localEntries = JSON.parse(localStorage.getItem('xinqing_treehole_records') || '[]')
     entries.value = mergePublishedEntries(backendEntries, localEntries)
+    refreshVisibleInteractions(entries.value)
     latestPage.value = 1
   } catch (error) {
     console.error('加载条目失败:', error)
@@ -1008,9 +1106,10 @@ function formatTime(dateString) {
 }
 
 // 显示详情
-function showDetail(entry) {
+async function showDetail(entry) {
   selectedEntry.value = entry
   detailVisible.value = true
+  await refreshEntryInteraction(entry)
 }
 
 // 关闭详情

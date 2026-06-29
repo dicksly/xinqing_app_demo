@@ -73,6 +73,31 @@ class TreeholeEntry(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class TreeholeLike(Base):
+    """树洞公开广场点赞表。"""
+
+    __tablename__ = "treehole_likes"
+    __table_args__ = (UniqueConstraint("entry_id", "client_id", name="uq_treehole_like_entry_client"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    entry_id = Column(Integer, ForeignKey("treehole_entries.id"), index=True, nullable=False)
+    client_id = Column(String(120), index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class TreeholeComment(Base):
+    """树洞公开广场评论和回复表。"""
+
+    __tablename__ = "treehole_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    entry_id = Column(Integer, ForeignKey("treehole_entries.id"), index=True, nullable=False)
+    parent_id = Column(Integer, ForeignKey("treehole_comments.id"), index=True, nullable=True)
+    client_id = Column(String(120), index=True, nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class PsychologicalAssessment(Base):
     """详细心理分析问卷记录。"""
 

@@ -45,6 +45,21 @@ export function getTreeholeInteraction(map = {}, entryId) {
   return normalized[String(entryId)] ?? createDefaultTreeholeInteraction()
 }
 
+export function normalizeRemoteTreeholeInteraction(payload = {}) {
+  return {
+    liked: Boolean(payload.liked),
+    likeCount: Math.max(0, Number(payload.like_count ?? payload.likeCount) || 0),
+    comments: Array.isArray(payload.comments)
+      ? payload.comments.map((comment) => normalizeComment({
+          id: comment.id,
+          content: comment.content,
+          createdAt: comment.created_at || comment.createdAt,
+          replies: comment.replies,
+        })).filter((comment) => comment.content.length > 0)
+      : [],
+  }
+}
+
 export function toggleTreeholeLike(map = {}, entryId) {
   const id = String(entryId)
   const normalized = normalizeTreeholeInteractions(map)

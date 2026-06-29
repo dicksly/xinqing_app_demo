@@ -142,6 +142,81 @@
       </div>
     </section>
 
+    <section class="care-card pad advanced-care-card">
+      <div class="section-title-row">
+        <div>
+          <span class="care-chip coral">{{ isZh ? '高阶陪伴' : 'Advanced Bond' }}</span>
+          <h2 class="care-card-title">{{ isZh ? '把小窝养成真正的陪伴空间' : 'Grow the nest into a companion space' }}</h2>
+        </div>
+        <span>{{ isZh ? `已解锁 ${advancedUnlockedCount}/10` : `${advancedUnlockedCount}/10` }}</span>
+      </div>
+
+      <div class="advanced-actions-grid">
+        <button type="button" class="advanced-action" :disabled="!unlockedFeatures.crafting" @click="handleSupplyDrop">
+          <strong>{{ isZh ? '每日补给' : 'Daily Drop' }}</strong>
+          <small>{{ unlockedFeatures.crafting ? (isZh ? '随机物资' : 'Random supply') : 'Day 45' }}</small>
+        </button>
+        <button type="button" class="advanced-action" :disabled="!unlockedFeatures.crafting" @click="handleCraftSupply">
+          <strong>{{ isZh ? '合成抱枕' : 'Craft Cushion' }}</strong>
+          <small>{{ isZh ? '40 露珠' : '40 drops' }}</small>
+        </button>
+        <button type="button" class="advanced-action" :disabled="!unlockedFeatures.friendVisits" @click="handleFriendVisit">
+          <strong>{{ isZh ? '好友串门' : 'Friend Visit' }}</strong>
+          <small>{{ unlockedFeatures.friendVisits ? (latestVisit?.friendName || '小青芽') : 'Day 60' }}</small>
+        </button>
+        <button type="button" class="advanced-action" :disabled="!unlockedFeatures.freeLayout" @click="handleAutoLayout">
+          <strong>{{ isZh ? '整理小窝' : 'Arrange' }}</strong>
+          <small>{{ careState.habitat.layout.length }} {{ isZh ? '件' : 'items' }}</small>
+        </button>
+        <button type="button" class="advanced-action" :disabled="!unlockedFeatures.habitatBgm" @click="handleSetBgm">
+          <strong>{{ isZh ? '播放 BGM' : 'Nest BGM' }}</strong>
+          <small>{{ careState.habitat.bgm || 'Day 100' }}</small>
+        </button>
+        <button type="button" class="advanced-action" :disabled="!unlockedFeatures.habitatSquare" @click="handlePublishHabitat">
+          <strong>{{ isZh ? '发布小窝' : 'Publish Nest' }}</strong>
+          <small>{{ careState.habitat.publishedSnapshots.length }} {{ isZh ? '张' : 'shots' }}</small>
+        </button>
+        <button type="button" class="advanced-action" :disabled="!unlockedFeatures.harvestExchange" @click="handleHarvestGarden">
+          <strong>{{ isZh ? '收获庭院' : 'Harvest' }}</strong>
+          <small>{{ readyGardenPlots.length }} {{ isZh ? '株可收' : 'ready' }}</small>
+        </button>
+        <button type="button" class="advanced-action" :disabled="!unlockedFeatures.harvestExchange || careState.harvests.length === 0" @click="handleExchangeHarvest">
+          <strong>{{ isZh ? '兑换家具' : 'Exchange' }}</strong>
+          <small>{{ careState.harvests.length }} {{ isZh ? '份收获' : 'harvests' }}</small>
+        </button>
+        <button type="button" class="advanced-action" :disabled="!unlockedFeatures.weatherSystem" @click="handleUpdateWeather">
+          <strong>{{ isZh ? '同步天气' : 'Weather' }}</strong>
+          <small>{{ weatherLabel }}</small>
+        </button>
+        <button type="button" class="advanced-action" :disabled="!unlockedFeatures.panorama" @click="handleUnlockPanorama">
+          <strong>{{ isZh ? '全景小窝' : 'Panorama' }}</strong>
+          <small>{{ careState.habitat.panoramaUnlocked ? (isZh ? '已开启' : 'Open') : 'Day 300' }}</small>
+        </button>
+        <button type="button" class="advanced-action" :disabled="!unlockedFeatures.diaryWall" @click="handleGeneratePoster">
+          <strong>{{ isZh ? '生成海报' : 'Poster' }}</strong>
+          <small>{{ careState.posters.length }} {{ isZh ? '张' : 'posters' }}</small>
+        </button>
+        <button type="button" class="advanced-action" :disabled="!unlockedFeatures.annualReport" @click="handleAnnualReport">
+          <strong>{{ isZh ? '年度报告' : 'Annual Report' }}</strong>
+          <small>{{ latestAnnualReport ? latestAnnualReport.year : 'Day 365' }}</small>
+        </button>
+      </div>
+
+      <div class="advanced-status-row">
+        <span>{{ isZh ? '最近快照' : 'Latest shot' }}：{{ latestSnapshot?.caption || (isZh ? '还没有发布' : 'None yet') }}</span>
+        <span>{{ isZh ? '收获' : 'Harvests' }}：{{ careState.harvests.length }}</span>
+        <span>{{ isZh ? '串门' : 'Visits' }}：{{ careState.visits.length }}</span>
+      </div>
+    </section>
+
+    <section class="sprout-panorama-section" aria-label="草团子全景小窝">
+      <SproutPanoramaScene
+        :unlocked="careState.habitat.panoramaUnlocked"
+        :weather="careState.habitat.weather"
+        :bgm="careState.habitat.bgm"
+      />
+    </section>
+
     <section class="care-card pad diary-card">
       <div class="section-title-row">
         <h2 class="care-card-title">{{ isZh ? '记忆墙' : 'Memory Wall' }}</h2>
@@ -170,6 +245,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import homeLogo from '../../assets/home-logo-clean.png'
+import SproutPanoramaScene from '../../components/home/SproutPanoramaScene.vue'
 import {
   getMascotLevel,
   shouldShowReturnPrompt,
@@ -179,14 +255,26 @@ import {
   addSproutDiaryEntry,
   applySproutCareAction,
   buildSproutMemoryWall,
+  claimDailySproutSupplyDrop,
   claimSproutMilestoneReward,
   createDefaultSproutCareState,
+  craftSproutSupply,
   equipSproutAccessory,
+  exchangeSproutHarvest,
+  generateSproutAnnualReport,
+  generateSproutDiaryPoster,
   getSproutMilestone,
   getSproutQuestProgress,
   getUnlockedSproutFeatures,
+  harvestSproutGardenPlot,
   normalizeSproutCareState,
   plantSproutGardenItem,
+  publishSproutHabitatSnapshot,
+  recordSproutFriendVisit,
+  setSproutHabitatBgm,
+  unlockSproutPanorama,
+  updateSproutHabitatLayout,
+  updateSproutWeather,
 } from '../../utils/sprout-care'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -223,6 +311,34 @@ const memoryWall = computed(() => buildSproutMemoryWall({
   quoteCards: readJson('xinqing_mood_quote_cards', []),
   limit: 4,
 }))
+const advancedUnlockedCount = computed(() => [
+  unlockedFeatures.value.crafting,
+  unlockedFeatures.value.friendVisits,
+  unlockedFeatures.value.freeLayout,
+  unlockedFeatures.value.habitatBgm,
+  unlockedFeatures.value.habitatSquare,
+  unlockedFeatures.value.harvestExchange,
+  unlockedFeatures.value.weatherSystem,
+  unlockedFeatures.value.panorama,
+  unlockedFeatures.value.diaryWall,
+  unlockedFeatures.value.annualReport,
+].filter(Boolean).length)
+const latestVisit = computed(() => careState.value.visits[0] || null)
+const latestSnapshot = computed(() => careState.value.habitat.publishedSnapshots[0] || null)
+const latestAnnualReport = computed(() => careState.value.annualReports[0] || null)
+const readyGardenPlots = computed(() => careState.value.garden.plots.filter((plot) => (
+  plot.status !== 'harvested' && new Date(plot.readyAt).getTime() <= Date.now()
+)))
+const weatherLabel = computed(() => {
+  const weather = careState.value.habitat.weather
+  const labelMap = {
+    rain: isZh.value ? '雨天' : 'Rain',
+    sunny: isZh.value ? '晴天' : 'Sunny',
+    cloudy: isZh.value ? '多云' : 'Cloudy',
+    snow: isZh.value ? '雪天' : 'Snow',
+  }
+  return labelMap[weather.condition] || weather.condition
+})
 
 const currentDateText = computed(() => {
   const formatter = new Intl.DateTimeFormat(locale.value === 'zh-CN' ? 'zh-CN' : 'en-US', {
@@ -251,6 +367,12 @@ function readJson(key, fallback) {
 
 function persistCareState() {
   localStorage.setItem('xinqing_sprout_care_state', JSON.stringify(careState.value))
+}
+
+function commitCareState(nextState, fallbackMessage = '草团子的小窝更新好了') {
+  careState.value = nextState
+  persistCareState()
+  ElMessage.success(careState.value.moodText || fallbackMessage)
 }
 
 function handleCareAction(actionKey) {
@@ -285,6 +407,89 @@ function handlePlantGarden() {
   } else {
     ElMessage.info(careState.value.moodText)
   }
+}
+
+function handleSupplyDrop() {
+  commitCareState(claimDailySproutSupplyDrop(careState.value))
+}
+
+function handleCraftSupply() {
+  commitCareState(craftSproutSupply(careState.value, 'cloud-cushion'))
+}
+
+function handleFriendVisit() {
+  commitCareState(recordSproutFriendVisit(careState.value, '小青芽'))
+}
+
+function handleAutoLayout() {
+  const furniture = [
+    ...careState.value.habitat.furniture,
+    ...careState.value.inventory.supplies.filter((item) => item.type?.includes('furniture')),
+  ]
+  if (furniture.length === 0) {
+    ElMessage.info('小窝里还没有可摆放的家具')
+    return
+  }
+
+  const placements = furniture.slice(0, 4).map((item, index) => ({
+    itemId: item.id,
+    x: 18 + index * 22,
+    y: index % 2 === 0 ? 72 : 58,
+  }))
+  commitCareState(updateSproutHabitatLayout(careState.value, placements))
+}
+
+function handleSetBgm() {
+  const nextBgm = careState.value.habitat.bgm === 'soft-morning' ? 'rain-window' : 'soft-morning'
+  commitCareState(setSproutHabitatBgm(careState.value, nextBgm))
+}
+
+function handlePublishHabitat() {
+  commitCareState(publishSproutHabitatSnapshot(careState.value, '今天的小窝很柔软'))
+}
+
+function handleHarvestGarden() {
+  const plot = readyGardenPlots.value[0]
+  if (!plot) {
+    ElMessage.info('庭院里的小芽还在慢慢长大')
+    return
+  }
+  commitCareState(harvestSproutGardenPlot(careState.value, plot.id))
+}
+
+function handleExchangeHarvest() {
+  const harvest = careState.value.harvests[0]
+  if (!harvest) {
+    ElMessage.info('先收获一株忘忧草吧')
+    return
+  }
+  commitCareState(exchangeSproutHarvest(careState.value, harvest.id, 'rare-moon-chair'))
+}
+
+function handleUpdateWeather() {
+  const sequence = ['sunny', 'cloudy', 'rain', 'snow']
+  const currentIndex = sequence.indexOf(careState.value.habitat.weather.condition)
+  const condition = sequence[(currentIndex + 1) % sequence.length]
+  commitCareState(updateSproutWeather(careState.value, {
+    condition,
+    temperature: condition === 'snow' ? 1 : condition === 'rain' ? 21 : 25,
+  }))
+}
+
+function handleUnlockPanorama() {
+  commitCareState(unlockSproutPanorama(careState.value))
+}
+
+function handleGeneratePoster() {
+  commitCareState(generateSproutDiaryPoster(careState.value))
+}
+
+function handleAnnualReport() {
+  commitCareState(generateSproutAnnualReport(
+    careState.value,
+    streakState.value.currentStreak || 1,
+    new Date().getFullYear()
+  ))
 }
 
 async function handleWriteDiary() {
@@ -585,6 +790,7 @@ onMounted(() => {
 .companion-card,
 .habitat-card,
 .garden-card,
+.advanced-care-card,
 .diary-card {
   background: var(--h5-surface);
 }
@@ -684,6 +890,75 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.advanced-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.advanced-action {
+  min-width: 0;
+  min-height: 72px;
+  border: 1px solid var(--h5-border);
+  border-radius: 18px;
+  padding: 10px;
+  background: #FBF7F3;
+  color: var(--color-text-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.advanced-action strong {
+  max-width: 100%;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1.18;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.advanced-action small {
+  max-width: 100%;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.advanced-action:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
+.advanced-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.advanced-status-row span {
+  max-width: 100%;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: color-mix(in srgb, var(--h5-sage) 18%, white);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.sprout-panorama-section {
+  min-width: 0;
 }
 
 .garden-plot {

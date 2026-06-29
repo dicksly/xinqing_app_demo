@@ -113,6 +113,57 @@ class TreeholeApiTests(unittest.TestCase):
         public_response = self.client.get("/api/v1/treehole-entries")
         self.assertEqual(public_response.json(), [])
 
+    def test_public_treehole_interactions_are_persisted(self):
+        create_response = self.client.post(
+            "/api/v1/treehole-entries",
+            json={"content": "今天有点难，但我想试着说出来。", "isPublished": True},
+        )
+        self.assertEqual(create_response.status_code, 200)
+        entry_id = create_response.json()["id"]
+
+        like_response = self.client.post(
+            f"/api/v1/treehole-entries/{entry_id}/like",
+            json={"clientId": "device-a"},
+        )
+        self.assertEqual(like_response.status_code, 200)
+        self.assertTrue(like_response.json()["liked"])
+        self.assertEqual(like_response.json()["like_count"], 1)
+
+        comment_response = self.client.post(
+            f"/api/v1/treehole-entries/{entry_id}/comments",
+            json={"clientId": "device-b", "content": "我也有过类似的时候，抱抱你。"},
+        )
+        self.assertEqual(comment_response.status_code, 200)
+        comment_id = comment_response.json()["id"]
+
+        reply_response = self.client.post(
+            f"/api/v1/treehole-entries/{entry_id}/comments/{comment_id}/replies",
+            json={"clientId": "device-a", "content": "谢谢你愿意回应我。"},
+        )
+        self.assertEqual(reply_response.status_code, 200)
+
+        interaction_response = self.client.get(
+            f"/api/v1/treehole-entries/{entry_id}/interactions",
+            params={"clientId": "device-a"},
+        )
+
+        self.assertEqual(interaction_response.status_code, 200)
+        payload = interaction_response.json()
+        self.assertEqual(payload["entry_id"], entry_id)
+        self.assertTrue(payload["liked"])
+        self.assertEqual(payload["like_count"], 1)
+        self.assertEqual(len(payload["comments"]), 1)
+        self.assertEqual(payload["comments"][0]["content"], "我也有过类似的时候，抱抱你。")
+        self.assertEqual(payload["comments"][0]["replies"][0]["content"], "谢谢你愿意回应我。")
+
+        unlike_response = self.client.post(
+            f"/api/v1/treehole-entries/{entry_id}/like",
+            json={"clientId": "device-a"},
+        )
+        self.assertEqual(unlike_response.status_code, 200)
+        self.assertFalse(unlike_response.json()["liked"])
+        self.assertEqual(unlike_response.json()["like_count"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -13,13 +13,25 @@ import {
   applySproutCareAction,
   addSproutDiaryEntry,
   buildSproutMemoryWall,
+  claimDailySproutSupplyDrop,
   claimSproutMilestoneReward,
   createDefaultSproutCareState,
+  craftSproutSupply,
   equipSproutAccessory,
+  exchangeSproutHarvest,
+  generateSproutAnnualReport,
+  generateSproutDiaryPoster,
   getSproutMilestone,
   getSproutQuestProgress,
   getUnlockedSproutFeatures,
+  harvestSproutGardenPlot,
   plantSproutGardenItem,
+  publishSproutHabitatSnapshot,
+  recordSproutFriendVisit,
+  setSproutHabitatBgm,
+  unlockSproutPanorama,
+  updateSproutHabitatLayout,
+  updateSproutWeather,
 } from '../src/utils/sprout-care.js'
 import { getMoodQuoteCard } from '../src/utils/mood-quote-card.js'
 import { getMoodInsight } from '../src/utils/emotion-insights.js'
@@ -140,7 +152,12 @@ test('unlocks sprout companion features from milestone days', () => {
     friendVisits: false,
     freeLayout: false,
     habitatBgm: false,
+    habitatSquare: false,
+    harvestExchange: false,
     diaryWall: false,
+    weatherSystem: false,
+    panorama: false,
+    annualReport: false,
   })
 
   const day21 = getUnlockedSproutFeatures(21)
@@ -150,7 +167,13 @@ test('unlocks sprout companion features from milestone days', () => {
 
   const day180 = getUnlockedSproutFeatures(180)
   assert.equal(day180.garden, true)
+  assert.equal(day180.harvestExchange, true)
   assert.equal(day180.diaryWall, true)
+
+  const day365 = getUnlockedSproutFeatures(365)
+  assert.equal(day365.weatherSystem, true)
+  assert.equal(day365.panorama, true)
+  assert.equal(day365.annualReport, true)
 })
 
 test('claims sprout milestone rewards and equips accessories', () => {
@@ -194,6 +217,82 @@ test('plants sprout garden items with sun drops and records diary entries', () =
   assert.equal(diaryState.diary.length, 1)
   assert.equal(diaryState.diary[0].date, '2026-06-03')
   assert.match(diaryState.diary[0].content, /草团子/)
+})
+
+test('runs high-stage sprout companion systems as real operations', () => {
+  const base = {
+    ...createDefaultSproutCareState(),
+    sunDrops: 120,
+    inventory: {
+      accessories: [],
+      outfits: [],
+      supplies: [
+        { id: 'tiny-bed', label: '小芽软床', type: 'furniture' },
+        { id: 'warm-lamp', label: '暖光台灯', type: 'furniture' },
+      ],
+    },
+    garden: {
+      unlocked: true,
+      plots: [
+        {
+          id: 'plot-1',
+          seedId: 'forget-worry-grass',
+          label: '忘忧草',
+          plantedAt: '2026-01-01T08:00:00.000Z',
+          readyAt: '2026-01-03T08:00:00.000Z',
+          status: 'growing',
+        },
+      ],
+    },
+  }
+
+  const dropped = claimDailySproutSupplyDrop(base, new Date('2026-06-28T08:00:00.000Z'), () => 0)
+  assert.equal(dropped.inventory.supplies.some((item) => item.id === 'soft-blanket'), true)
+  assert.equal(claimDailySproutSupplyDrop(dropped, new Date('2026-06-28T20:00:00.000Z'), () => 0).inventory.supplies.length, dropped.inventory.supplies.length)
+
+  const crafted = craftSproutSupply(dropped, 'cloud-cushion')
+  assert.equal(crafted.inventory.supplies.some((item) => item.id === 'cloud-cushion'), true)
+  assert.equal(crafted.sunDrops, 80)
+
+  const visited = recordSproutFriendVisit(crafted, '小青芽', new Date('2026-06-29T08:00:00.000Z'), () => 0.99)
+  assert.equal(visited.visits[0].friendName, '小青芽')
+  assert.equal(visited.inventory.supplies.some((item) => item.id === 'sugar-candy'), true)
+
+  const laidOut = updateSproutHabitatLayout(visited, [
+    { itemId: 'tiny-bed', x: 18, y: 72 },
+    { itemId: 'cloud-cushion', x: 64, y: 66 },
+  ])
+  assert.equal(laidOut.habitat.layout.length, 2)
+  assert.equal(laidOut.habitat.layout[1].x, 64)
+
+  const withBgm = setSproutHabitatBgm(laidOut, 'soft-morning')
+  assert.equal(withBgm.habitat.bgm, 'soft-morning')
+
+  const published = publishSproutHabitatSnapshot(withBgm, '今天的小窝很柔软', new Date('2026-06-30T08:00:00.000Z'))
+  assert.equal(published.habitat.publishedSnapshots[0].caption, '今天的小窝很柔软')
+
+  const harvested = harvestSproutGardenPlot(published, 'plot-1', new Date('2026-06-30T09:00:00.000Z'))
+  assert.equal(harvested.harvests[0].seedId, 'forget-worry-grass')
+  assert.equal(harvested.garden.plots[0].status, 'harvested')
+
+  const exchanged = exchangeSproutHarvest(harvested, harvested.harvests[0].id, 'rare-moon-chair')
+  assert.equal(exchanged.inventory.supplies.some((item) => item.id === 'rare-moon-chair'), true)
+  assert.equal(exchanged.harvests.length, 0)
+
+  const weathered = updateSproutWeather(exchanged, { condition: 'rain', temperature: 21 })
+  assert.equal(weathered.habitat.weather.condition, 'rain')
+  assert.match(weathered.moodText, /雨/)
+
+  const panorama = unlockSproutPanorama(weathered)
+  assert.equal(panorama.habitat.panoramaUnlocked, true)
+
+  const posterState = generateSproutDiaryPoster(panorama, new Date('2026-07-01T08:00:00.000Z'))
+  assert.equal(posterState.posters[0].title, '草团子的记忆海报')
+
+  const reported = generateSproutAnnualReport(posterState, 365, 2026)
+  assert.equal(reported.annualReports[0].year, 2026)
+  assert.equal(reported.annualReports[0].streakDays, 365)
+  assert.match(reported.annualReports[0].summary, /365/)
 })
 
 test('maps streak levels and mood expression for grass mascot', () => {

@@ -13,6 +13,7 @@ import {
   addTreeholeReply,
   detectTreeholeSensitivity,
   getTreeholeInteraction,
+  normalizeRemoteTreeholeInteraction,
   toggleTreeholeLike,
 } from '../src/utils/treehole-interactions.js'
 
@@ -184,6 +185,33 @@ test('adds comments and replies with trimmed content', () => {
 
   assert.equal(interaction.comments[0].content, '我也经历过类似的时刻')
   assert.equal(interaction.comments[0].replies[0].content, '谢谢你愿意说出来')
+})
+
+test('normalizes backend treehole interaction payloads for local rendering', () => {
+  const interaction = normalizeRemoteTreeholeInteraction({
+    liked: true,
+    like_count: 3,
+    comments: [
+      {
+        id: 12,
+        content: '抱抱你',
+        created_at: '2026-06-28T08:00:00.000Z',
+        replies: [
+          {
+            id: 13,
+            content: '谢谢',
+            created_at: '2026-06-28T08:01:00.000Z',
+          },
+        ],
+      },
+    ],
+  })
+
+  assert.equal(interaction.liked, true)
+  assert.equal(interaction.likeCount, 3)
+  assert.equal(interaction.comments[0].id, '12')
+  assert.equal(interaction.comments[0].createdAt, '2026-06-28T08:00:00.000Z')
+  assert.equal(interaction.comments[0].replies[0].id, '13')
 })
 
 test('flags self-harm language before public publishing', () => {

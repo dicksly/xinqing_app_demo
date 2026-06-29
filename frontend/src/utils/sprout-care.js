@@ -42,6 +42,33 @@ export const SPROUT_SUPPLIES = [
   { id: 'warm-lamp', label: '暖光台灯', type: 'furniture', source: '第 21 天栖息地' },
   { id: 'soft-blanket', label: '云朵毯', type: 'supply', source: '每日掉落' },
   { id: 'sugar-candy', label: '安慰糖', type: 'gift', source: '每日掉落' },
+  { id: 'cloud-cushion', label: '云朵抱枕', type: 'furniture', source: '物资合成' },
+  { id: 'rare-moon-chair', label: '月光摇椅', type: 'rare-furniture', source: '庭院兑换' },
+]
+
+export const SPROUT_DAILY_SUPPLY_DROPS = SPROUT_SUPPLIES.filter((item) => item.source === '每日掉落')
+
+export const SPROUT_CRAFTING_RECIPES = {
+  'cloud-cushion': {
+    id: 'cloud-cushion',
+    result: SPROUT_SUPPLIES.find((item) => item.id === 'cloud-cushion'),
+    sunDropCost: 40,
+    requiredSupplyIds: ['soft-blanket'],
+  },
+}
+
+export const SPROUT_HARVEST_EXCHANGES = {
+  'rare-moon-chair': {
+    id: 'rare-moon-chair',
+    result: SPROUT_SUPPLIES.find((item) => item.id === 'rare-moon-chair'),
+    requiredSeedId: 'forget-worry-grass',
+  },
+}
+
+export const SPROUT_HABITAT_BGM = [
+  { id: 'soft-morning', label: '软软晨光' },
+  { id: 'rain-window', label: '窗边雨声' },
+  { id: 'moon-nest', label: '月光小窝' },
 ]
 
 export const GARDEN_SEEDS = {
@@ -70,12 +97,25 @@ export function createDefaultSproutCareState() {
       unlocked: false,
       furniture: [],
       bgm: null,
+      layout: [],
+      publishedSnapshots: [],
+      weather: {
+        condition: 'sunny',
+        temperature: null,
+        updatedAt: null,
+      },
+      panoramaUnlocked: false,
     },
     garden: {
       unlocked: false,
       plots: [],
     },
     diary: [],
+    visits: [],
+    harvests: [],
+    posters: [],
+    annualReports: [],
+    supplyDrops: [],
     claimedRewards: [],
     moodText: '草团子在小窝里等你，先做一个小小照护吧。',
     actions: Object.fromEntries(Object.keys(SPROUT_ACTIONS).map((key) => [
@@ -118,6 +158,13 @@ export function normalizeSproutCareState(state = {}) {
       ...defaults.habitat,
       ...(state.habitat || {}),
       furniture: Array.isArray(state.habitat?.furniture) ? state.habitat.furniture : [],
+      layout: Array.isArray(state.habitat?.layout) ? state.habitat.layout : [],
+      publishedSnapshots: Array.isArray(state.habitat?.publishedSnapshots) ? state.habitat.publishedSnapshots : [],
+      weather: {
+        ...defaults.habitat.weather,
+        ...(state.habitat?.weather || {}),
+      },
+      panoramaUnlocked: Boolean(state.habitat?.panoramaUnlocked),
     },
     garden: {
       ...defaults.garden,
@@ -125,6 +172,11 @@ export function normalizeSproutCareState(state = {}) {
       plots: Array.isArray(state.garden?.plots) ? state.garden.plots : [],
     },
     diary: Array.isArray(state.diary) ? state.diary : [],
+    visits: Array.isArray(state.visits) ? state.visits : [],
+    harvests: Array.isArray(state.harvests) ? state.harvests : [],
+    posters: Array.isArray(state.posters) ? state.posters : [],
+    annualReports: Array.isArray(state.annualReports) ? state.annualReports : [],
+    supplyDrops: Array.isArray(state.supplyDrops) ? state.supplyDrops : [],
     claimedRewards: Array.isArray(state.claimedRewards) ? state.claimedRewards : [],
     actions,
   }
@@ -324,7 +376,12 @@ export function getUnlockedSproutFeatures(streakDays = 1) {
     friendVisits: days >= 60,
     freeLayout: days >= 90,
     habitatBgm: days >= 100,
+    habitatSquare: days >= 120,
+    harvestExchange: days >= 150,
     diaryWall: days >= 180,
+    weatherSystem: days >= 240,
+    panorama: days >= 300,
+    annualReport: days >= 365,
   }
 }
 
@@ -333,6 +390,23 @@ function addUniqueItem(items, nextItem) {
     return items
   }
   return [...items, nextItem]
+}
+
+function findSproutSupply(supplyId) {
+  return SPROUT_SUPPLIES.find((item) => item.id === supplyId) || null
+}
+
+function clampLayoutValue(value) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return 50
+  return Math.min(100, Math.max(0, Math.round(numeric)))
+}
+
+function ownsHabitatItem(state, itemId) {
+  return [
+    ...state.inventory.supplies,
+    ...state.habitat.furniture,
+  ].some((item) => item.id === itemId)
 }
 
 function dateAfterDays(date, days) {
@@ -417,6 +491,167 @@ export function equipSproutAccessory(state = {}, accessoryId) {
   }
 }
 
+export function claimDailySproutSupplyDrop(state = {}, now = new Date(), random = Math.random) {
+  const normalized = normalizeSproutCareState(state)
+  const today = toDateKey(now)
+  if (normalized.supplyDrops.some((drop) => drop.date === today)) {
+    return {
+      ...normalized,
+      moodText: '今天的小补给已经收好啦，明天再来看看。',
+    }
+  }
+
+  const supply = SPROUT_DAILY_SUPPLY_DROPS[
+    Math.floor(random() * SPROUT_DAILY_SUPPLY_DROPS.length)
+  ] || SPROUT_DAILY_SUPPLY_DROPS[0]
+
+  return {
+    ...normalized,
+    inventory: {
+      ...normalized.inventory,
+      supplies: addUniqueItem(normalized.inventory.supplies, supply),
+    },
+    supplyDrops: [
+      {
+        id: `drop-${new Date(now).getTime()}`,
+        date: today,
+        supplyId: supply.id,
+      },
+      ...normalized.supplyDrops,
+    ].slice(0, 30),
+    moodText: `草团子捡到今日补给「${supply.label}」。`,
+  }
+}
+
+export function craftSproutSupply(state = {}, recipeId) {
+  const normalized = normalizeSproutCareState(state)
+  const recipe = SPROUT_CRAFTING_RECIPES[recipeId]
+  if (!recipe?.result) return normalized
+
+  const missingSupply = recipe.requiredSupplyIds.find((supplyId) => !ownsHabitatItem(normalized, supplyId))
+  if (missingSupply) {
+    const missing = findSproutSupply(missingSupply)
+    return {
+      ...normalized,
+      moodText: `还缺少「${missing?.label || missingSupply}」，暂时不能合成。`,
+    }
+  }
+
+  if (normalized.sunDrops < recipe.sunDropCost) {
+    return {
+      ...normalized,
+      moodText: `还差 ${recipe.sunDropCost - normalized.sunDrops} 颗阳光露珠才能合成。`,
+    }
+  }
+
+  const nextSupplies = addUniqueItem(normalized.inventory.supplies, recipe.result)
+  const nextFurniture = recipe.result.type.includes('furniture')
+    ? addUniqueItem(normalized.habitat.furniture, recipe.result)
+    : normalized.habitat.furniture
+
+  return {
+    ...normalized,
+    sunDrops: normalized.sunDrops - recipe.sunDropCost,
+    inventory: {
+      ...normalized.inventory,
+      supplies: nextSupplies,
+    },
+    habitat: {
+      ...normalized.habitat,
+      furniture: nextFurniture,
+    },
+    moodText: `草团子合成了「${recipe.result.label}」。`,
+  }
+}
+
+export function recordSproutFriendVisit(state = {}, friendName = '小青芽', now = new Date(), random = Math.random) {
+  const normalized = normalizeSproutCareState(state)
+  const gift = SPROUT_DAILY_SUPPLY_DROPS[
+    Math.floor(random() * SPROUT_DAILY_SUPPLY_DROPS.length)
+  ] || SPROUT_DAILY_SUPPLY_DROPS[0]
+  const cleanFriendName = String(friendName || '小青芽').trim()
+  const visit = {
+    id: `visit-${new Date(now).getTime()}-${normalized.visits.length + 1}`,
+    friendName: cleanFriendName,
+    giftId: gift.id,
+    createdAt: now.toISOString(),
+  }
+
+  return {
+    ...normalized,
+    inventory: {
+      ...normalized.inventory,
+      supplies: addUniqueItem(normalized.inventory.supplies, gift),
+    },
+    visits: [visit, ...normalized.visits].slice(0, 20),
+    moodText: `${cleanFriendName}来小窝串门，留下了「${gift.label}」。`,
+  }
+}
+
+export function updateSproutHabitatLayout(state = {}, placements = []) {
+  const normalized = normalizeSproutCareState(state)
+  const seen = new Set()
+  const layout = placements
+    .filter((placement) => {
+      const itemId = String(placement?.itemId || '').trim()
+      if (!itemId || seen.has(itemId) || !ownsHabitatItem(normalized, itemId)) return false
+      seen.add(itemId)
+      return true
+    })
+    .map((placement) => ({
+      itemId: String(placement.itemId),
+      x: clampLayoutValue(placement.x),
+      y: clampLayoutValue(placement.y),
+    }))
+
+  return {
+    ...normalized,
+    habitat: {
+      ...normalized.habitat,
+      unlocked: true,
+      layout,
+    },
+    moodText: '草团子的小窝布局已经摆好。',
+  }
+}
+
+export function setSproutHabitatBgm(state = {}, bgmKey) {
+  const normalized = normalizeSproutCareState(state)
+  const bgm = SPROUT_HABITAT_BGM.find((item) => item.id === bgmKey)
+  if (!bgm) return normalized
+
+  return {
+    ...normalized,
+    habitat: {
+      ...normalized.habitat,
+      bgm: bgm.id,
+    },
+    moodText: `小窝开始播放「${bgm.label}」。`,
+  }
+}
+
+export function publishSproutHabitatSnapshot(state = {}, caption = '', now = new Date()) {
+  const normalized = normalizeSproutCareState(state)
+  const cleanCaption = String(caption || '今天的小窝也在好好陪伴。').trim()
+  const snapshot = {
+    id: `habitat-${new Date(now).getTime()}-${normalized.habitat.publishedSnapshots.length + 1}`,
+    caption: cleanCaption,
+    layout: normalized.habitat.layout,
+    bgm: normalized.habitat.bgm,
+    weather: normalized.habitat.weather,
+    createdAt: now.toISOString(),
+  }
+
+  return {
+    ...normalized,
+    habitat: {
+      ...normalized.habitat,
+      publishedSnapshots: [snapshot, ...normalized.habitat.publishedSnapshots].slice(0, 12),
+    },
+    moodText: '小窝快照已经发布到疗愈广场。',
+  }
+}
+
 export function plantSproutGardenItem(state = {}, seedId, now = new Date()) {
   const normalized = normalizeSproutCareState(state)
   const seed = GARDEN_SEEDS[seedId]
@@ -448,6 +683,149 @@ export function plantSproutGardenItem(state = {}, seedId, now = new Date()) {
       plots: [...normalized.garden.plots, plot],
     },
     moodText: `忘忧草已经种下，草团子会每天去看一眼。`,
+  }
+}
+
+export function harvestSproutGardenPlot(state = {}, plotId, now = new Date()) {
+  const normalized = normalizeSproutCareState(state)
+  const plot = normalized.garden.plots.find((item) => item.id === plotId)
+  if (!plot) return normalized
+
+  if (plot.status === 'harvested') {
+    return {
+      ...normalized,
+      moodText: '这块小苗已经收获过啦。',
+    }
+  }
+
+  if (new Date(plot.readyAt).getTime() > new Date(now).getTime()) {
+    return {
+      ...normalized,
+      moodText: `${plot.label}还在慢慢长大。`,
+    }
+  }
+
+  const harvest = {
+    id: `harvest-${plot.seedId}-${new Date(now).getTime()}`,
+    seedId: plot.seedId,
+    label: `${plot.label}收获`,
+    createdAt: now.toISOString(),
+  }
+
+  return {
+    ...normalized,
+    garden: {
+      ...normalized.garden,
+      plots: normalized.garden.plots.map((item) => (
+        item.id === plotId
+          ? { ...item, status: 'harvested', harvestedAt: now.toISOString() }
+          : item
+      )),
+    },
+    harvests: [harvest, ...normalized.harvests],
+    moodText: `草团子收获了「${plot.label}」。`,
+  }
+}
+
+export function exchangeSproutHarvest(state = {}, harvestId, exchangeId) {
+  const normalized = normalizeSproutCareState(state)
+  const exchange = SPROUT_HARVEST_EXCHANGES[exchangeId]
+  const harvest = normalized.harvests.find((item) => item.id === harvestId)
+  if (!exchange?.result || !harvest || harvest.seedId !== exchange.requiredSeedId) {
+    return {
+      ...normalized,
+      moodText: '这份收获暂时不能兑换这个家具。',
+    }
+  }
+
+  return {
+    ...normalized,
+    harvests: normalized.harvests.filter((item) => item.id !== harvestId),
+    inventory: {
+      ...normalized.inventory,
+      supplies: addUniqueItem(normalized.inventory.supplies, exchange.result),
+    },
+    habitat: {
+      ...normalized.habitat,
+      furniture: addUniqueItem(normalized.habitat.furniture, exchange.result),
+    },
+    moodText: `草团子换到了稀有家具「${exchange.result.label}」。`,
+  }
+}
+
+export function updateSproutWeather(state = {}, weather = {}, now = new Date()) {
+  const normalized = normalizeSproutCareState(state)
+  const condition = String(weather.condition || 'sunny')
+  const conditionText = {
+    rain: '雨声把小窝洗得很安静。',
+    sunny: '阳光把草团子照得暖暖的。',
+    cloudy: '云朵替草团子挡住了一点刺眼的光。',
+    snow: '雪落下来，小窝变得软软的。',
+  }[condition] || '今天的小窝天气已经更新。'
+
+  return {
+    ...normalized,
+    habitat: {
+      ...normalized.habitat,
+      weather: {
+        condition,
+        temperature: Number.isFinite(Number(weather.temperature)) ? Number(weather.temperature) : null,
+        updatedAt: now.toISOString(),
+      },
+    },
+    moodText: conditionText,
+  }
+}
+
+export function unlockSproutPanorama(state = {}) {
+  const normalized = normalizeSproutCareState(state)
+  return {
+    ...normalized,
+    habitat: {
+      ...normalized.habitat,
+      panoramaUnlocked: true,
+    },
+    moodText: '草团子的 3D 全景小窝已经解锁。',
+  }
+}
+
+export function generateSproutDiaryPoster(state = {}, now = new Date()) {
+  const normalized = normalizeSproutCareState(state)
+  const latestDiary = normalized.diary[0]
+  const poster = {
+    id: `poster-${new Date(now).getTime()}-${normalized.posters.length + 1}`,
+    title: '草团子的记忆海报',
+    subtitle: latestDiary?.content || normalized.moodText,
+    createdAt: now.toISOString(),
+  }
+
+  return {
+    ...normalized,
+    posters: [poster, ...normalized.posters].slice(0, 12),
+    moodText: '草团子把最近的陪伴做成了一张海报。',
+  }
+}
+
+export function generateSproutAnnualReport(state = {}, streakDays = 1, year = new Date().getFullYear()) {
+  const normalized = normalizeSproutCareState(state)
+  const safeStreakDays = Math.max(1, Number(streakDays || 1))
+  const report = {
+    id: `annual-${year}`,
+    year,
+    streakDays: safeStreakDays,
+    careActions: Object.values(normalized.actions).reduce((sum, action) => sum + Number(action.count || 0), 0),
+    diaryCount: normalized.diary.length,
+    visitCount: normalized.visits.length,
+    summary: `这一年草团子陪你走过了 ${safeStreakDays} 天，收好了 ${normalized.diary.length} 段记忆。`,
+  }
+
+  return {
+    ...normalized,
+    annualReports: [
+      report,
+      ...normalized.annualReports.filter((item) => item.year !== year),
+    ].slice(0, 5),
+    moodText: '草团子的年度陪伴报告已经生成。',
   }
 }
 

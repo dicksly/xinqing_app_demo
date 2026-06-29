@@ -2,7 +2,7 @@
 API v1 路由
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import json
@@ -20,6 +20,8 @@ from ...models.models import (
     MindfulnessSession,
     PsychologicalAssessment,
     TreeholeEntry,
+    TreeholeComment,
+    TreeholeLike,
     KnowledgeContent,
     User,
     GameProgress,
@@ -32,7 +34,9 @@ from ...schemas.schemas import (
     PsychologicalAssessmentCreate, PsychologicalAssessmentResponse,
     MindfulnessThemeResponse,
     SoapRoundRequest, SoapRoundResponse,
-    TreeholeEntryCreate, TreeholeEntryResponse,
+    TreeholeCommentCreate, TreeholeCommentThreadResponse, TreeholeEntryCreate,
+    TreeholeEntryResponse, TreeholeInteractionClient, TreeholeInteractionResponse,
+    TreeholeLikeResponse, TreeholeReplyResponse,
     DailyQuoteCreate, DailyQuoteUpdate, DailyQuoteResponse,
     KnowledgeTopicCreate, KnowledgeTopicUpdate, KnowledgeTopicResponse,
     KnowledgeContentCreate, KnowledgeContentUpdate, KnowledgeContentResponse,
@@ -253,6 +257,82 @@ def serialize_treehole_entry_for_public(entry: TreeholeEntry) -> dict:
         "ai_response": None,
         "created_at": entry.created_at,
     }
+
+
+def get_interactable_treehole_entry(db: Session, entry_id: int) -> TreeholeEntry:
+    entry = db.query(TreeholeEntry).filter(TreeholeEntry.id == entry_id).first()
+    if entry is None or not entry.is_published or entry.risk_level == "severe":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Treehole entry not found",
+        )
+    return entry
+
+
+def serialize_treehole_reply(reply: TreeholeComment) -> TreeholeReplyResponse:
+    return TreeholeReplyResponse(
+        id=reply.id,
+        entry_id=reply.entry_id,
+        parent_id=reply.parent_id,
+        client_id=reply.client_id,
+        content=reply.content,
+        created_at=reply.created_at,
+    )
+
+
+def serialize_treehole_comment_thread(
+    comment: TreeholeComment,
+    replies_by_parent: dict[int, list[TreeholeComment]],
+) -> TreeholeCommentThreadResponse:
+    replies = [
+        serialize_treehole_reply(reply)
+        for reply in replies_by_parent.get(comment.id, [])
+    ]
+    return TreeholeCommentThreadResponse(
+        id=comment.id,
+        entry_id=comment.entry_id,
+        parent_id=comment.parent_id,
+        client_id=comment.client_id,
+        content=comment.content,
+        created_at=comment.created_at,
+        replies=replies,
+    )
+
+
+def get_treehole_like_count(db: Session, entry_id: int) -> int:
+    return db.query(TreeholeLike).filter(TreeholeLike.entry_id == entry_id).count()
+
+
+def build_treehole_interaction_response(
+    db: Session,
+    entry_id: int,
+    client_id: str,
+) -> TreeholeInteractionResponse:
+    liked = db.query(TreeholeLike).filter(
+        TreeholeLike.entry_id == entry_id,
+        TreeholeLike.client_id == client_id,
+    ).first() is not None
+    comments = db.query(TreeholeComment).filter(
+        TreeholeComment.entry_id == entry_id,
+    ).order_by(TreeholeComment.created_at.asc(), TreeholeComment.id.asc()).all()
+    replies_by_parent: dict[int, list[TreeholeComment]] = {}
+    top_level_comments: list[TreeholeComment] = []
+
+    for comment in comments:
+        if comment.parent_id is None:
+            top_level_comments.append(comment)
+        else:
+            replies_by_parent.setdefault(comment.parent_id, []).append(comment)
+
+    return TreeholeInteractionResponse(
+        entry_id=entry_id,
+        liked=liked,
+        like_count=get_treehole_like_count(db, entry_id),
+        comments=[
+            serialize_treehole_comment_thread(comment, replies_by_parent)
+            for comment in top_level_comments
+        ],
+    )
 
 
 @router.post("/emotion-records", response_model=EmotionRecordResponse)
@@ -507,6 +587,109 @@ async def delete_treehole_entry(
     db.delete(entry)
     db.commit()
     return {"message": "Treehole entry deleted"}
+
+
+@router.get(
+    "/treehole-entries/{entry_id}/interactions",
+    response_model=TreeholeInteractionResponse,
+)
+async def get_treehole_interactions(
+    entry_id: int,
+    client_id: str = Query("anonymous", alias="clientId", min_length=1, max_length=120),
+    db: Session = Depends(get_db),
+):
+    """获取公开树洞条目的点赞、评论和回复聚合状态。"""
+    get_interactable_treehole_entry(db, entry_id)
+    return build_treehole_interaction_response(db, entry_id, client_id.strip())
+
+
+@router.post(
+    "/treehole-entries/{entry_id}/like",
+    response_model=TreeholeLikeResponse,
+)
+async def toggle_treehole_like(
+    entry_id: int,
+    interaction: TreeholeInteractionClient,
+    db: Session = Depends(get_db),
+):
+    """按匿名设备切换公开树洞点赞。"""
+    get_interactable_treehole_entry(db, entry_id)
+    client_id = interaction.client_id.strip()
+    existing_like = db.query(TreeholeLike).filter(
+        TreeholeLike.entry_id == entry_id,
+        TreeholeLike.client_id == client_id,
+    ).first()
+
+    if existing_like is None:
+        db.add(TreeholeLike(entry_id=entry_id, client_id=client_id))
+        liked = True
+    else:
+        db.delete(existing_like)
+        liked = False
+
+    db.commit()
+    return TreeholeLikeResponse(
+        entry_id=entry_id,
+        liked=liked,
+        like_count=get_treehole_like_count(db, entry_id),
+    )
+
+
+@router.post(
+    "/treehole-entries/{entry_id}/comments",
+    response_model=TreeholeCommentThreadResponse,
+)
+async def create_treehole_comment(
+    entry_id: int,
+    comment: TreeholeCommentCreate,
+    db: Session = Depends(get_db),
+):
+    """为公开树洞条目创建评论。"""
+    get_interactable_treehole_entry(db, entry_id)
+    db_comment = TreeholeComment(
+        entry_id=entry_id,
+        client_id=comment.client_id.strip(),
+        content=comment.content.strip(),
+    )
+    db.add(db_comment)
+    db.commit()
+    db.refresh(db_comment)
+    return serialize_treehole_comment_thread(db_comment, {})
+
+
+@router.post(
+    "/treehole-entries/{entry_id}/comments/{comment_id}/replies",
+    response_model=TreeholeReplyResponse,
+)
+async def create_treehole_reply(
+    entry_id: int,
+    comment_id: int,
+    reply: TreeholeCommentCreate,
+    db: Session = Depends(get_db),
+):
+    """回复公开树洞条目下的一条评论。"""
+    get_interactable_treehole_entry(db, entry_id)
+    parent_comment = db.query(TreeholeComment).filter(
+        TreeholeComment.id == comment_id,
+        TreeholeComment.entry_id == entry_id,
+        TreeholeComment.parent_id.is_(None),
+    ).first()
+    if parent_comment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Treehole comment not found",
+        )
+
+    db_reply = TreeholeComment(
+        entry_id=entry_id,
+        parent_id=comment_id,
+        client_id=reply.client_id.strip(),
+        content=reply.content.strip(),
+    )
+    db.add(db_reply)
+    db.commit()
+    db.refresh(db_reply)
+    return serialize_treehole_reply(db_reply)
 
 
 @router.get("/knowledge-contents", response_model=List[KnowledgeContentResponse])

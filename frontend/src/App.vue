@@ -71,8 +71,8 @@ const activeTab = ref('/home')
 const currentLangCode = computed(() => locale.value === 'zh-CN' ? 'EN' : '中')
 const currentLangName = computed(() => locale.value === 'zh-CN' ? 'Switch to English' : '切换到中文')
 const emotionIconStyle = {
-  '--nav-icon-x': '0px',
-  '--nav-icon-y': '-2px',
+  '--nav-icon-x': '-2px',
+  '--nav-icon-y': '0px',
   '--nav-icon-scale': '1.08',
 }
 
@@ -92,8 +92,8 @@ const navItems = computed(() => [
     icon: treeholeIcon,
     iconClass: 'treehole-nav-icon',
     iconStyle: {
-      '--nav-icon-x': '-1px',
-      '--nav-icon-y': '-1px',
+      '--nav-icon-x': '3px',
+      '--nav-icon-y': '0px',
       '--nav-icon-scale': '1.08',
     },
   },
@@ -263,6 +263,7 @@ onMounted(() => {
 
 .nav-item .emotion-nav-icon {
   border-radius: 50%;
+  clip-path: inset(0 0 0 10%);
   filter: saturate(1.04) drop-shadow(0 3px 5px rgba(89, 122, 82, 0.16));
 }
 

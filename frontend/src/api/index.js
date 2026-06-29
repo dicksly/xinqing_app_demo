@@ -76,6 +76,14 @@ export const treeholeApi = {
   // 获取已发布的条目
   getPublished: (params) => api.get('/treehole-entries', { params }),
 
+  getInteractions: (id, params) => api.get(`/treehole-entries/${id}/interactions`, { params }),
+
+  toggleLike: (id, data) => api.post(`/treehole-entries/${id}/like`, data),
+
+  addComment: (id, data) => api.post(`/treehole-entries/${id}/comments`, data),
+
+  addReply: (id, commentId, data) => api.post(`/treehole-entries/${id}/comments/${commentId}/replies`, data),
+
   // 删除条目
   delete: (id) => api.delete(`/treehole-entries/${id}`),
 }

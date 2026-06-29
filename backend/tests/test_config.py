@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 from app.core.config import Settings
+from app.core import database as database_module
 from app.schemas.schemas import TreeholeEntryCreate
 
 
@@ -42,6 +43,36 @@ class SettingsTests(unittest.TestCase):
             str(main_module.engine.url),
             main_module.settings.DATABASE_URL,
         )
+
+    def test_database_url_prefers_explicit_environment_url(self):
+        mysql_url = (
+            "mysql+pymysql://user:password@rm-example.mysql.rds.aliyuncs.com:3306/"
+            "xinqing_app?charset=utf8mb4"
+        )
+
+        resolved_url = database_module.resolve_database_url(
+            {"DATABASE_URL": mysql_url},
+            configured_url="sqlite:///./xinqing.db",
+            fallback_url="sqlite:////opt/render/project/xinqing.db",
+        )
+
+        self.assertEqual(resolved_url, mysql_url)
+
+    def test_mysql_engine_options_do_not_include_sqlite_connect_args(self):
+        mysql_url = (
+            "mysql+pymysql://user:password@rm-example.mysql.rds.aliyuncs.com:3306/"
+            "xinqing_app?charset=utf8mb4"
+        )
+
+        engine_options = database_module.build_engine_options(mysql_url, debug=False)
+
+        self.assertNotIn("connect_args", engine_options)
+        self.assertTrue(engine_options["pool_pre_ping"])
+
+    def test_sqlite_engine_options_keep_thread_override(self):
+        engine_options = database_module.build_engine_options("sqlite:///./xinqing.db", debug=False)
+
+        self.assertEqual(engine_options["connect_args"], {"check_same_thread": False})
 
     def test_start_scripts_use_script_directory_as_project_root(self):
         repo_root = Path(__file__).resolve().parents[2]

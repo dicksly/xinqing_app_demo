@@ -2,23 +2,73 @@
 数据库配置
 """
 
+import os
+from collections.abc import Mapping
+
 from sqlalchemy import create_engine
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import declarative_base, sessionmaker
-from .config import settings
+from .config import Settings, settings
 
 try:
     from .persistent import DATABASE_URL as PERSISTENT_DATABASE_URL
 except ImportError:
     PERSISTENT_DATABASE_URL = settings.DATABASE_URL
 
-DATABASE_URL = PERSISTENT_DATABASE_URL
+DEFAULT_DATABASE_URL = Settings.model_fields["DATABASE_URL"].default
+
+
+def resolve_database_url(
+    env: Mapping[str, str] | None = None,
+    configured_url: str | None = None,
+    fallback_url: str | None = None,
+) -> str:
+    """Resolve the database URL, preferring explicit deployment config."""
+    current_env = os.environ if env is None else env
+    explicit_url = current_env.get("DATABASE_URL")
+    if explicit_url:
+        return explicit_url
+
+    configured = settings.DATABASE_URL if configured_url is None else configured_url
+    fallback = PERSISTENT_DATABASE_URL if fallback_url is None else fallback_url
+
+    if configured and configured != DEFAULT_DATABASE_URL:
+        return configured
+
+    return fallback or configured
+
+
+def is_sqlite_database_url(database_url: str) -> bool:
+    """Return whether SQLAlchemy URL points to SQLite."""
+    return make_url(database_url).get_backend_name() == "sqlite"
+
+
+def build_engine_options(database_url: str, debug: bool) -> dict:
+    """Build SQLAlchemy create_engine options for the selected backend."""
+    options = {"echo": debug}
+
+    if is_sqlite_database_url(database_url):
+        options["connect_args"] = {"check_same_thread": False}
+        return options
+
+    options["pool_pre_ping"] = True
+
+    backend_name = make_url(database_url).get_backend_name()
+    if backend_name in {"mysql", "mariadb"}:
+        options["pool_recycle"] = 280
+        options["pool_size"] = 5
+        options["max_overflow"] = 10
+
+    return options
+
+
+DATABASE_URL = resolve_database_url()
 settings.DATABASE_URL = DATABASE_URL
 
 # 创建数据库引擎
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False},  # SQLite 特定配置
-    echo=settings.DEBUG  # 开发环境打印 SQL
+    **build_engine_options(DATABASE_URL, debug=settings.DEBUG),
 )
 
 # 创建会话工厂

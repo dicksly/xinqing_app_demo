@@ -7,6 +7,7 @@ const readSource = (path) => readFileSync(new URL(path, import.meta.url), 'utf8'
 const appVue = readSource('../src/App.vue')
 const globalCss = readSource('../src/styles/global.css')
 const homeView = readSource('../src/views/home/HomeView.vue')
+const sproutPanoramaScene = readSource('../src/components/home/SproutPanoramaScene.vue')
 const emotionView = readSource('../src/views/emotion/EmotionView.vue')
 const mindfulnessView = readSource('../src/views/mindfulness/MindfulnessView.vue')
 const treeholeView = readSource('../src/views/treehole/TreeholeView.vue')
@@ -31,8 +32,10 @@ test('bottom nav emotion icon uses corrected artwork crop', () => {
   assert.match(appVue, /class="image2-icon nav-image-icon"/)
   assert.match(appVue, /iconClass:\s*'emotion-nav-icon'/)
   assert.match(appVue, /emotionIconStyle/)
-  assert.match(appVue, /--nav-icon-x/)
-  assert.match(appVue, /--nav-icon-scale/)
+  assert.match(appVue, /'--nav-icon-x':\s*'-2px'/)
+  assert.match(appVue, /'--nav-icon-y':\s*'0px'/)
+  assert.match(appVue, /'--nav-icon-scale':\s*'1\.08'/)
+  assert.match(appVue, /\.nav-item \.emotion-nav-icon \{[\s\S]*clip-path:\s*inset\(0 0 0 10%\)/)
 })
 
 test('bottom nav treehole icon uses corrected artwork crop', () => {
@@ -42,8 +45,9 @@ test('bottom nav treehole icon uses corrected artwork crop', () => {
 
   assert.notEqual(treeholeItemStart, -1, 'expected a treehole nav item')
   assert.match(treeholeItem, /iconClass:\s*'treehole-nav-icon'/)
-  assert.match(treeholeItem, /--nav-icon-y/)
-  assert.match(treeholeItem, /--nav-icon-scale/)
+  assert.match(treeholeItem, /'--nav-icon-x':\s*'3px'/)
+  assert.match(treeholeItem, /'--nav-icon-y':\s*'0px'/)
+  assert.match(treeholeItem, /'--nav-icon-scale':\s*'1\.08'/)
 })
 
 test('frontend references bundled image-2 icon assets', () => {
@@ -94,6 +98,14 @@ test('home companion uses a single mascot artwork without an emoji face overlay'
   assert.doesNotMatch(homeView, /class="sprout-face"/)
   assert.doesNotMatch(homeView, /\.sprout-face/)
   assert.doesNotMatch(homeView, /mascotMood\.emoji/)
+})
+
+test('home page includes a Three.js sprout panorama scene', () => {
+  assert.match(homeView, /SproutPanoramaScene/)
+  assert.match(homeView, /sprout-panorama-section/)
+  assert.match(sproutPanoramaScene, /import\('three'\)/)
+  assert.match(sproutPanoramaScene, /<canvas/)
+  assert.match(sproutPanoramaScene, /WebGLRenderer/)
 })
 
 test('emotion page keeps check-in behavior in the redesigned ritual layout', () => {

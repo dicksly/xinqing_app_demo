@@ -308,6 +308,62 @@ class TreeholeEntryResponse(TreeholeEntryBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class TreeholeInteractionClient(BaseModel):
+    """树洞互动设备标识。匿名体验用 client_id 合并同一设备状态。"""
+    client_id: str = Field(
+        "anonymous",
+        min_length=1,
+        max_length=120,
+        validation_alias=AliasChoices("client_id", "clientId"),
+    )
+
+
+class TreeholeCommentCreate(TreeholeInteractionClient):
+    """创建树洞评论或回复。"""
+    content: str = Field(..., min_length=1, max_length=120)
+
+    @field_validator("content")
+    @classmethod
+    def validate_comment_content(cls, value):
+        content = value.strip()
+        if not content:
+            raise ValueError("评论内容不能为空")
+        return content
+
+
+class TreeholeReplyResponse(BaseModel):
+    """树洞回复响应。"""
+    id: int
+    entry_id: int
+    parent_id: int
+    client_id: str
+    content: str
+    created_at: datetime
+
+
+class TreeholeCommentThreadResponse(BaseModel):
+    """树洞评论线程响应。"""
+    id: int
+    entry_id: int
+    parent_id: Optional[int] = None
+    client_id: str
+    content: str
+    created_at: datetime
+    replies: List[TreeholeReplyResponse] = Field(default_factory=list)
+
+
+class TreeholeLikeResponse(BaseModel):
+    """树洞点赞切换响应。"""
+    entry_id: int
+    liked: bool
+    like_count: int
+
+
+class TreeholeInteractionResponse(TreeholeLikeResponse):
+    """树洞互动聚合响应。"""
+    comments: List[TreeholeCommentThreadResponse]
+
+
 class KnowledgeContentBase(BaseModel):
     """知识库内容基础 Schema"""
     title: str = Field(..., description="标题")

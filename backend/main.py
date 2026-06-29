@@ -14,16 +14,19 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 from app.core.config import settings
-try:
-    from app.core.persistent import DATABASE_FILE, DATABASE_URL
-    settings.DATABASE_URL = DATABASE_URL
-    print(f"✅ 使用持久化存储：{DATABASE_FILE}")
-except ImportError:
-    print("ℹ 使用开发环境存储（临时）")
-
+from app.core.database import DATABASE_URL, engine, Base, SessionLocal, is_sqlite_database_url
 from app.api.v1.api import router as api_router
-from app.core.database import engine, Base, SessionLocal
 from app.data.seed_knowledge_content import seed_knowledge_content
+
+try:
+    from app.core.persistent import DATABASE_FILE
+except ImportError:
+    DATABASE_FILE = None
+
+if is_sqlite_database_url(DATABASE_URL) and DATABASE_FILE is not None:
+    print(f"✅ 使用持久化 SQLite 存储：{DATABASE_FILE}")
+else:
+    print(f"✅ 使用外部数据库：{engine.url.render_as_string(hide_password=True)}")
 
 
 def ensure_treehole_schema(db_path: Path) -> None:
@@ -103,14 +106,11 @@ def ensure_knowledge_schema(db_path: Path) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：启动时准备数据库。"""
-    try:
-        from app.core.persistent import DATABASE_FILE
+    if is_sqlite_database_url(DATABASE_URL) and DATABASE_FILE is not None:
         DATABASE_FILE.parent.mkdir(parents=True, exist_ok=True)
         print(f"✅ 数据库目录创建成功：{DATABASE_FILE.parent}")
         ensure_treehole_schema(DATABASE_FILE)
         ensure_knowledge_schema(DATABASE_FILE)
-    except ImportError:
-        pass
 
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
