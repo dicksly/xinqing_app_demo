@@ -170,6 +170,13 @@ test('mindfulness playback does not fail on missing voice or session tracking er
   assert.match(mindfulnessView, /void recordMindfulnessSession\(\)/)
 })
 
+test('mindfulness page removes the unused voice volume control', () => {
+  assert.doesNotMatch(mindfulnessView, /t\('mindfulness\.voice'\)/)
+  assert.doesNotMatch(mindfulnessView, /v-model="voiceVolume"/)
+  assert.doesNotMatch(mindfulnessView, /const voiceVolume = ref/)
+  assert.doesNotMatch(mindfulnessView, /watch\(voiceVolume/)
+})
+
 test('treehole page exposes safe composer, privacy controls, and square feed', () => {
   assert.match(treeholeView, /t\('treehole\.title'\)/)
   assert.match(treeholeView, /t\('treehole\.placeholder'\)/)

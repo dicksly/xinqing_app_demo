@@ -10,6 +10,7 @@ import {
   mapKnowledgePageData,
   splitKnowledgeContents,
 } from '../src/views/knowledge/knowledge-public-data.js'
+import { getKnowledgeEmbedUrl } from '../src/views/knowledge/knowledge-external-url.js'
 
 
 test('quote content and topics come from api responses', () => {
@@ -154,4 +155,19 @@ test('SBTI replaces the simplified MBTI feature entry', () => {
   assert.match(source, /sourceUrl:\s*test\.externalUrl/)
   assert.match(source, /name:\s*'KnowledgeExternal'/)
   assert.doesNotMatch(source, /MBTI 简化版/)
+})
+
+test('knowledge embedded reader converts youtube links to iframe-safe urls', () => {
+  assert.equal(
+    getKnowledgeEmbedUrl('https://www.youtube.com/watch?v=30VMIEmA114'),
+    'https://www.youtube.com/embed/30VMIEmA114'
+  )
+  assert.equal(
+    getKnowledgeEmbedUrl('https://youtu.be/IOrmS8vJDQw?si=dXyw-OMPpSZxqatP'),
+    'https://www.youtube.com/embed/IOrmS8vJDQw'
+  )
+  assert.equal(
+    getKnowledgeEmbedUrl(SBTI_TEST.externalUrl),
+    SBTI_TEST.externalUrl
+  )
 })

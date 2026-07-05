@@ -2,16 +2,20 @@
   <div class="match3-game">
     <header class="game-head">
       <div>
-        <span>连芽分数</span>
+        <span>交换分数</span>
         <strong>{{ score }}</strong>
       </div>
       <div>
         <span>剩余步数</span>
         <strong>{{ movesLeft }}</strong>
       </div>
+      <div>
+        <span>本次清除</span>
+        <strong>{{ lastCleared }}</strong>
+      </div>
     </header>
 
-    <div class="match3-board" :style="{ '--cols': board[0]?.length || 6 }">
+    <div class="match3-board" :style="{ '--cols': board[0]?.length || 8 }">
       <button
         v-for="tile in flatTiles"
         :key="tile.key"
@@ -37,22 +41,28 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { createMatch3Board, resolveMatch3Selection } from '../../../utils/match3-game'
+import {
+  areAdjacentCells,
+  createMatch3Board,
+  hasAvailableMatch,
+  resolveMatch3Swap,
+} from '../../../utils/match3-game'
 import { useGamesStore } from '../../../stores/games'
 
 const emit = defineEmits(['close'])
 const gamesStore = useGamesStore()
 
 const board = ref(createMatch3Board())
-const selection = ref([])
+const selected = ref(null)
 const score = ref(0)
-const movesLeft = ref(12)
-const message = ref('连起 3 个相同小芽，让紧绷慢慢散开。')
+const movesLeft = ref(20)
+const lastCleared = ref(0)
+const message = ref('交换相邻小芽，连成 3 个就会轻轻消散。')
 
 const flatTiles = computed(() => (
   board.value.flatMap((row, rowIndex) => (
     row.map((kind, colIndex) => ({
-      key: `${rowIndex}-${colIndex}-${kind}`,
+      key: `${rowIndex}-${colIndex}-${kind}-${score.value}`,
       row: rowIndex,
       col: colIndex,
       kind,
@@ -61,7 +71,7 @@ const flatTiles = computed(() => (
 ))
 
 function isSelected(row, col) {
-  return selection.value.some((cell) => cell.row === row && cell.col === col)
+  return selected.value?.row === row && selected.value?.col === col
 }
 
 function tapTile(row, col) {
@@ -70,48 +80,57 @@ function tapTile(row, col) {
     return
   }
 
-  const kind = board.value[row][col]
-  const current = selection.value
-  if (current.length === 0) {
-    selection.value = [{ row, col }]
+  const cell = { row, col }
+  if (!selected.value) {
+    selected.value = cell
     return
   }
 
   if (isSelected(row, col)) {
-    selection.value = current.filter((cell) => !(cell.row === row && cell.col === col))
+    selected.value = null
     return
   }
 
-  const first = current[0]
-  const last = current[current.length - 1]
-  const sameKind = board.value[first.row][first.col] === kind
-  const adjacent = Math.abs(last.row - row) + Math.abs(last.col - col) === 1
-  if (!sameKind || !adjacent) {
-    selection.value = [{ row, col }]
-    message.value = '从同一种小芽重新开始连。'
+  const from = selected.value
+  if (!areAdjacentCells(from, cell)) {
+    selected.value = cell
+    message.value = '请交换挨在一起的小芽。'
     return
   }
 
-  selection.value = [...current, { row, col }]
-  if (selection.value.length >= 3) {
-    const result = resolveMatch3Selection(board.value, selection.value)
-    if (result.valid) {
-      board.value = result.board
-      score.value += result.score
-      movesLeft.value -= 1
-      gamesStore.recordMatch3(result.cleared, result.score)
-      message.value = `释放了 ${result.cleared} 个小芽，呼吸变轻一点。`
-    }
-    selection.value = []
+  const result = resolveMatch3Swap(board.value, from, cell)
+  selected.value = null
+  if (!result.valid) {
+    message.value = '这一步还不能连成 3 个，换个方向试试。'
+    return
+  }
+
+  board.value = result.board
+  score.value += result.score
+  lastCleared.value = result.cleared
+  movesLeft.value -= 1
+  gamesStore.recordMatch3(result.cleared, result.score)
+  message.value = result.cascades > 1
+    ? `连续释放 ${result.cleared} 个小芽，获得 ${result.score} 分。`
+    : `释放 ${result.cleared} 个小芽，获得 ${result.score} 分。`
+
+  if (!hasAvailableMatch(board.value)) {
+    board.value = createMatch3Board()
+    message.value = '棋盘重新长出了一片可交换的小芽。'
+  }
+
+  if (movesLeft.value <= 0) {
+    message.value = `这一局收好啦，共获得 ${score.value} 分。`
   }
 }
 
 function resetGame() {
   board.value = createMatch3Board()
-  selection.value = []
+  selected.value = null
   score.value = 0
-  movesLeft.value = 12
-  message.value = '连起 3 个相同小芽，让紧绷慢慢散开。'
+  movesLeft.value = 20
+  lastCleared.value = 0
+  message.value = '交换相邻小芽，连成 3 个就会轻轻消散。'
 }
 </script>
 
@@ -124,13 +143,13 @@ function resetGame() {
 
 .game-head {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .game-head div {
-  border-radius: 18px;
-  padding: 12px;
+  border-radius: 16px;
+  padding: 10px;
   background: #FBF7F3;
 }
 
@@ -145,24 +164,30 @@ function resetGame() {
   display: block;
   margin-top: 4px;
   color: var(--color-text-primary);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 900;
 }
 
 .match3-board {
   display: grid;
   grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
-  gap: 7px;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid rgba(118, 95, 89, 0.1);
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, rgba(255, 248, 239, 0.94), rgba(233, 245, 234, 0.9));
 }
 
 .match3-tile {
   aspect-ratio: 1;
   border: 1px solid rgba(118, 95, 89, 0.12);
-  border-radius: 14px;
+  border-radius: 13px;
   background: #F7D8E1;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, outline-color 0.16s ease;
 }
 
 .match3-tile span {

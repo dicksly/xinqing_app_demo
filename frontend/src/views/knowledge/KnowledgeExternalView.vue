@@ -18,7 +18,7 @@
 
       <iframe
         class="external-frame"
-        :src="safeUrl"
+        :src="embedUrl"
         :title="displayTitle"
         loading="eager"
         referrerpolicy="no-referrer-when-downgrade"
@@ -50,6 +50,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowLeft, Link, Loading, WarningFilled } from '@element-plus/icons-vue'
+import { getKnowledgeEmbedUrl, normalizeExternalUrl } from './knowledge-external-url.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -62,6 +63,7 @@ const rawTitle = computed(() => getQueryValue(route.query.title))
 const rawType = computed(() => getQueryValue(route.query.type))
 
 const safeUrl = computed(() => normalizeExternalUrl(rawUrl.value))
+const embedUrl = computed(() => getKnowledgeEmbedUrl(safeUrl.value))
 const displayTitle = computed(() => rawTitle.value || (locale.value === 'zh-CN' ? '知识内容' : 'Knowledge Content'))
 const backLabel = computed(() => locale.value === 'zh-CN' ? '返回知识页' : 'Back to knowledge')
 const typeLabel = computed(() => {
@@ -86,17 +88,6 @@ watch(rawUrl, () => {
 function getQueryValue(value) {
   if (Array.isArray(value)) return value[0] || ''
   return typeof value === 'string' ? value : ''
-}
-
-function normalizeExternalUrl(value) {
-  if (!value) return ''
-
-  try {
-    const parsedUrl = new URL(value)
-    return ['http:', 'https:'].includes(parsedUrl.protocol) ? parsedUrl.toString() : ''
-  } catch {
-    return ''
-  }
 }
 
 function goBack() {

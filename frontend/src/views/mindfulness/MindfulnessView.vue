@@ -67,10 +67,6 @@
 
     <section class="care-card pad volume-panel">
       <label>
-        <span>{{ t('mindfulness.voice') }}</span>
-        <el-slider v-model="voiceVolume" :show-tooltip="false" active-color="#6FAF8B" />
-      </label>
-      <label>
         <span>{{ t('mindfulness.bgMusic') }}</span>
         <el-slider v-model="bgVolume" :show-tooltip="false" active-color="#F39A74" />
       </label>
@@ -204,6 +200,7 @@ import mandalaIcon from '../../assets/icons/image2-mindful-mandala.png'
 const { t, locale } = useI18n()
 const authStore = useAuthStore()
 const gamesStore = useGamesStore()
+const VOICE_GUIDE_VOLUME = 0.8
 
 // ============ 音频资源配置 ============
 // 可以是本地路径或远程 URL
@@ -233,7 +230,6 @@ const availableExternalGameLinks = computed(() => (
 
 const selectedType = ref('meditation')
 const selectedDuration = ref(10)
-const voiceVolume = ref(80)
 const bgVolume = ref(50)
 const monthlyBackgroundThemes = MONTHLY_BACKGROUND_THEMES
 const bgMusicType = ref(getMonthlyTheme(new Date().getMonth() + 1).key)
@@ -426,7 +422,7 @@ async function playVoiceGuide() {
 
   voiceFallbackActive.value = false
   voiceAudioPlayer.value.src = audioSrc
-  voiceAudioPlayer.value.volume = voiceVolume.value / 100
+  voiceAudioPlayer.value.volume = VOICE_GUIDE_VOLUME
 
   try {
     await voiceAudioPlayer.value.play()
@@ -447,7 +443,7 @@ function speakVoiceGuide() {
   window.speechSynthesis.cancel()
   const utterance = new SpeechSynthesisUtterance(text)
   utterance.lang = locale.value === 'zh-CN' ? 'zh-CN' : 'en-US'
-  utterance.volume = voiceVolume.value / 100
+  utterance.volume = VOICE_GUIDE_VOLUME
   utterance.rate = 0.86
   utterance.onend = () => {
     voiceFallbackActive.value = false
@@ -516,12 +512,6 @@ function openThemeSourcePlayer(theme) {
 watch(bgVolume, (newVal) => {
   if (bgAudioPlayer.value) {
     bgAudioPlayer.value.volume = newVal / 100
-  }
-})
-
-watch(voiceVolume, (newVal) => {
-  if (voiceAudioPlayer.value) {
-    voiceAudioPlayer.value.volume = newVal / 100
   }
 })
 
