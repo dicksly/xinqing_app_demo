@@ -341,7 +341,7 @@ async def create_emotion_record(
     db: Session = Depends(get_db)
 ):
     """创建情绪记录"""
-    db_record = EmotionRecord(**record.dict())
+    db_record = EmotionRecord(**record.model_dump())
     db.add(db_record)
     db.commit()
     db.refresh(db_record)
@@ -352,15 +352,26 @@ async def create_emotion_record(
 async def get_emotion_records(
     skip: int = 0,
     limit: int = 20,
+    client_id: str = Query("anonymous", alias="clientId", min_length=1, max_length=120),
     db: Session = Depends(get_db)
 ):
     """获取情绪记录列表"""
-    records = db.query(EmotionRecord).offset(skip).limit(limit).all()
+    records = (
+        db.query(EmotionRecord)
+        .filter(EmotionRecord.client_id == client_id.strip())
+        .order_by(EmotionRecord.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
     return records
 
 
 @router.get("/emotion-records/weekly-report", response_model=WeeklyReportResponse)
-async def get_weekly_report(db: Session = Depends(get_db)):
+async def get_weekly_report(
+    client_id: str = Query("anonymous", alias="clientId", min_length=1, max_length=120),
+    db: Session = Depends(get_db),
+):
     """获取周报"""
     # 获取本周一的日期
     today = datetime.utcnow()
@@ -368,6 +379,7 @@ async def get_weekly_report(db: Session = Depends(get_db)):
     
     # 查询本周记录
     records = db.query(EmotionRecord).filter(
+        EmotionRecord.client_id == client_id.strip(),
         EmotionRecord.created_at >= monday
     ).all()
     
@@ -520,7 +532,7 @@ async def create_mindfulness_session(
     db: Session = Depends(get_db)
 ):
     """创建正念练习记录"""
-    db_session = MindfulnessSession(**session.dict())
+    db_session = MindfulnessSession(**session.model_dump())
     db.add(db_session)
     db.commit()
     db.refresh(db_session)
@@ -577,12 +589,19 @@ async def get_published_treehole_entries(
 @router.delete("/treehole-entries/{entry_id}")
 async def delete_treehole_entry(
     entry_id: int,
+    client_id: str = Query(..., alias="clientId", min_length=1, max_length=120),
     db: Session = Depends(get_db)
 ):
-    """删除树洞条目。当前 demo 模式不做用户归属校验。"""
+    """删除树洞条目。只能由创建该条目的 client_id 删除。"""
     entry = db.query(TreeholeEntry).filter(TreeholeEntry.id == entry_id).first()
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Treehole entry not found")
+
+    if entry.client_id != client_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="只能删除自己的树洞条目",
+        )
 
     db.delete(entry)
     db.commit()
@@ -1066,12 +1085,21 @@ async def request_password_reset(
     reset_request: PasswordResetRequest,
     db: Session = Depends(get_db)
 ):
-    """Demo 密码找回：返回 6 位验证码。生产环境应改为邮件/短信发送。"""
+    """密码找回：公测默认走人工找回，不向前端暴露验证码。"""
     user = find_user_by_account(db, reset_request.account)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="未找到该账号"
+        )
+
+    if not settings.ENABLE_DEMO_PASSWORD_RESET:
+        return PasswordResetRequestResponse(
+            account=user.username,
+            delivery="manual",
+            reset_code=None,
+            expires_in_minutes=PASSWORD_RESET_EXPIRES_MINUTES,
+            message="找回申请已记录。公测期间请联系管理员完成身份确认和密码重置。",
         )
 
     reset_code = f"{uuid.uuid4().int % 1_000_000:06d}"

@@ -33,13 +33,21 @@ def get_password_hash(password: str) -> str:
 
 def ensure_default_admin_user(db: Session) -> AdminUser:
     """确保存在默认管理员账号。"""
-    admin = db.query(AdminUser).filter(AdminUser.username == "admin").first()
+    admin = (
+        db.query(AdminUser)
+        .filter(AdminUser.username == settings.ADMIN_BOOTSTRAP_USERNAME)
+        .first()
+    )
     if admin:
+        if verify_password("admin123", admin.password_hash):
+            admin.password_hash = get_password_hash(settings.ADMIN_BOOTSTRAP_PASSWORD)
+            db.commit()
+            db.refresh(admin)
         return admin
 
     admin = AdminUser(
-        username="admin",
-        password_hash=get_password_hash("admin123"),
+        username=settings.ADMIN_BOOTSTRAP_USERNAME,
+        password_hash=get_password_hash(settings.ADMIN_BOOTSTRAP_PASSWORD),
     )
     db.add(admin)
     db.commit()

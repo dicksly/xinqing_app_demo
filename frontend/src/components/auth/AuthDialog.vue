@@ -260,9 +260,15 @@ const requestResetCode = async () => {
   resetRequesting.value = true
   try {
     const response = await authApi.requestPasswordReset({ account: formData.account.trim() })
-    formData.resetCode = response.data.reset_code
-    resetHint.value = `演示验证码：${response.data.reset_code}`
-    ElMessage.success('验证码已生成')
+    if (response.data.reset_code) {
+      formData.resetCode = response.data.reset_code
+      resetHint.value = `演示验证码：${response.data.reset_code}`
+      ElMessage.success('验证码已生成')
+      return
+    }
+
+    resetHint.value = response.data.message || '找回申请已提交，请联系管理员'
+    ElMessage.success('找回申请已提交')
   } catch (error) {
     const message = error.response?.data?.detail || '验证码生成失败'
     ElMessage.error(message)

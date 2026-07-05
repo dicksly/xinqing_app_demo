@@ -102,12 +102,15 @@ class TreeholeApiTests(unittest.TestCase):
     def test_can_delete_treehole_entry_from_backend(self):
         create_response = self.client.post(
             "/api/v1/treehole-entries",
-            json={"content": "稍后删除", "isPublished": True},
+            json={"clientId": "delete-device", "content": "稍后删除", "isPublished": True},
         )
         self.assertEqual(create_response.status_code, 200)
         entry_id = create_response.json()["id"]
 
-        delete_response = self.client.delete(f"/api/v1/treehole-entries/{entry_id}")
+        delete_response = self.client.delete(
+            f"/api/v1/treehole-entries/{entry_id}",
+            params={"clientId": "delete-device"},
+        )
 
         self.assertEqual(delete_response.status_code, 200)
         public_response = self.client.get("/api/v1/treehole-entries")

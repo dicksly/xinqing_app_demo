@@ -32,6 +32,9 @@ Thumbs.db
 *.db-shm
 *.db-wal
 
+# Large meditation audio files are deployed directly to the server.
+frontend/public/audio/meditation/months/
+
 # OpenClaw workspace files (not part of this project)
 AGENTS.md
 BOOTSTRAP.md

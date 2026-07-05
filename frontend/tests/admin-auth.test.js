@@ -40,7 +40,7 @@ test('login success stores admin auth state', async () => {
 
   try {
     const adminStore = useAdminStore()
-    await adminStore.login('admin', 'admin123')
+    await adminStore.login('admin', 'XinqingBeta2026!')
 
     assert.equal(adminStore.token, 'admin-token')
     assert.deepEqual(adminStore.user, { id: 1, username: 'admin' })

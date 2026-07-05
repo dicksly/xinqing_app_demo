@@ -8,6 +8,19 @@ from typing import Optional
 from functools import cached_property
 
 
+ALIYUN_MYSQL_PUBLIC_DATABASE_URL = (
+    "mysql+pymysql://root:Dicksly-65745475@"
+    "rm-2zeudbxi699wy0z8llo.mysql.rds.aliyuncs.com:3306/"
+    "xinqing_app?charset=utf8mb4"
+)
+
+ALIYUN_MYSQL_INTERNAL_DATABASE_URL = (
+    "mysql+pymysql://root:Dicksly-65745475@"
+    "rm-2zeudbxi699wy0z8l.mysql.rds.aliyuncs.com:3306/"
+    "xinqing_app?charset=utf8mb4"
+)
+
+
 class Settings(BaseSettings):
     """应用配置"""
 
@@ -24,18 +37,21 @@ class Settings(BaseSettings):
     PORT: int = 8000
     
     # 数据库配置
-    DATABASE_URL: str = "sqlite:///./xinqing.db"
+    DATABASE_URL: str = ALIYUN_MYSQL_PUBLIC_DATABASE_URL
     
     # JWT 配置（如果需要认证）
-    SECRET_KEY: str = "your-secret-key-change-in-production"
+    SECRET_KEY: str = "xinqing-public-beta-jwt-secret-2026-07-06-change-after-beta"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7天
     
     # 加密密钥
-    ENCRYPTION_KEY: str = "your-encryption-key-change-in-production"
+    ENCRYPTION_KEY: str = "xinqing-public-beta-data-key-2026-07-06-change-after-beta"
     
     # CORS 配置（生产环境必须配置）
     ALLOWED_ORIGINS: str = "*"  # 默认允许所有来源，生产环境应设置为前端域名
+    ADMIN_BOOTSTRAP_USERNAME: str = "admin"
+    ADMIN_BOOTSTRAP_PASSWORD: str = "XinqingBeta2026!"
+    ENABLE_DEMO_PASSWORD_RESET: bool = False
     AI_API_KEY: Optional[str] = None
     AI_API_BASE: Optional[str] = None
     AI_MODEL: str = "Pro/deepseek-ai/DeepSeek-V3.2"

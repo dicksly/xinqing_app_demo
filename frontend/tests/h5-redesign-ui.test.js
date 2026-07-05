@@ -120,6 +120,14 @@ test('emotion page keeps check-in behavior in the redesigned ritual layout', () 
   assert.match(emotionView, /handleSubmit/)
 })
 
+test('emotion and mindfulness records include stable beta client id for backend isolation', () => {
+  assert.match(emotionView, /getXinqingClientId/)
+  assert.match(emotionView, /clientId:\s*getXinqingClientId\(\)/)
+  assert.match(emotionView, /fetchWeeklyReport\(\{\s*clientId:\s*getXinqingClientId\(\)\s*\}\)/)
+  assert.match(mindfulnessView, /getXinqingClientId/)
+  assert.match(mindfulnessView, /clientId:\s*getXinqingClientId\(\)/)
+})
+
 test('emotion detailed assessment uses the configurable question source', () => {
   assert.match(emotionView, /getAssessmentQuestions/)
   assert.match(emotionView, /createAssessmentAnswers/)
@@ -139,12 +147,21 @@ test('mindfulness page exposes practice player, breathing entry, and games', () 
   assert.match(mindfulnessView, /toggleBreathing/)
 })
 
-test('mindfulness page has source fallback player and configurable external game links', () => {
+test('mindfulness page hides unresolved external game placeholders from public beta UI', () => {
   assert.match(mindfulnessView, /audioFallbackTheme/)
   assert.match(mindfulnessView, /source-player-panel/)
   assert.match(mindfulnessView, /openThemeSourcePlayer/)
   assert.match(mindfulnessView, /EXTERNAL_MINI_GAMES/)
-  assert.match(mindfulnessView, /external-game-tile/)
+  assert.match(mindfulnessView, /availableExternalGameLinks/)
+  assert.match(mindfulnessView, /externalGameLinks\.value\.filter\(\(game\) => !game\.needsProvidedLink\)/)
+  assert.match(mindfulnessView, /v-if="availableExternalGameLinks\.length"/)
+})
+
+test('mindfulness playback does not fail on missing voice or session tracking errors', () => {
+  assert.doesNotMatch(mindfulnessView, /\/audio\/meditation\/voice\/stress\.mp3/)
+  assert.match(mindfulnessView, /function recordMindfulnessSession\(\)/)
+  assert.match(mindfulnessView, /console\.warn\('记录冥想会话失败/)
+  assert.match(mindfulnessView, /void recordMindfulnessSession\(\)/)
 })
 
 test('treehole page exposes safe composer, privacy controls, and square feed', () => {
@@ -164,6 +181,11 @@ test('treehole page exposes safe composer, privacy controls, and square feed', (
   assert.match(localFallbackBlock, /loadEntries\(\)/)
   assert.match(localFallbackBlock, /entryForm\.value = \{[\s\S]*content:\s*''/)
   assert.match(treeholeView, /handleSubmit/)
+})
+
+test('treehole creates and deletes entries with owner client id', () => {
+  assert.match(treeholeView, /clientId:\s*getTreeholeClientId\(\)/)
+  assert.match(treeholeView, /treeholeApi\.delete\(entryId,\s*\{\s*clientId:\s*getTreeholeClientId\(\)\s*\}\)/)
 })
 
 test('knowledge page exposes editorial hub while preserving content actions', () => {

@@ -9,6 +9,12 @@ from datetime import date, datetime
 
 class EmotionRecordBase(BaseModel):
     """情绪记录基础 Schema"""
+    client_id: str = Field(
+        "anonymous",
+        min_length=1,
+        max_length=120,
+        validation_alias=AliasChoices("client_id", "clientId"),
+    )
     mood: str = Field(..., description="心情：焦虑、丧、平静、开心、元气")
     energy_level: float = Field(
         ...,
@@ -62,6 +68,12 @@ class EmotionRecordResponse(EmotionRecordBase):
 
 class MindfulnessSessionBase(BaseModel):
     """正念练习基础 Schema"""
+    client_id: str = Field(
+        "anonymous",
+        min_length=1,
+        max_length=120,
+        validation_alias=AliasChoices("client_id", "clientId"),
+    )
     session_type: str = Field(..., description="练习类型：sleep/wake/stress/emergency")
     duration_minutes: int = Field(..., description="时长（分钟）")
 
@@ -283,6 +295,12 @@ class TreeholeEntryBase(BaseModel):
 
 class TreeholeEntryCreate(TreeholeEntryBase):
     """创建树洞条目"""
+    client_id: str = Field(
+        "anonymous",
+        min_length=1,
+        max_length=120,
+        validation_alias=AliasChoices("client_id", "clientId"),
+    )
     is_anonymous: Optional[bool] = Field(
         True,
         description="是否匿名发布",
@@ -481,21 +499,21 @@ class UserLogin(BaseModel):
 
 
 class PasswordResetRequest(BaseModel):
-    """Demo 密码找回请求。"""
+    """密码找回请求。"""
     account: str = Field(..., min_length=1, max_length=100, description="用户名或邮箱")
 
 
 class PasswordResetRequestResponse(BaseModel):
-    """Demo 密码找回响应。真实产品应通过邮件或短信发送 reset_code。"""
+    """密码找回响应。真实产品应通过邮件或短信发送 reset_code。"""
     account: str
     delivery: str
-    reset_code: str
+    reset_code: Optional[str] = None
     expires_in_minutes: int
     message: str
 
 
 class PasswordResetConfirm(BaseModel):
-    """Demo 密码重置确认。"""
+    """密码重置确认。"""
     account: str = Field(..., min_length=1, max_length=100, description="用户名或邮箱")
     reset_code: str = Field(
         ...,

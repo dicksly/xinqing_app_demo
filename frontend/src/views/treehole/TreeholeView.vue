@@ -616,6 +616,7 @@ import {
   toggleTreeholeLike
 } from '../../utils/treehole-interactions'
 import { compressImageDataUrl } from '../../utils/image-upload'
+import { getXinqingClientId } from '../../utils/client-id'
 import { togglePanel } from '../../utils/treehole-composer'
 import voiceToolIcon from '../../assets/icons/image2-utility-voice.png'
 import imageToolIcon from '../../assets/icons/image2-utility-image.png'
@@ -694,11 +695,7 @@ function getEntryId(entry) {
 }
 
 function getTreeholeClientId() {
-  const saved = localStorage.getItem('xinqing_client_id')
-  if (saved) return saved
-  const next = `client-${Date.now()}-${Math.random().toString(16).slice(2)}`
-  localStorage.setItem('xinqing_client_id', next)
-  return next
+  return getXinqingClientId()
 }
 
 function canUseRemoteInteraction(entry) {
@@ -956,6 +953,7 @@ async function handleSubmit() {
   try {
     const entryData = {
       ...entryForm.value,
+      clientId: getTreeholeClientId(),
       duration: hasVoice ? recordingTime.value : 0,
       voice_url: hasVoice ? voiceBlobUrl.value : null,
       created_at: new Date().toISOString(),
@@ -1000,6 +998,7 @@ async function handleSubmit() {
     // 即使API失败也保存到本地
     const entryData = {
       ...entryForm.value,
+      clientId: getTreeholeClientId(),
       duration: recordingTime.value > 0 ? recordingTime.value : 0,
       voice_url: recordingTime.value > 0 ? voiceBlobUrl.value : null,
       created_at: new Date().toISOString(),
@@ -1067,7 +1066,7 @@ async function removeEntry(entryId) {
   const isLocalEntry = hasLocalEntry(savedEntries, entryId)
 
   try {
-    await treeholeApi.delete(entryId)
+    await treeholeApi.delete(entryId, { clientId: getTreeholeClientId() })
   } catch (error) {
     if (!isLocalEntry && error.response?.status !== 404) {
       console.error('删除后端条目失败:', error)

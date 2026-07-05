@@ -440,6 +440,16 @@ test('monthly meditation themes expose downloaded cover artwork', () => {
   })
 })
 
+test('monthly meditation themes expose bundled local mp3 audio', () => {
+  MONTHLY_BACKGROUND_THEMES.forEach((theme) => {
+    assert.match(theme.audio, /^\/audio\/meditation\/months\/\d{2}-.+\.mp3$/)
+    assert.ok(
+      existsSync(new URL(`../public${theme.audio}`, import.meta.url)),
+      `missing bundled meditation audio for ${theme.key}`
+    )
+  })
+})
+
 test('external mini game links are configurable placeholders until product links are provided', () => {
   assert.deepEqual(EXTERNAL_MINI_GAMES.map((game) => game.title), ['抓大鹅', '消消乐', '切水果'])
   assert.equal(EXTERNAL_MINI_GAMES.every((game) => game.needsProvidedLink), true)

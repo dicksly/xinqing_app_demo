@@ -241,6 +241,7 @@ import {
   createAssessmentAnswers,
   getAssessmentQuestions,
 } from '../../utils/assessment-questions'
+import { getXinqingClientId } from '../../utils/client-id'
 import { emotionApi } from '../../api'
 
 const { t, locale } = useI18n()
@@ -330,6 +331,7 @@ async function handleSubmit() {
   try {
     const savedMood = currentRecord.value.mood
     const localRecord = {
+      client_id: getXinqingClientId(),
       mood: savedMood,
       energy_level: currentRecord.value.energyLevel,
       sleep_quality: currentRecord.value.sleepQuality,
@@ -338,6 +340,7 @@ async function handleSubmit() {
     }
     await emotionStore.createRecord({
       ...currentRecord.value,
+      clientId: getXinqingClientId(),
       stressSources: JSON.stringify(currentRecord.value.stressSources),
     })
 
@@ -349,7 +352,7 @@ async function handleSubmit() {
     quoteCardVisible.value = true
     ElMessage.success(locale.value === 'zh-CN' ? '打卡成功！' : 'Check-in successful!')
     emotionStore.resetCurrentRecord()
-    emotionStore.fetchWeeklyReport()
+    emotionStore.fetchWeeklyReport({ clientId: getXinqingClientId() })
   } catch (error) {
     ElMessage.error(locale.value === 'zh-CN' ? '打卡失败，请重试' : 'Check-in failed, please try again')
   } finally {
@@ -453,16 +456,6 @@ function saveAssessmentConsent() {
   assessmentConsentSaved.value = true
 }
 
-function getClientId() {
-  const saved = localStorage.getItem('xinqing_client_id')
-  if (saved) return saved
-  const next = typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `client-${Date.now()}-${Math.floor(Math.random() * 100000)}`
-  localStorage.setItem('xinqing_client_id', next)
-  return next
-}
-
 async function submitAssessment() {
   const savedConsent = readSavedAssessmentConsent()
   const payload = buildAssessmentPayload(
@@ -473,7 +466,7 @@ async function submitAssessment() {
       guardianSignature: savedConsent.guardianSignature || assessmentConsent.value.guardianSignature,
     },
     assessmentAnswers.value,
-    getClientId()
+    getXinqingClientId()
   )
 
   try {
@@ -505,7 +498,7 @@ function readSavedAssessmentConsent() {
 
 async function loadWeeklyReport() {
   try {
-    weeklyReport.value = await emotionStore.fetchWeeklyReport()
+    weeklyReport.value = await emotionStore.fetchWeeklyReport({ clientId: getXinqingClientId() })
   } catch (error) {
     console.error('加载周报失败:', error)
   }

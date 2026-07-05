@@ -56,7 +56,7 @@ export const emotionApi = {
   getList: (params) => api.get('/emotion-records', { params }),
 
   // 获取周报
-  getWeeklyReport: () => api.get('/emotion-records/weekly-report'),
+  getWeeklyReport: (params) => api.get('/emotion-records/weekly-report', { params }),
 
   // 提交详细心理分析
   submitAssessment: (data) => api.post('/psychological-assessments', data),
@@ -85,7 +85,7 @@ export const treeholeApi = {
   addReply: (id, commentId, data) => api.post(`/treehole-entries/${id}/comments/${commentId}/replies`, data),
 
   // 删除条目
-  delete: (id) => api.delete(`/treehole-entries/${id}`),
+  delete: (id, params) => api.delete(`/treehole-entries/${id}`, { params }),
 }
 
 // 知识库 API

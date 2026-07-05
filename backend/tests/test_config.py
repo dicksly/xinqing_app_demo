@@ -3,6 +3,8 @@ import importlib
 import sys
 from pathlib import Path
 
+from sqlalchemy.engine import make_url
+
 from app.core.config import Settings
 from app.core import database as database_module
 from app.schemas.schemas import TreeholeEntryCreate
@@ -40,9 +42,40 @@ class SettingsTests(unittest.TestCase):
         main_module = importlib.import_module("main")
 
         self.assertEqual(
-            str(main_module.engine.url),
+            main_module.engine.url.render_as_string(hide_password=False),
             main_module.settings.DATABASE_URL,
         )
+
+    def test_default_database_url_is_hardcoded_aliyun_mysql_public_endpoint(self):
+        default_url = Settings.model_fields["DATABASE_URL"].default
+        parsed_url = make_url(default_url)
+
+        self.assertEqual(parsed_url.drivername, "mysql+pymysql")
+        self.assertEqual(parsed_url.host, "rm-2zeudbxi699wy0z8llo.mysql.rds.aliyuncs.com")
+        self.assertEqual(parsed_url.database, "xinqing_app")
+        self.assertEqual(parsed_url.query.get("charset"), "utf8mb4")
+
+    def test_production_env_hardcodes_aliyun_mysql_internal_endpoint(self):
+        repo_root = Path(__file__).resolve().parents[2]
+        production_env = repo_root / "backend" / ".env.production"
+        production_content = production_env.read_text(encoding="utf-8")
+
+        self.assertIn("mysql+pymysql://root:", production_content)
+        self.assertIn("rm-2zeudbxi699wy0z8l.mysql.rds.aliyuncs.com", production_content)
+        self.assertIn("xinqing_app?charset=utf8mb4", production_content)
+        self.assertNotIn("CHANGE_ME", production_content)
+
+    def test_database_url_uses_hardcoded_default_before_sqlite_fallback(self):
+        hardcoded_default = Settings.model_fields["DATABASE_URL"].default
+        fallback_url = "sqlite:////opt/render/project/xinqing.db"
+
+        resolved_url = database_module.resolve_database_url(
+            {},
+            configured_url=hardcoded_default,
+            fallback_url=fallback_url,
+        )
+
+        self.assertEqual(resolved_url, hardcoded_default)
 
     def test_database_url_prefers_explicit_environment_url(self):
         mysql_url = (

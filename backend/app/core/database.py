@@ -8,15 +8,12 @@ from collections.abc import Mapping
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import declarative_base, sessionmaker
-from .config import Settings, settings
+from .config import settings
 
 try:
     from .persistent import DATABASE_URL as PERSISTENT_DATABASE_URL
 except ImportError:
     PERSISTENT_DATABASE_URL = settings.DATABASE_URL
-
-DEFAULT_DATABASE_URL = Settings.model_fields["DATABASE_URL"].default
-
 
 def resolve_database_url(
     env: Mapping[str, str] | None = None,
@@ -32,10 +29,10 @@ def resolve_database_url(
     configured = settings.DATABASE_URL if configured_url is None else configured_url
     fallback = PERSISTENT_DATABASE_URL if fallback_url is None else fallback_url
 
-    if configured and configured != DEFAULT_DATABASE_URL:
+    if configured:
         return configured
 
-    return fallback or configured
+    return fallback
 
 
 def is_sqlite_database_url(database_url: str) -> bool:

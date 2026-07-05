@@ -40,9 +40,9 @@ export const useEmotionStore = defineStore('emotion', () => {
     }
   }
 
-  async function fetchWeeklyReport() {
+  async function fetchWeeklyReport(params = {}) {
     try {
-      const response = await emotionApi.getWeeklyReport()
+      const response = await emotionApi.getWeeklyReport(params)
       weeklyReport.value = response.data
       return response.data
     } catch (error) {

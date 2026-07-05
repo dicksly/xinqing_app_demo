@@ -115,9 +115,9 @@
       </button>
     </section>
 
-    <section class="external-games-strip" aria-label="External mindfulness games">
+    <section v-if="availableExternalGameLinks.length" class="external-games-strip" aria-label="External mindfulness games">
       <button
-        v-for="game in externalGameLinks"
+        v-for="game in availableExternalGameLinks"
         :key="game.key"
         type="button"
         class="care-card external-game-tile care-touch"
@@ -185,6 +185,7 @@ import { mindfulnessApi } from '../../api'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '../../stores/auth'
 import { useGamesStore } from '../../stores/games'
+import { getXinqingClientId } from '../../utils/client-id'
 import { getMonthlyTheme, MONTHLY_BACKGROUND_THEMES } from '../../utils/meditation-themes'
 import { EXTERNAL_MINI_GAMES, getExternalGameLinks } from '../../utils/external-games'
 import AuthDialog from '../../components/auth/AuthDialog.vue'
@@ -210,9 +211,7 @@ const audioResources = {
   // 背景音乐
   bgMusic: Object.fromEntries(MONTHLY_BACKGROUND_THEMES.map((theme) => [theme.key, theme.audio])),
   // 引导语音（按冥想类型）
-  voiceGuide: {
-    meditation: '/audio/meditation/voice/stress.mp3',
-  }
+  voiceGuide: {}
 }
 
 // 音频播放器实例
@@ -227,6 +226,9 @@ const games = computed(() => [
 ])
 const externalGameLinks = computed(() => getExternalGameLinks(
   Object.fromEntries(EXTERNAL_MINI_GAMES.map((game) => [game.key, game.url]))
+))
+const availableExternalGameLinks = computed(() => (
+  externalGameLinks.value.filter((game) => !game.needsProvidedLink)
 ))
 
 const selectedType = ref('meditation')
@@ -369,11 +371,7 @@ async function startMeditation() {
       startMeditationTimer()
 
       // 记录到后端
-      await mindfulnessApi.create({
-        session_type: selectedType.value,
-        duration_minutes: selectedDuration.value,
-        completed: false,
-      })
+      void recordMindfulnessSession()
 
       ElMessage.success(locale.value === 'zh-CN' ? '开始冥想！' : 'Meditation started!')
     } catch (error) {
@@ -385,6 +383,19 @@ async function startMeditation() {
     stopAllAudio()
     stopMeditationTimer()
     ElMessage.info(locale.value === 'zh-CN' ? '冥想已暂停' : 'Meditation paused')
+  }
+}
+
+async function recordMindfulnessSession() {
+  try {
+    await mindfulnessApi.create({
+      clientId: getXinqingClientId(),
+      session_type: selectedType.value,
+      duration_minutes: selectedDuration.value,
+      completed: false,
+    })
+  } catch (error) {
+    console.warn('记录冥想会话失败，继续本地播放:', error)
   }
 }
 
@@ -408,7 +419,10 @@ async function playBgMusic() {
 // 播放引导语音
 async function playVoiceGuide() {
   const audioSrc = audioResources.voiceGuide[selectedType.value]
-  if (!audioSrc) return
+  if (!audioSrc) {
+    speakVoiceGuide()
+    return
+  }
 
   voiceFallbackActive.value = false
   voiceAudioPlayer.value.src = audioSrc

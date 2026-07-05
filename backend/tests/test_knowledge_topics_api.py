@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from app.core.config import settings
 from app.core.database import Base, get_db
 from main import app
 
@@ -36,7 +37,10 @@ class KnowledgeTopicsApiTests(unittest.TestCase):
 
         login_response = self.client.post(
             "/api/v1/admin/login",
-            json={"username": "admin", "password": "admin123"},
+            json={
+                "username": settings.ADMIN_BOOTSTRAP_USERNAME,
+                "password": settings.ADMIN_BOOTSTRAP_PASSWORD,
+            },
         )
         self.assertEqual(login_response.status_code, 200)
         self.admin_headers = {

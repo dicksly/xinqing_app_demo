@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 
 import { resolveApiBaseUrl } from '../src/api/base-url.js'
 
@@ -20,4 +21,11 @@ test('does not duplicate api prefix when already present', () => {
     resolveApiBaseUrl('https://api.example.com/api/v1'),
     'https://api.example.com/api/v1'
   )
+})
+
+test('production config no longer points public beta users to the old Render backend', () => {
+  const vercelConfig = readFileSync(new URL('../vercel.json', import.meta.url), 'utf8')
+  const productionEnv = readFileSync(new URL('../.env.production', import.meta.url), 'utf8')
+
+  assert.doesNotMatch(vercelConfig + productionEnv, /onrender\.com/)
 })

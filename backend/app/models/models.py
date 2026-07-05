@@ -14,6 +14,7 @@ class EmotionRecord(Base):
     __tablename__ = "emotion_records"
     
     id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(String(120), index=True, nullable=False, default="anonymous")
     mood = Column(String(50))  # 心情：焦虑、丧、平静、开心、元气
     energy_level = Column(Float)  # 能量水平 0-100
     sleep_quality = Column(Integer)  # 睡眠质量 1-5星
@@ -32,6 +33,7 @@ class MindfulnessSession(Base):
     __tablename__ = "mindfulness_sessions"
     
     id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(String(120), index=True, nullable=False, default="anonymous")
     session_type = Column(String(50))  # 练习类型：sleep/wake/stress/emergency
     duration_minutes = Column(Integer)  # 时长（分钟）
     completed = Column(Boolean, default=False)  # 是否完成
@@ -60,6 +62,7 @@ class TreeholeEntry(Base):
     __tablename__ = "treehole_entries"
     
     id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(String(120), index=True, nullable=False, default="anonymous")
     content_type = Column(String(20))  # 内容类型：text/voice/image
     content = Column(Text)  # 文字内容
     media_path = Column(String(255), nullable=True)  # 媒体文件路径

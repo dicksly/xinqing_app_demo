@@ -15,6 +15,7 @@ import uvicorn
 
 from app.core.config import settings
 from app.core.database import DATABASE_URL, engine, Base, SessionLocal, is_sqlite_database_url
+from app.core.schema_migrations import ensure_public_beta_schema
 from app.api.v1.api import router as api_router
 from app.data.seed_knowledge_content import seed_knowledge_content
 
@@ -113,6 +114,7 @@ async def lifespan(app: FastAPI):
         ensure_knowledge_schema(DATABASE_FILE)
 
     Base.metadata.create_all(bind=engine)
+    ensure_public_beta_schema(engine)
     db = SessionLocal()
     try:
         from app.services.auth_service import ensure_default_admin_user
