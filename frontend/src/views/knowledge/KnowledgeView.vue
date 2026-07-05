@@ -444,6 +444,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import {
   Trophy,
   View,
@@ -462,6 +463,7 @@ import articleIcon from '../../assets/icons/image2-content-article.png'
 import quizIcon from '../../assets/icons/image2-content-quiz.png'
 
 const { t, locale } = useI18n()
+const router = useRouter()
 
 // 每日金句
 const dailyQuote = ref({
@@ -888,7 +890,11 @@ function viewContent(item) {
 // 开始测试
 function startTest(test) {
   if (test.externalUrl) {
-    window.open(test.externalUrl, '_blank', 'noopener,noreferrer')
+    openEmbeddedSource({
+      sourceUrl: test.externalUrl,
+      title: test.title,
+      type: 'test',
+    })
     return
   }
 
@@ -932,7 +938,24 @@ function viewArticle(article) {
 
 function openContentSource(item) {
   if (!item?.source_url) return
-  window.open(item.source_url, '_blank', 'noopener,noreferrer')
+  openEmbeddedSource({
+    sourceUrl: item.source_url,
+    title: item.title,
+    type: item.type || item.content_type || 'knowledge',
+  })
+}
+
+function openEmbeddedSource({ sourceUrl, title, type }) {
+  if (!sourceUrl) return
+
+  router.push({
+    name: 'KnowledgeExternal',
+    query: {
+      url: sourceUrl,
+      title: title || '',
+      type: type || 'knowledge',
+    },
+  })
 }
 
 // 提交测试

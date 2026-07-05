@@ -151,6 +151,7 @@ test('SBTI replaces the simplified MBTI feature entry', () => {
   assert.equal(SBTI_TEST.title, 'SBTI 心理能量测试')
   assert.equal(SBTI_TEST.externalUrl, 'https://www.fengyunzhice.com/sbti?ver=8bdpc-6234&bd_vid=12439061078742734187')
   assert.match(source, /SBTI_TEST/)
-  assert.match(source, /window\.open\(test\.externalUrl/)
+  assert.match(source, /sourceUrl:\s*test\.externalUrl/)
+  assert.match(source, /name:\s*'KnowledgeExternal'/)
   assert.doesNotMatch(source, /MBTI 简化版/)
 })

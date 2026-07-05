@@ -1,17 +1,23 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 const readSource = (path) => readFileSync(new URL(path, import.meta.url), 'utf8')
+const readOptionalSource = (path) => {
+  const fileUrl = new URL(path, import.meta.url)
+  return existsSync(fileUrl) ? readFileSync(fileUrl, 'utf8') : ''
+}
 
 const appVue = readSource('../src/App.vue')
 const globalCss = readSource('../src/styles/global.css')
+const routerSource = readSource('../src/router/index.js')
 const homeView = readSource('../src/views/home/HomeView.vue')
 const sproutPanoramaScene = readSource('../src/components/home/SproutPanoramaScene.vue')
 const emotionView = readSource('../src/views/emotion/EmotionView.vue')
 const mindfulnessView = readSource('../src/views/mindfulness/MindfulnessView.vue')
 const treeholeView = readSource('../src/views/treehole/TreeholeView.vue')
 const knowledgeView = readSource('../src/views/knowledge/KnowledgeView.vue')
+const knowledgeExternalView = readOptionalSource('../src/views/knowledge/KnowledgeExternalView.vue')
 const profileView = readSource('../src/views/profile/ProfileView.vue')
 
 test('app shell uses five bottom tabs and moves profile to top controls', () => {
@@ -209,6 +215,18 @@ test('knowledge page surfaces all prepared videos and articles in the redesigned
   assert.match(knowledgeView, /preparedMaterialSummary/)
   assert.match(knowledgeView, /videoContent\.length/)
   assert.match(knowledgeView, /articles\.length/)
+})
+
+test('knowledge source links open inside an in-app embedded reader', () => {
+  assert.match(routerSource, /path:\s*'\/knowledge\/external'/)
+  assert.match(routerSource, /KnowledgeExternalView\.vue/)
+  assert.match(knowledgeView, /useRouter/)
+  assert.match(knowledgeView, /router\.push\(\{[\s\S]*name:\s*'KnowledgeExternal'/)
+  assert.doesNotMatch(knowledgeView, /window\.open/)
+  assert.match(knowledgeExternalView, /<iframe/)
+  assert.match(knowledgeExternalView, /external-frame/)
+  assert.match(knowledgeExternalView, /openOriginal/)
+  assert.match(knowledgeExternalView, /route\.query\.url/)
 })
 
 test('profile settings hides admin entry and exposes font sizing controls', () => {

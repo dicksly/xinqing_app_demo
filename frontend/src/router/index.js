@@ -34,6 +34,11 @@ const routes = [
     component: () => import('../views/knowledge/KnowledgeView.vue')
   },
   {
+    path: '/knowledge/external',
+    name: 'KnowledgeExternal',
+    component: () => import('../views/knowledge/KnowledgeExternalView.vue')
+  },
+  {
     path: '/admin/login',
     name: 'AdminLogin',
     component: () => import('../views/admin/AdminLoginView.vue')
