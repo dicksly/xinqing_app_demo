@@ -58,6 +58,35 @@ test('api knowledge content is merged with missing document supplied materials',
   assert.equal(mapped.articles.length, 13)
 })
 
+test('legacy empty anxiety video is hidden from knowledge video materials', () => {
+  const mapped = mapKnowledgePageData({
+    contents: [
+      {
+        id: 'legacy-empty-video',
+        title: '什么是焦虑症',
+        content_type: 'video',
+        source_url: '',
+        external_url: '',
+      },
+      {
+        id: 'valid-api-video',
+        title: '后端可播放视频',
+        content_type: 'video',
+        source_url: 'https://example.com/video',
+      },
+    ],
+  })
+
+  assert.equal(
+    mapped.videoContent.some((item) => item.title === '什么是焦虑症'),
+    false
+  )
+  assert.equal(
+    mapped.videoContent.some((item) => item.title === '后端可播放视频'),
+    true
+  )
+})
+
 test('api knowledge content without media receives reference visuals by type order', () => {
   const mapped = mapKnowledgePageData({
     contents: [
@@ -79,7 +108,7 @@ test('fallback hardcoded production content is removed', () => {
   )
 
   assert.match(source, /knowledgeApi\.getDailyQuote/)
-  assert.match(source, /knowledgeApi\.getTopics/)
+  assert.doesNotMatch(source, /knowledgeApi\.getTopics/)
   assert.doesNotMatch(source, /videoContent\.value = \[\s*\{/)
   assert.doesNotMatch(source, /const topics = computed\(\[/)
 })
@@ -93,6 +122,19 @@ test('knowledge page falls back to document materials when api loading fails', (
   assert.match(source, /const fallback = mapKnowledgePageData\(\{\s*contents:\s*\[\],\s*\}\)/)
   assert.match(source, /videoContent\.value = fallback\.videoContent/)
   assert.match(source, /articles\.value = fallback\.articles/)
+})
+
+test('knowledge page does not render empty topic tabs', () => {
+  const source = readFileSync(
+    new URL('../src/views/knowledge/KnowledgeView.vue', import.meta.url),
+    'utf8'
+  )
+
+  assert.match(source, /--segment-count:\s*3/)
+  assert.doesNotMatch(source, /name:\s*'topic'/)
+  assert.doesNotMatch(source, /knowledge\.topic/)
+  assert.doesNotMatch(source, /<el-tab-pane[^>]+name="topic"/)
+  assert.doesNotMatch(source, /专题策划/)
 })
 
 test('document supplied knowledge materials are used when api content is empty', () => {

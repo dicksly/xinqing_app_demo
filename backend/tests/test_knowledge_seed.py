@@ -38,6 +38,11 @@ class KnowledgeSeedTests(unittest.TestCase):
             self.assertGreater(db.query(DailyQuote).count(), 0)
             self.assertGreater(db.query(KnowledgeContent).count(), 0)
             self.assertGreater(db.query(KnowledgeTopic).count(), 0)
+            self.assertIsNone(
+                db.query(KnowledgeContent)
+                .filter(KnowledgeContent.title == "什么是焦虑症")
+                .one_or_none()
+            )
         finally:
             db.close()
 

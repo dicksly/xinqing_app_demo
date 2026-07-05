@@ -34,6 +34,11 @@ const routes = [
     component: () => import('../views/knowledge/KnowledgeView.vue')
   },
   {
+    path: '/knowledge/local/:id',
+    name: 'KnowledgeLocal',
+    component: () => import('../views/knowledge/KnowledgeLocalView.vue')
+  },
+  {
     path: '/knowledge/external',
     name: 'KnowledgeExternal',
     component: () => import('../views/knowledge/KnowledgeExternalView.vue')

@@ -15,7 +15,7 @@
         <small>— {{ dailyQuote.author || (locale === 'zh-CN' ? '心灵疗愈站' : 'Xinqing') }}</small>
       </section>
 
-      <div class="segmented-row knowledge-tabs-redesign" style="--segment-count: 4">
+      <div class="segmented-row knowledge-tabs-redesign" style="--segment-count: 3">
         <button
           v-for="tab in knowledgeTabs"
           :key="tab.name"
@@ -87,12 +87,6 @@
           <img :src="articleIcon" alt="" />
           <span>{{ locale === 'zh-CN' ? '继续阅读' : 'Read' }}</span>
         </button>
-      </section>
-
-      <section v-else class="care-card pad featured-content">
-        <span class="care-chip sage">{{ locale === 'zh-CN' ? '专题' : 'Topic' }}</span>
-        <h2>{{ topics[0]?.title || '给自己一点恢复空间' }}</h2>
-        <p>{{ topics[0]?.desc || '把零散内容整理成一个更完整的主题入口。' }}</p>
       </section>
 
       <section class="knowledge-list-redesign">
@@ -323,32 +317,6 @@
           <el-empty v-if="!loading && articles.length === 0" :description="locale === 'zh-CN' ? '暂无文章' : 'No articles'" :image-size="60" />
         </el-tab-pane>
 
-        <!-- 专题策划 -->
-        <el-tab-pane :label="t('knowledge.topic')" name="topic">
-          <div class="topic-editorial">
-            <span class="editorial-kicker">{{ locale === 'zh-CN' ? '栏目策划' : 'Editorial picks' }}</span>
-            <p class="editorial-desc">{{ locale === 'zh-CN' ? '把零散内容整理成一个更完整的主题入口，适合慢慢看。' : 'Organized themes that gather scattered content into something slower and more complete.' }}</p>
-          </div>
-          <div class="topic-list">
-            <div
-              v-for="topic in topics"
-              :key="topic.id"
-              class="topic-item"
-            >
-              <div class="topic-header">
-                <div class="topic-title">
-                  <component :is="FolderOpened" class="topic-icon" />
-                  <span>{{ topic.title }}</span>
-                </div>
-                <span class="topic-status" :class="topic.statusClass">{{ topic.status }}</span>
-              </div>
-              <p class="topic-desc">{{ topic.desc }}</p>
-              <div class="topic-footer">
-                <span class="topic-count">{{ topic.content_count }}{{ t('knowledge.contentCount') }}</span>
-              </div>
-            </div>
-          </div>
-        </el-tab-pane>
       </el-tabs>
     </section>
 
@@ -448,7 +416,6 @@ import { useRouter } from 'vue-router'
 import {
   Trophy,
   View,
-  FolderOpened,
   VideoPlay,
   StarFilled,
   CircleCheckFilled,
@@ -459,6 +426,7 @@ import {
 import { knowledgeApi } from '../../api/index.js'
 import { ElMessage } from 'element-plus'
 import { SBTI_TEST, getPreparedMaterialSummary, mapKnowledgePageData } from './knowledge-public-data.js'
+import { getLocalKnowledgeArticleBySourceUrl } from './knowledge-local-content.js'
 import articleIcon from '../../assets/icons/image2-content-article.png'
 import quizIcon from '../../assets/icons/image2-content-quiz.png'
 
@@ -477,7 +445,6 @@ const knowledgeTabs = computed(() => [
   { name: 'video', label: t('knowledge.video') },
   { name: 'test', label: t('knowledge.test') },
   { name: 'article', label: t('knowledge.article') },
-  { name: 'topic', label: t('knowledge.topic') },
 ])
 const preparedMaterialSummary = computed(() => getPreparedMaterialSummary())
 
@@ -770,7 +737,6 @@ const activeCategory = ref('video')
 const loading = ref(false)
 const videoContent = ref([])
 const articles = ref([])
-const topics = ref([])
 
 // 测试数据
 const tests = computed(() => [
@@ -929,6 +895,15 @@ function getSecondaryTestDesc(test) {
 
 // 查看文章
 function viewArticle(article) {
+  const localArticle = getLocalKnowledgeArticleBySourceUrl(article?.source_url)
+  if (localArticle) {
+    router.push({
+      name: 'KnowledgeLocal',
+      params: { id: localArticle.id },
+    })
+    return
+  }
+
   currentContent.value = {
     ...article,
     type: 'article',
@@ -1027,22 +1002,19 @@ function likeContent() {
 async function loadContent() {
   loading.value = true
   try {
-    const [quoteResponse, contentsResponse, topicsResponse] = await Promise.all([
+    const [quoteResponse, contentsResponse] = await Promise.all([
       knowledgeApi.getDailyQuote(),
       knowledgeApi.getList(),
-      knowledgeApi.getTopics(),
     ])
 
     const mapped = mapKnowledgePageData({
       quote: quoteResponse.data,
       contents: contentsResponse.data,
-      topics: topicsResponse.data,
     })
 
     dailyQuote.value = mapped.dailyQuote
     videoContent.value = mapped.videoContent
     articles.value = mapped.articles
-    topics.value = mapped.topics
   } catch (error) {
     console.error('加载内容失败:', error)
     const fallback = mapKnowledgePageData({
@@ -1052,7 +1024,6 @@ async function loadContent() {
     dailyQuote.value = fallback.dailyQuote
     videoContent.value = fallback.videoContent
     articles.value = fallback.articles
-    topics.value = fallback.topics
   } finally {
     loading.value = false
   }

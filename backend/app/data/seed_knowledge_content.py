@@ -18,20 +18,6 @@ DEFAULT_QUOTES = [
 
 DEFAULT_CONTENTS = [
     {
-        "title": "什么是焦虑症",
-        "summary": "帮助用户快速理解焦虑的常见表现。",
-        "content": "焦虑症是一种常见的心理健康问题，常伴随着过度担心与紧张。",
-        "content_type": "video",
-        "category": "心理健康",
-        "cover_url": "",
-        "external_url": "",
-        "status": "published",
-        "sort_order": 1,
-        "locale": "zh-CN",
-        "published_at": datetime(2026, 3, 16, 8, 0, 0),
-        "tags": '["焦虑","科普"]',
-    },
-    {
         "title": "如何拒绝精神内耗",
         "summary": "从识别反刍开始，减少不必要的自我消耗。",
         "content": "精神内耗是现代人常见的心理困扰，可以从觉察和行动两端入手。",
@@ -40,7 +26,7 @@ DEFAULT_CONTENTS = [
         "cover_url": "",
         "external_url": "",
         "status": "published",
-        "sort_order": 2,
+        "sort_order": 1,
         "locale": "zh-CN",
         "published_at": datetime(2026, 3, 16, 9, 0, 0),
         "tags": '["情绪管理","认知"]',

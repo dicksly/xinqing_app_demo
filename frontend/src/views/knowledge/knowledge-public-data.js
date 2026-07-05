@@ -164,10 +164,11 @@ export function splitKnowledgeContents(contents = []) {
 }
 
 function mergeWithFallbackContents(contents = []) {
-  if (contents.length === 0) return FALLBACK_KNOWLEDGE_CONTENTS
+  const visibleContents = contents.filter(shouldShowKnowledgeContent)
+  if (visibleContents.length === 0) return FALLBACK_KNOWLEDGE_CONTENTS
 
   const seenSourceUrls = new Set(
-    contents
+    visibleContents
       .map((item) => item.source_url)
       .filter(Boolean)
   )
@@ -175,7 +176,20 @@ function mergeWithFallbackContents(contents = []) {
     !seenSourceUrls.has(item.source_url)
   ))
 
-  return [...contents, ...missingFallbacks]
+  return [...visibleContents, ...missingFallbacks]
+}
+
+function shouldShowKnowledgeContent(item) {
+  return !isRetiredEmptyAnxietyVideo(item)
+}
+
+function isRetiredEmptyAnxietyVideo(item) {
+  if (!item) return false
+
+  const hasSource = Boolean(item.source_url || item.external_url)
+  return item.content_type === 'video'
+    && item.title === '什么是焦虑症'
+    && !hasSource
 }
 
 function mapTopic(topic) {
