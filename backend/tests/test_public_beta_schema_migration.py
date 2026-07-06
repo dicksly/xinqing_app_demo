@@ -22,6 +22,26 @@ class PublicBetaSchemaMigrationTests(unittest.TestCase):
                 conn.execute(text(
                     "CREATE TABLE treehole_entries (id INTEGER PRIMARY KEY, content TEXT)"
                 ))
+                conn.execute(text(
+                    """
+                    CREATE TABLE psychological_assessments (
+                        id INTEGER PRIMARY KEY,
+                        client_id VARCHAR(120),
+                        consent_version VARCHAR(80),
+                        consent_usage TEXT,
+                        consent_accepted BOOLEAN,
+                        user_signature VARCHAR(120),
+                        is_minor BOOLEAN,
+                        guardian_signature VARCHAR(120),
+                        answers TEXT,
+                        score INTEGER,
+                        level VARCHAR(20),
+                        diagnosis TEXT,
+                        suggestions TEXT,
+                        created_at DATETIME
+                    )
+                    """
+                ))
 
             ensure_public_beta_schema(engine)
 
@@ -36,6 +56,28 @@ class PublicBetaSchemaMigrationTests(unittest.TestCase):
 
                 self.assertIn("client_id", columns)
                 self.assertIn(f"ix_{table_name}_client_id", indexes)
+
+            treehole_columns = {
+                column["name"]
+                for column in inspector.get_columns("treehole_entries")
+            }
+            self.assertIn("image_data", treehole_columns)
+            self.assertIn("voice_data", treehole_columns)
+            self.assertIn("duration", treehole_columns)
+
+            assessment_columns = {
+                column["name"]
+                for column in inspector.get_columns("psychological_assessments")
+            }
+            for column_name in (
+                "scale_version",
+                "raw_answers",
+                "scored_answers",
+                "subscale_scores",
+                "max_score",
+                "wellness_state",
+            ):
+                self.assertIn(column_name, assessment_columns)
 
             engine.dispose()
 

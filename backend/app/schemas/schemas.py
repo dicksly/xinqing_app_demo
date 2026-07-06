@@ -135,13 +135,35 @@ class EmotionInsightResponse(BaseModel):
     comfort: str
 
 
-class PsychologicalAssessmentAnswers(BaseModel):
-    """详细心理分析问卷答案。"""
-    sleep: int = Field(..., ge=1, le=5)
-    anxiety: int = Field(..., ge=1, le=5)
-    sadness: int = Field(..., ge=1, le=5)
-    energy: int = Field(..., ge=1, le=5)
-    focus: int = Field(..., ge=1, le=5)
+TEEN_WELLNESS_QUESTION_KEYS = tuple(f"q{question_number}" for question_number in range(1, 31))
+
+
+def validate_teen_wellness_answers(value: dict) -> dict[str, int]:
+    """Validate the 30-item questionnaire payload from the H5 client."""
+    if not isinstance(value, dict):
+        raise ValueError("详细心理分析答案格式不正确")
+
+    answer_keys = set(value.keys())
+    expected_keys = set(TEEN_WELLNESS_QUESTION_KEYS)
+    missing_keys = sorted(expected_keys - answer_keys, key=lambda key: int(key[1:]))
+    extra_keys = sorted(answer_keys - expected_keys)
+
+    if missing_keys:
+        raise ValueError(f"详细心理分析还有未完成题目: {', '.join(missing_keys)}")
+    if extra_keys:
+        raise ValueError(f"详细心理分析包含未知题目: {', '.join(extra_keys)}")
+
+    normalized_answers: dict[str, int] = {}
+    for key in TEEN_WELLNESS_QUESTION_KEYS:
+        answer = value.get(key)
+        if isinstance(answer, bool):
+            raise ValueError(f"{key} 的答案必须是 0-4 之间的整数")
+        numeric_answer = int(answer) if isinstance(answer, int) else None
+        if numeric_answer is None or numeric_answer < 0 or numeric_answer > 4:
+            raise ValueError(f"{key} 的答案必须是 0-4 之间的整数")
+        normalized_answers[key] = numeric_answer
+
+    return normalized_answers
 
 
 class PsychologicalAssessmentCreate(BaseModel):
@@ -171,7 +193,12 @@ class PsychologicalAssessmentCreate(BaseModel):
         max_length=120,
         validation_alias=AliasChoices("guardian_signature", "guardianSignature"),
     )
-    answers: PsychologicalAssessmentAnswers
+    answers: dict[str, int]
+
+    @field_validator("answers")
+    @classmethod
+    def validate_answers(cls, value):
+        return validate_teen_wellness_answers(value)
 
     @model_validator(mode="after")
     def validate_consent_and_signatures(self):
@@ -191,10 +218,16 @@ class PsychologicalAssessmentResponse(BaseModel):
     """详细心理分析结果。"""
     assessment_id: int
     score: int
+    max_score: int
     level: str
     tag: str
+    wellness_state: str
     diagnosis: str
     suggestions: List[str]
+    raw_answers: dict[str, int]
+    scored_answers: dict[str, int]
+    subscale_scores: dict[str, int]
+    scale_version: str
     consent_version: str
     consent_usage: str
     created_at: datetime
@@ -231,11 +264,21 @@ class SoapRoundResponse(BaseModel):
 class TreeholeEntryBase(BaseModel):
     """秘密树洞基础 Schema"""
     MAX_IMAGE_DATA_LENGTH: ClassVar[int] = 2_000_000
+    MAX_VOICE_DATA_LENGTH: ClassVar[int] = 6_000_000
     ALLOWED_IMAGE_DATA_PREFIXES: ClassVar[tuple[str, ...]] = (
         "data:image/jpeg;base64,",
         "data:image/png;base64,",
         "data:image/gif;base64,",
         "data:image/webp;base64,",
+    )
+    ALLOWED_AUDIO_DATA_TYPES: ClassVar[tuple[str, ...]] = (
+        "audio/mpeg",
+        "audio/mp3",
+        "audio/mp4",
+        "audio/ogg",
+        "audio/wav",
+        "audio/webm",
+        "audio/x-m4a",
     )
 
     content_type: Optional[str] = Field(
@@ -253,6 +296,11 @@ class TreeholeEntryBase(BaseModel):
         None,
         description="图片 base64 数据",
         validation_alias=AliasChoices("image_data", "imageData"),
+    )
+    voice_data: Optional[str] = Field(
+        None,
+        description="音频 base64 数据",
+        validation_alias=AliasChoices("voice_data", "voiceData"),
     )
     duration: Optional[int] = Field(
         0,
@@ -272,12 +320,30 @@ class TreeholeEntryBase(BaseModel):
             raise ValueError("不支持的图片格式")
 
         return value
+
+    @field_validator("voice_data")
+    @classmethod
+    def validate_voice_data(cls, value):
+        if not value:
+            return value
+
+        if len(value) > cls.MAX_VOICE_DATA_LENGTH:
+            raise ValueError("音频数据过大")
+
+        if not value.startswith("data:") or ";base64," not in value:
+            raise ValueError("不支持的音频格式")
+
+        media_type = value.split(";", 1)[0].replace("data:", "").lower()
+        if media_type not in cls.ALLOWED_AUDIO_DATA_TYPES:
+            raise ValueError("不支持的音频格式")
+
+        return value
     
     @model_validator(mode="after")
     def validate_content_presence(self):
         has_text = bool((self.content or "").strip())
         has_image = bool(self.image_data)
-        has_voice = bool((self.duration or 0) > 0)
+        has_voice = bool((self.duration or 0) > 0 or self.voice_data)
 
         if not any([has_text, has_image, has_voice]):
             raise ValueError("至少需要提供文字、图片或语音中的一种内容")

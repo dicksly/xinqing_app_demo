@@ -80,6 +80,29 @@ class TreeholeApiTests(unittest.TestCase):
         self.assertIsNone(payload[0]["image_data"])
         self.assertIsNone(payload[0]["ai_response"])
 
+    def test_voice_data_is_persisted_for_creator_but_hidden_from_public_feed(self):
+        response = self.client.post(
+            "/api/v1/treehole-entries",
+            json={
+                "content": "今天想留一段声音。",
+                "voiceData": "data:audio/webm;base64,abc",
+                "duration": 12,
+                "isPublished": True,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        created_payload = response.json()
+        self.assertEqual(created_payload["voice_data"], "data:audio/webm;base64,abc")
+        self.assertEqual(created_payload["duration"], 12)
+
+        public_response = self.client.get("/api/v1/treehole-entries")
+
+        self.assertEqual(public_response.status_code, 200)
+        public_payload = public_response.json()
+        self.assertEqual(len(public_payload), 1)
+        self.assertIsNone(public_payload[0]["voice_data"])
+
     def test_rejects_invalid_or_too_large_image_data(self):
         invalid_response = self.client.post(
             "/api/v1/treehole-entries",
@@ -95,6 +118,25 @@ class TreeholeApiTests(unittest.TestCase):
             json={
                 "content": "图片太大",
                 "imageData": "data:image/png;base64," + ("a" * 2_000_001),
+            },
+        )
+        self.assertEqual(large_response.status_code, 422)
+
+    def test_rejects_invalid_or_too_large_voice_data(self):
+        invalid_response = self.client.post(
+            "/api/v1/treehole-entries",
+            json={
+                "content": "音频格式不对",
+                "voiceData": "data:text/html;base64,abc",
+            },
+        )
+        self.assertEqual(invalid_response.status_code, 422)
+
+        large_response = self.client.post(
+            "/api/v1/treehole-entries",
+            json={
+                "content": "音频太大",
+                "voiceData": "data:audio/webm;base64," + ("a" * 6_000_001),
             },
         )
         self.assertEqual(large_response.status_code, 422)

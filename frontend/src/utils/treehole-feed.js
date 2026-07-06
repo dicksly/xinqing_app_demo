@@ -5,6 +5,8 @@ function normalizeEntry(entry) {
     content_type: entry.content_type ?? entry.contentType ?? 'text',
     content: entry.content ?? '',
     image_data: entry.image_data ?? entry.imageData ?? null,
+    voice_data: entry.voice_data ?? entry.voiceData ?? null,
+    voice_url: entry.voice_url ?? entry.voiceUrl ?? entry.voice_data ?? entry.voiceData ?? null,
     duration: entry.duration ?? 0,
     is_published: entry.is_published ?? entry.isPublished ?? false,
     is_anonymous: entry.is_anonymous ?? entry.isAnonymous ?? true,

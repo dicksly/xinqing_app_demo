@@ -196,13 +196,52 @@
         />
       </div>
       <div v-else class="questionnaire-form">
-        <div v-for="question in assessmentQuestions" :key="question.key" class="question-item">
-          <span>{{ question.label }}</span>
-          <el-slider v-model="assessmentAnswers[question.key]" :min="0" :max="4" :show-tooltip="false" />
+        <p class="assessment-intro">
+          {{ locale === 'zh-CN'
+            ? '请根据过去两周的真实感受作答。这个结果用于自我觉察，不作为诊断。'
+            : 'Answer based on the past two weeks. This is for self-reflection and is not a diagnosis.' }}
+        </p>
+        <div
+          v-for="category in assessmentCategories"
+          :key="category.key"
+          class="assessment-section"
+        >
+          <div class="assessment-section-heading">
+            <span>{{ category.label }}</span>
+            <small>{{ locale === 'zh-CN' ? `${category.questions.length} 题` : `${category.questions.length} items` }}</small>
+          </div>
+          <div v-for="question in category.questions" :key="question.key" class="question-item">
+            <span>{{ question.number }}. {{ question.label }}</span>
+            <div class="assessment-options" role="group" :aria-label="question.label">
+              <button
+                v-for="option in assessmentResponseOptions"
+                :key="option.value"
+                type="button"
+                class="assessment-option"
+                :class="{ active: assessmentAnswers[question.key] === option.value }"
+                @click="assessmentAnswers[question.key] = option.value"
+              >
+                <strong>{{ option.value }}</strong>
+                <span>{{ option.label }}</span>
+              </button>
+            </div>
+          </div>
         </div>
         <div v-if="assessmentResult" class="assessment-result" :class="assessmentResult.level">
-          <strong>{{ assessmentResult.title }}</strong>
+          <div class="assessment-score-row">
+            <strong>{{ assessmentResult.title }}</strong>
+            <span>{{ assessmentResult.score }}/{{ assessmentResult.maxScore }}</span>
+          </div>
           <p>{{ assessmentResult.summary }}</p>
+          <div class="subscale-list">
+            <div v-for="category in assessmentCategories" :key="`${category.key}-score`">
+              <span>{{ category.label }}</span>
+              <strong>{{ assessmentResult.subscaleScores?.[category.key] ?? 0 }}/24</strong>
+            </div>
+          </div>
+          <ul v-if="assessmentResult.suggestions?.length" class="assessment-suggestions">
+            <li v-for="suggestion in assessmentResult.suggestions" :key="suggestion">{{ suggestion }}</li>
+          </ul>
         </div>
       </div>
 
@@ -235,11 +274,14 @@ import {
   buildAssessmentPayload,
   normalizeAssessmentResult,
   scoreAssessment,
+  validateAssessmentAnswers,
   validateAssessmentConsent,
 } from '../../utils/assessment'
 import {
   createAssessmentAnswers,
+  getAssessmentCategories,
   getAssessmentQuestions,
+  getAssessmentResponseOptions,
 } from '../../utils/assessment-questions'
 import { getXinqingClientId } from '../../utils/client-id'
 import { emotionApi } from '../../api'
@@ -306,6 +348,8 @@ const inspirations = computed(() => locale.value === 'zh-CN' ? [
 const showAttribution = computed(() => ['anxious', 'sad'].includes(currentRecord.value.mood))
 
 const assessmentQuestions = computed(() => getAssessmentQuestions(locale.value))
+const assessmentCategories = computed(() => getAssessmentCategories(locale.value))
+const assessmentResponseOptions = computed(() => getAssessmentResponseOptions(locale.value))
 
 function toggleStressSource(value) {
   const index = currentRecord.value.stressSources.indexOf(value)
@@ -457,6 +501,12 @@ function saveAssessmentConsent() {
 }
 
 async function submitAssessment() {
+  const answerValidation = validateAssessmentAnswers(assessmentAnswers.value)
+  if (!answerValidation.valid) {
+    ElMessage.warning(answerValidation.errors[0])
+    return
+  }
+
   const savedConsent = readSavedAssessmentConsent()
   const payload = buildAssessmentPayload(
     {
@@ -479,10 +529,8 @@ async function submitAssessment() {
     assessmentResult.value = {
       ...localResult,
       id: null,
-      score: null,
       title: localResult.title,
       summary: localResult.summary,
-      suggestions: [],
     }
     ElMessage.warning('后端暂不可用，已先生成本地分析')
   }
@@ -727,7 +775,157 @@ onMounted(() => {
 .question-item {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(226, 212, 207, 0.72);
+}
+
+.question-item > span {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 900;
+}
+
+.assessment-intro {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 800;
+}
+
+.assessment-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 22px;
+  background: #FBF7F3;
+  border: 1px solid var(--h5-border);
+}
+
+.assessment-section-heading,
+.assessment-score-row,
+.subscale-list div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.assessment-section-heading span {
+  color: var(--color-text-primary);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.assessment-section-heading small {
+  flex: 0 0 auto;
+  color: var(--h5-primary);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.assessment-options {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.assessment-option {
+  min-width: 0;
+  min-height: 60px;
+  border: 1px solid rgba(217, 94, 118, 0.18);
+  border-radius: 14px;
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.88);
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.assessment-option strong,
+.assessment-option span {
+  display: block;
+  line-height: 1.1;
+}
+
+.assessment-option strong {
+  color: var(--h5-primary);
+  font-size: 15px;
+}
+
+.assessment-option span {
+  font-size: 11px;
+  word-break: keep-all;
+}
+
+.assessment-option.active {
+  color: #FFFFFF;
+  background: var(--h5-primary);
+  border-color: var(--h5-primary);
+  box-shadow: 0 8px 18px rgba(217, 94, 118, 0.2);
+}
+
+.assessment-option.active strong {
+  color: #FFFFFF;
+}
+
+.assessment-result {
+  padding: 16px;
+  border-radius: 20px;
+  background: #FFF9ED;
+  border: 1px solid rgba(241, 212, 107, 0.42);
+}
+
+.assessment-score-row strong {
+  color: var(--color-text-primary);
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.assessment-score-row span {
+  flex: 0 0 auto;
+  color: var(--h5-primary);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.subscale-list {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
+  margin-top: 14px;
+}
+
+.subscale-list div {
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.subscale-list strong {
+  color: var(--color-text-primary);
+}
+
+.assessment-suggestions {
+  margin: 14px 0 0;
+  padding-left: 18px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 800;
 }
 
 @media (max-width: 374px) {
@@ -738,6 +936,10 @@ onMounted(() => {
   .mood-item {
     min-height: 92px;
     font-size: 13px;
+  }
+
+  .assessment-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 </style>

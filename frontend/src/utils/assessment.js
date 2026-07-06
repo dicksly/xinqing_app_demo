@@ -1,4 +1,54 @@
-import { mapAssessmentAnswersToBackendScale } from './assessment-questions.js'
+import {
+  ASSESSMENT_CATEGORIES,
+  ASSESSMENT_QUESTIONS,
+  REVERSE_SCORED_ITEM_NUMBERS,
+  mapAssessmentAnswersToBackendScale,
+} from './assessment-questions.js'
+
+export const ASSESSMENT_SCALE_VERSION = 'teen-mental-wellness-30-v1'
+export const ASSESSMENT_MAX_SCORE = 120
+
+const INTERPRETATIONS = [
+  {
+    minScore: 97,
+    level: 'strong',
+    title: '心理健康状态非常良好',
+    summary: '你的整体心理健康资源很充足，情绪、支持系统和日常功能大多保持在稳定、有弹性的状态。',
+    suggestions: ['继续保留让你恢复的习惯', '把有效的支持方式记录下来', '在状态好时也给自己安排放松时间'],
+  },
+  {
+    minScore: 73,
+    level: 'healthy',
+    title: '心理健康状态良好',
+    summary: '整体情绪较稳定，也具备一定的压力应对能力。近期仍可以继续观察容易消耗你的情境。',
+    suggestions: ['维持规律作息和运动', '遇到压力时主动寻求支持', '每周回顾一次让你感觉变好的事情'],
+  },
+  {
+    minScore: 49,
+    level: 'moderate',
+    title: '中等心理健康挑战',
+    summary: '你可能正在经历一些持续的情绪或压力挑战，建议把恢复目标拆小，并让可信任的人知道你的近况。',
+    suggestions: ['先固定一个睡眠和休息窗口', '每天记录一个压力来源和一个可控行动', '和朋友、家人或老师进行一次支持性谈话'],
+  },
+  {
+    minScore: 25,
+    level: 'very_low',
+    title: '心理健康状态较差',
+    summary: '近期心理负担可能较重，情绪恢复、压力应对或日常功能受到了明显影响。请优先获得现实中的支持。',
+    suggestions: ['尽快联系可信任的成年人或专业咨询', '减少高刺激信息输入', '先完成吃饭、睡眠、洗漱等基础照顾'],
+  },
+  {
+    minScore: 0,
+    level: 'critical',
+    title: '严重心理健康风险',
+    summary: '你的作答提示近期心理健康风险较高。这个结果不是诊断，但建议尽快寻求家人、学校老师或专业机构的帮助。',
+    suggestions: ['马上告诉一个可信任的人你现在的状态', '避免独自承受高风险时刻', '如有伤害自己或他人的念头，请立即联系当地急救或危机干预热线'],
+  },
+]
+
+function getInterpretation(score) {
+  return INTERPRETATIONS.find((item) => score >= item.minScore) || INTERPRETATIONS.at(-1)
+}
 
 export function validateAssessmentConsent(form = {}) {
   const errors = []
@@ -11,6 +61,23 @@ export function validateAssessmentConsent(form = {}) {
   if (form.isMinor && !String(form.guardianSignature || '').trim()) {
     errors.push('未成年人需要填写家长/监护人签名')
   }
+  return {
+    valid: errors.length === 0,
+    errors,
+  }
+}
+
+export function validateAssessmentAnswers(answers = {}) {
+  const errors = []
+
+  ASSESSMENT_QUESTIONS.forEach((question) => {
+    const value = answers[question.key]
+    const numeric = Number(value)
+    if (!Number.isFinite(numeric) || numeric < 0 || numeric > 4) {
+      errors.push(`请完成第 ${question.number} 题`)
+    }
+  })
+
   return {
     valid: errors.length === 0,
     errors,
@@ -33,38 +100,52 @@ export function normalizeAssessmentResult(response = {}) {
   return {
     id: payload.assessment_id ?? payload.id ?? null,
     score: Number(payload.score || 0),
-    level: payload.level || 'low',
-    title: payload.tag || payload.title || '详细心理分析',
+    maxScore: Number(payload.max_score ?? payload.maxScore ?? ASSESSMENT_MAX_SCORE),
+    level: payload.level || 'moderate',
+    title: payload.tag || payload.wellness_state || payload.title || '详细心理分析',
     summary: payload.diagnosis || payload.summary || '',
     suggestions: Array.isArray(payload.suggestions) ? payload.suggestions : [],
     consentUsage: payload.consent_usage || payload.consentUsage || '',
+    rawAnswers: payload.raw_answers || payload.rawAnswers || {},
+    scoredAnswers: payload.scored_answers || payload.scoredAnswers || {},
+    subscaleScores: payload.subscale_scores || payload.subscaleScores || {},
+    scaleVersion: payload.scale_version || payload.scaleVersion || ASSESSMENT_SCALE_VERSION,
     createdAt: payload.created_at || payload.createdAt || new Date().toISOString(),
   }
 }
 
 export function scoreAssessment(answers = {}) {
-  const values = Object.values(answers).map(Number).filter((value) => Number.isFinite(value))
-  const total = values.reduce((sum, value) => sum + value, 0)
-
-  if (total >= 18) {
-    return {
-      level: 'high',
-      title: '需要认真照顾',
-      summary: '你的压力和情绪负荷偏高，建议尽快和可信任的人或专业人士聊聊。',
-    }
-  }
-
-  if (total >= 10) {
-    return {
-      level: 'medium',
-      title: '有些累了',
-      summary: '你近期可能承受了不少压力，可以先从睡眠、呼吸和减少任务量开始。',
-    }
-  }
+  const rawAnswers = mapAssessmentAnswersToBackendScale(answers)
+  const scoredAnswers = Object.fromEntries(
+    ASSESSMENT_QUESTIONS.map((question) => {
+      const rawValue = Number(rawAnswers[question.key] ?? 0)
+      const scoredValue = REVERSE_SCORED_ITEM_NUMBERS.includes(question.number)
+        ? 4 - rawValue
+        : rawValue
+      return [question.key, scoredValue]
+    })
+  )
+  const subscaleScores = Object.fromEntries(
+    ASSESSMENT_CATEGORIES.map((category) => [
+      category.key,
+      category.questionNumbers.reduce((sum, questionNumber) => (
+        sum + Number(scoredAnswers[`q${questionNumber}`] || 0)
+      ), 0),
+    ])
+  )
+  const score = Object.values(scoredAnswers).reduce((sum, value) => sum + Number(value || 0), 0)
+  const interpretation = getInterpretation(score)
 
   return {
-    level: 'low',
-    title: '整体稳定',
-    summary: '你现在的状态相对平稳，继续保留那些让你恢复的小习惯。',
+    score,
+    maxScore: ASSESSMENT_MAX_SCORE,
+    level: interpretation.level,
+    title: interpretation.title,
+    summary: interpretation.summary,
+    suggestions: interpretation.suggestions,
+    rawAnswers,
+    scoredAnswers,
+    subscaleScores,
+    scaleVersion: ASSESSMENT_SCALE_VERSION,
   }
 }

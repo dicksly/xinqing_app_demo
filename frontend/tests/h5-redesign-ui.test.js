@@ -136,7 +136,12 @@ test('emotion and mindfulness records include stable beta client id for backend 
 
 test('emotion detailed assessment uses the configurable question source', () => {
   assert.match(emotionView, /getAssessmentQuestions/)
+  assert.match(emotionView, /getAssessmentCategories/)
+  assert.match(emotionView, /getAssessmentResponseOptions/)
   assert.match(emotionView, /createAssessmentAnswers/)
+  assert.match(emotionView, /assessmentCategories/)
+  assert.match(emotionView, /assessmentResponseOptions/)
+  assert.match(emotionView, /category\.questions/)
   assert.doesNotMatch(emotionView, /const assessmentQuestions = computed\(\(\) => \[\s*\{/)
 })
 
@@ -199,6 +204,12 @@ test('treehole page exposes safe composer, privacy controls, and square feed', (
 test('treehole creates and deletes entries with owner client id', () => {
   assert.match(treeholeView, /clientId:\s*getTreeholeClientId\(\)/)
   assert.match(treeholeView, /treeholeApi\.delete\(entryId,\s*\{\s*clientId:\s*getTreeholeClientId\(\)\s*\}\)/)
+})
+
+test('treehole voice recordings are submitted as persistent audio data', () => {
+  assert.match(treeholeView, /voiceData/)
+  assert.match(treeholeView, /voiceData:\s*hasVoice\s*\?\s*recordedVoiceData/)
+  assert.doesNotMatch(treeholeView, /voice_url:\s*hasVoice\s*\?\s*voiceBlobUrl\.value/)
 })
 
 test('knowledge page exposes editorial hub while preserving content actions', () => {

@@ -13,6 +13,17 @@ PUBLIC_BETA_COLUMNS = {
     ],
     "treehole_entries": [
         ("client_id", "VARCHAR(120) NOT NULL DEFAULT 'anonymous'", "ix_treehole_entries_client_id"),
+        ("image_data", "TEXT", None),
+        ("voice_data", "TEXT", None),
+        ("duration", "INTEGER DEFAULT 0", None),
+    ],
+    "psychological_assessments": [
+        ("scale_version", "VARCHAR(80) DEFAULT 'teen-mental-wellness-30-v1'", None),
+        ("raw_answers", "TEXT", None),
+        ("scored_answers", "TEXT", None),
+        ("subscale_scores", "TEXT", None),
+        ("max_score", "INTEGER DEFAULT 120", None),
+        ("wellness_state", "VARCHAR(120)", None),
     ],
 }
 
@@ -42,7 +53,7 @@ def ensure_public_beta_schema(engine: Engine) -> None:
                         f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_ddl}"
                     ))
 
-                if index_name not in existing_indexes:
+                if index_name and index_name not in existing_indexes:
                     conn.execute(text(
                         f"CREATE INDEX {index_name} ON {table_name} ({column_name})"
                     ))

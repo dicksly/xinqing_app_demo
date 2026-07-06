@@ -64,6 +64,69 @@ ai_service = AIService()
 
 CONSENT_VERSION = "2026-05-anonymized-research-product-business"
 CONSENT_USAGE = "匿名化后用于研究/产品分析/商业合作"
+TEEN_WELLNESS_SCALE_VERSION = "teen-mental-wellness-30-v1"
+TEEN_WELLNESS_MAX_SCORE = 120
+TEEN_WELLNESS_QUESTION_KEYS = tuple(f"q{question_number}" for question_number in range(1, 31))
+TEEN_WELLNESS_REVERSE_ITEMS = {3, 5, 8, 10, 12, 14, 17, 20, 22, 27}
+TEEN_WELLNESS_SUBSCALES = {
+    "emotional_wellbeing": {
+        "label": "情绪健康",
+        "items": range(1, 7),
+    },
+    "stress_coping": {
+        "label": "压力与应对能力",
+        "items": range(7, 13),
+    },
+    "social_connections": {
+        "label": "社交关系",
+        "items": range(13, 19),
+    },
+    "motivation_daily_functioning": {
+        "label": "动力与日常功能",
+        "items": range(19, 25),
+    },
+    "self_care_habits": {
+        "label": "自我照顾与健康习惯",
+        "items": range(25, 31),
+    },
+}
+TEEN_WELLNESS_INTERPRETATIONS = [
+    {
+        "min_score": 97,
+        "level": "strong",
+        "tag": "心理健康状态非常良好",
+        "diagnosis": "你的整体心理健康资源很充足，情绪、支持系统和日常功能大多保持在稳定、有弹性的状态。",
+        "suggestions": ["继续保留让你恢复的习惯", "把有效的支持方式记录下来", "在状态好时也给自己安排放松时间"],
+    },
+    {
+        "min_score": 73,
+        "level": "healthy",
+        "tag": "心理健康状态良好",
+        "diagnosis": "整体情绪较稳定，也具备一定的压力应对能力。近期仍可以继续观察容易消耗你的情境。",
+        "suggestions": ["维持规律作息和运动", "遇到压力时主动寻求支持", "每周回顾一次让你感觉变好的事情"],
+    },
+    {
+        "min_score": 49,
+        "level": "moderate",
+        "tag": "中等心理健康挑战",
+        "diagnosis": "你可能正在经历一些持续的情绪或压力挑战，建议把恢复目标拆小，并让可信任的人知道你的近况。",
+        "suggestions": ["先固定一个睡眠和休息窗口", "每天记录一个压力来源和一个可控行动", "和朋友、家人或老师进行一次支持性谈话"],
+    },
+    {
+        "min_score": 25,
+        "level": "very_low",
+        "tag": "心理健康状态较差",
+        "diagnosis": "近期心理负担可能较重，情绪恢复、压力应对或日常功能受到了明显影响。请优先获得现实中的支持。",
+        "suggestions": ["尽快联系可信任的成年人或专业咨询", "减少高刺激信息输入", "先完成吃饭、睡眠、洗漱等基础照顾"],
+    },
+    {
+        "min_score": 0,
+        "level": "critical",
+        "tag": "严重心理健康风险",
+        "diagnosis": "你的作答提示近期心理健康风险较高。这个结果不是诊断，但建议尽快寻求家人、学校老师或专业机构的帮助。",
+        "suggestions": ["马上告诉一个可信任的人你现在的状态", "避免独自承受高风险时刻", "如有伤害自己或他人的念头，请立即联系当地急救或危机干预热线"],
+    },
+]
 PASSWORD_RESET_EXPIRES_MINUTES = 15
 PASSWORD_RESET_CODES = {}
 
@@ -182,38 +245,36 @@ def get_next_mascot_level(streak_days: int) -> Optional[dict]:
 
 
 def calculate_assessment_result(answers: dict) -> dict:
-    score = (
-        answers["sleep"]
-        + answers["anxiety"]
-        + answers["sadness"]
-        + (6 - answers["energy"])
-        + answers["focus"]
+    raw_answers = {key: int(answers[key]) for key in TEEN_WELLNESS_QUESTION_KEYS}
+    scored_answers = {}
+
+    for key, answer in raw_answers.items():
+        item_number = int(key[1:])
+        scored_answers[key] = 4 - answer if item_number in TEEN_WELLNESS_REVERSE_ITEMS else answer
+
+    subscale_scores = {
+        key: sum(scored_answers[f"q{item_number}"] for item_number in subscale["items"])
+        for key, subscale in TEEN_WELLNESS_SUBSCALES.items()
+    }
+    score = sum(scored_answers.values())
+    interpretation = next(
+        item
+        for item in TEEN_WELLNESS_INTERPRETATIONS
+        if score >= item["min_score"]
     )
-
-    if score >= 14:
-        return {
-            "score": score,
-            "level": "high",
-            "tag": "高压预警",
-            "diagnosis": "近期压力和情绪负担偏高，建议尽快安排一次可信任的支持性谈话或专业咨询。",
-            "suggestions": ["先保证今晚的睡眠窗口", "减少高刺激信息输入", "联系可信任的人或专业支持"],
-        }
-
-    if score >= 9:
-        return {
-            "score": score,
-            "level": "medium",
-            "tag": "需要关注",
-            "diagnosis": "近期状态有波动，可以通过规律作息、情绪记录和短时冥想降低负担。",
-            "suggestions": ["每天记录一个压力来源", "完成 3 分钟呼吸练习", "把任务拆成更小步骤"],
-        }
 
     return {
         "score": score,
-        "level": "low",
-        "tag": "状态平稳",
-        "diagnosis": "当前情绪风险较低，继续保持自我观察和稳定作息。",
-        "suggestions": ["保留今天有效的放松方式", "维持规律睡眠", "继续完成每日打卡"],
+        "max_score": TEEN_WELLNESS_MAX_SCORE,
+        "level": interpretation["level"],
+        "tag": interpretation["tag"],
+        "wellness_state": interpretation["tag"],
+        "diagnosis": interpretation["diagnosis"],
+        "suggestions": interpretation["suggestions"],
+        "raw_answers": raw_answers,
+        "scored_answers": scored_answers,
+        "subscale_scores": subscale_scores,
+        "scale_version": TEEN_WELLNESS_SCALE_VERSION,
     }
 
 
@@ -250,6 +311,7 @@ def serialize_treehole_entry_for_public(entry: TreeholeEntry) -> dict:
         "content": sanitize_treehole_content_for_public(entry.content, entry.content_type),
         "has_voice_change": entry.has_voice_change,
         "image_data": None,
+        "voice_data": None,
         "duration": entry.duration or 0,
         "is_anonymous": True,
         "is_published": entry.is_published,
@@ -373,9 +435,10 @@ async def get_weekly_report(
     db: Session = Depends(get_db),
 ):
     """获取周报"""
-    # 获取本周一的日期
+    # 获取本周一零点，避免周一当天早些时候的记录被当前时刻过滤掉。
     today = datetime.utcnow()
-    monday = today - timedelta(days=today.weekday())
+    monday_date = (today - timedelta(days=today.weekday())).date()
+    monday = datetime.combine(monday_date, datetime.min.time())
     
     # 查询本周记录
     records = db.query(EmotionRecord).filter(
@@ -492,8 +555,7 @@ async def create_psychological_assessment(
     db: Session = Depends(get_db)
 ):
     """提交详细心理分析 consent form 和问卷，返回分析结果。"""
-    answers = assessment.answers.model_dump()
-    result = calculate_assessment_result(answers)
+    result = calculate_assessment_result(assessment.answers)
 
     db_assessment = PsychologicalAssessment(
         client_id=assessment.client_id,
@@ -503,7 +565,13 @@ async def create_psychological_assessment(
         user_signature=assessment.user_signature.strip(),
         is_minor=assessment.is_minor,
         guardian_signature=(assessment.guardian_signature or "").strip() or None,
-        answers=json.dumps(answers, ensure_ascii=False),
+        answers=json.dumps(result["scored_answers"], ensure_ascii=False),
+        scale_version=result["scale_version"],
+        raw_answers=json.dumps(result["raw_answers"], ensure_ascii=False),
+        scored_answers=json.dumps(result["scored_answers"], ensure_ascii=False),
+        subscale_scores=json.dumps(result["subscale_scores"], ensure_ascii=False),
+        max_score=result["max_score"],
+        wellness_state=result["wellness_state"],
         score=result["score"],
         level=result["level"],
         diagnosis=result["diagnosis"],
@@ -516,10 +584,16 @@ async def create_psychological_assessment(
     return PsychologicalAssessmentResponse(
         assessment_id=db_assessment.id,
         score=db_assessment.score,
+        max_score=db_assessment.max_score,
         level=db_assessment.level,
         tag=result["tag"],
+        wellness_state=db_assessment.wellness_state or result["wellness_state"],
         diagnosis=db_assessment.diagnosis,
         suggestions=result["suggestions"],
+        raw_answers=result["raw_answers"],
+        scored_answers=result["scored_answers"],
+        subscale_scores=result["subscale_scores"],
+        scale_version=db_assessment.scale_version or result["scale_version"],
         consent_version=db_assessment.consent_version,
         consent_usage=db_assessment.consent_usage,
         created_at=db_assessment.created_at,

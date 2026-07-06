@@ -47,6 +47,9 @@ def ensure_treehole_schema(db_path: Path) -> None:
         if "image_data" not in columns:
             conn.execute("ALTER TABLE treehole_entries ADD COLUMN image_data TEXT")
 
+        if "voice_data" not in columns:
+            conn.execute("ALTER TABLE treehole_entries ADD COLUMN voice_data TEXT")
+
         if "duration" not in columns:
             conn.execute("ALTER TABLE treehole_entries ADD COLUMN duration INTEGER DEFAULT 0")
 

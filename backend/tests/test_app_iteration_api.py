@@ -1,4 +1,5 @@
 import unittest
+import json
 from tempfile import TemporaryDirectory
 
 from fastapi.testclient import TestClient
@@ -6,7 +7,18 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.database import Base, get_db
+from app.models.models import PsychologicalAssessment
 from main import app
+
+
+REVERSE_SCORED_ITEMS = {3, 5, 8, 10, 12, 14, 17, 20, 22, 27}
+
+
+def build_teen_wellness_answers(scored_value=2):
+    return {
+        f"q{item_number}": 4 - scored_value if item_number in REVERSE_SCORED_ITEMS else scored_value
+        for item_number in range(1, 31)
+    }
 
 
 class AppIterationApiTests(unittest.TestCase):
@@ -102,19 +114,14 @@ class AppIterationApiTests(unittest.TestCase):
                 "consentAccepted": True,
                 "userSignature": "学生",
                 "isMinor": True,
-                "answers": {
-                    "sleep": 4,
-                    "anxiety": 4,
-                    "sadness": 3,
-                    "energy": 2,
-                    "focus": 4,
-                },
+                "answers": build_teen_wellness_answers(scored_value=3),
             },
         )
 
         self.assertEqual(response.status_code, 422)
 
-    def test_psychological_assessment_scores_and_persists_consent(self):
+    def test_psychological_assessment_scores_docx_scale_and_persists_answers(self):
+        answers = build_teen_wellness_answers(scored_value=4)
         response = self.client.post(
             "/api/v1/psychological-assessments",
             json={
@@ -122,22 +129,53 @@ class AppIterationApiTests(unittest.TestCase):
                 "consentAccepted": True,
                 "userSignature": "测试用户",
                 "isMinor": False,
-                "answers": {
-                    "sleep": 4,
-                    "anxiety": 5,
-                    "sadness": 4,
-                    "energy": 2,
-                    "focus": 4,
-                },
+                "answers": answers,
             },
         )
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertGreaterEqual(payload["score"], 14)
-        self.assertEqual(payload["level"], "high")
+        self.assertEqual(payload["score"], 120)
+        self.assertEqual(payload["max_score"], 120)
+        self.assertEqual(payload["level"], "strong")
+        self.assertEqual(payload["tag"], "心理健康状态非常良好")
+        self.assertEqual(payload["raw_answers"]["q3"], 0)
+        self.assertEqual(payload["scored_answers"]["q3"], 4)
+        self.assertEqual(payload["subscale_scores"]["emotional_wellbeing"], 24)
+        self.assertEqual(payload["subscale_scores"]["self_care_habits"], 24)
+        self.assertEqual(payload["scale_version"], "teen-mental-wellness-30-v1")
         self.assertIn("匿名化后用于研究/产品分析/商业合作", payload["consent_usage"])
         self.assertGreater(payload["assessment_id"], 0)
+
+        db = self.session_local()
+        try:
+            record = db.query(PsychologicalAssessment).filter(
+                PsychologicalAssessment.id == payload["assessment_id"]
+            ).one()
+            self.assertEqual(record.max_score, 120)
+            self.assertEqual(record.scale_version, "teen-mental-wellness-30-v1")
+            self.assertEqual(json.loads(record.raw_answers)["q3"], 0)
+            self.assertEqual(json.loads(record.scored_answers)["q3"], 4)
+            self.assertEqual(json.loads(record.subscale_scores)["social_connections"], 24)
+        finally:
+            db.close()
+
+    def test_psychological_assessment_rejects_incomplete_docx_scale_answers(self):
+        answers = build_teen_wellness_answers(scored_value=2)
+        answers.pop("q30")
+
+        response = self.client.post(
+            "/api/v1/psychological-assessments",
+            json={
+                "clientId": "incomplete-device",
+                "consentAccepted": True,
+                "userSignature": "测试用户",
+                "isMinor": False,
+                "answers": answers,
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
 
     def test_monthly_mindfulness_themes_returns_twelve_months(self):
         response = self.client.get("/api/v1/mindfulness/monthly-themes")

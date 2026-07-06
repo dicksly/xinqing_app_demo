@@ -67,6 +67,7 @@ class TreeholeEntry(Base):
     content = Column(Text)  # 文字内容
     media_path = Column(String(255), nullable=True)  # 媒体文件路径
     image_data = Column(Text, nullable=True)  # 图片 base64 数据
+    voice_data = Column(Text, nullable=True)  # 音频 base64 数据
     duration = Column(Integer, default=0)  # 语音时长（秒）
     is_anonymous = Column(Boolean, default=True)  # 是否匿名
     is_published = Column(Boolean, default=False)  # 是否发布到广场
@@ -115,6 +116,12 @@ class PsychologicalAssessment(Base):
     is_minor = Column(Boolean, default=False)
     guardian_signature = Column(String(120), nullable=True)
     answers = Column(Text, nullable=False)
+    scale_version = Column(String(80), default="teen-mental-wellness-30-v1")
+    raw_answers = Column(Text, nullable=True)
+    scored_answers = Column(Text, nullable=True)
+    subscale_scores = Column(Text, nullable=True)
+    max_score = Column(Integer, default=120)
+    wellness_state = Column(String(120), nullable=True)
     score = Column(Integer, default=0)
     level = Column(String(20), default="low")
     diagnosis = Column(Text, nullable=False)

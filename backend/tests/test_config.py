@@ -126,6 +126,7 @@ class SettingsTests(unittest.TestCase):
         entry = TreeholeEntryCreate(
             content="今天很累，但也拍了晚霞。",
             imageData="data:image/png;base64,abc",
+            voiceData="data:audio/webm;base64,abc",
             duration=18,
             hasVoiceChange=True,
             isPublished=True,
@@ -134,6 +135,7 @@ class SettingsTests(unittest.TestCase):
 
         self.assertEqual(entry.content, "今天很累，但也拍了晚霞。")
         self.assertEqual(entry.image_data, "data:image/png;base64,abc")
+        self.assertEqual(entry.voice_data, "data:audio/webm;base64,abc")
         self.assertEqual(entry.duration, 18)
 
 

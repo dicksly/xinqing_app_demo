@@ -43,6 +43,8 @@ import {
 } from '../src/utils/assessment.js'
 import {
   ASSESSMENT_QUESTIONS,
+  ASSESSMENT_CATEGORIES,
+  REVERSE_SCORED_ITEM_NUMBERS,
   createAssessmentAnswers,
   getAssessmentQuestions,
   mapAssessmentAnswersToBackendScale,
@@ -337,11 +339,28 @@ test('requires guardian signature for minor assessment consent', () => {
 })
 
 test('scores detailed psychological analysis answers', () => {
-  assert.equal(scoreAssessment({ a: 4, b: 4, c: 4, d: 4, e: 4 }).level, 'high')
-  assert.equal(scoreAssessment({ a: 1, b: 1, c: 1 }).level, 'low')
+  const strongAnswers = Object.fromEntries(
+    Array.from({ length: 30 }, (_, index) => {
+      const itemNumber = index + 1
+      return [`q${itemNumber}`, REVERSE_SCORED_ITEM_NUMBERS.includes(itemNumber) ? 0 : 4]
+    })
+  )
+  const lowAnswers = Object.fromEntries(Array.from({ length: 30 }, (_, index) => [`q${index + 1}`, 2]))
+
+  const strongResult = scoreAssessment(strongAnswers)
+  assert.equal(strongResult.score, 120)
+  assert.equal(strongResult.maxScore, 120)
+  assert.equal(strongResult.level, 'strong')
+  assert.equal(strongResult.subscaleScores.emotional_wellbeing, 24)
+  assert.equal(strongResult.scoredAnswers.q3, 4)
+
+  const lowResult = scoreAssessment(lowAnswers)
+  assert.equal(lowResult.score, 60)
+  assert.equal(lowResult.level, 'moderate')
 })
 
 test('builds backend payload for detailed psychological assessment', () => {
+  const answers = Object.fromEntries(Array.from({ length: 30 }, (_, index) => [`q${index + 1}`, index % 5]))
   const payload = buildAssessmentPayload(
     {
       accepted: true,
@@ -349,13 +368,7 @@ test('builds backend payload for detailed psychological assessment', () => {
       isMinor: true,
       guardianSignature: '监护人',
     },
-    {
-      sleep: 0,
-      anxiety: 4,
-      sadness: 3,
-      energy: 1,
-      focus: 2,
-    },
+    answers,
     'demo-client'
   )
 
@@ -364,54 +377,52 @@ test('builds backend payload for detailed psychological assessment', () => {
   assert.equal(payload.userSignature, '测试用户')
   assert.equal(payload.isMinor, true)
   assert.equal(payload.guardianSignature, '监护人')
-  assert.deepEqual(payload.answers, {
-    sleep: 1,
-    anxiety: 5,
-    sadness: 4,
-    energy: 2,
-    focus: 3,
-  })
+  assert.equal(Object.keys(payload.answers).length, 30)
+  assert.equal(payload.answers.q1, 0)
+  assert.equal(payload.answers.q5, 4)
 })
 
 test('detailed psychological assessment questions are configurable and backend-compatible', () => {
   const zhQuestions = getAssessmentQuestions('zh-CN')
   const enQuestions = getAssessmentQuestions('en-US')
 
-  assert.equal(ASSESSMENT_QUESTIONS.length, 5)
-  assert.deepEqual(zhQuestions.map((question) => question.key), ['sleep', 'anxiety', 'sadness', 'energy', 'focus'])
-  assert.match(zhQuestions[0].label, /睡眠/)
-  assert.match(enQuestions[0].label, /Sleep/)
-  assert.deepEqual(createAssessmentAnswers(), {
-    sleep: 0,
-    anxiety: 0,
-    sadness: 0,
-    energy: 0,
-    focus: 0,
-  })
-  assert.deepEqual(mapAssessmentAnswersToBackendScale({ sleep: 0, anxiety: 4 }), {
-    sleep: 1,
-    anxiety: 5,
-    sadness: 1,
-    energy: 1,
-    focus: 1,
-  })
+  assert.equal(ASSESSMENT_QUESTIONS.length, 30)
+  assert.equal(ASSESSMENT_CATEGORIES.length, 5)
+  assert.deepEqual(zhQuestions.map((question) => question.key).slice(0, 6), ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'])
+  assert.match(zhQuestions[0].label, /未来/)
+  assert.match(enQuestions[0].label, /future/)
+  assert.deepEqual(REVERSE_SCORED_ITEM_NUMBERS, [3, 5, 8, 10, 12, 14, 17, 20, 22, 27])
+  assert.equal(Object.keys(createAssessmentAnswers()).length, 30)
+  assert.equal(createAssessmentAnswers().q1, null)
+  assert.equal(mapAssessmentAnswersToBackendScale({ q1: 0, q3: 4 }).q1, 0)
+  assert.equal(mapAssessmentAnswersToBackendScale({ q1: 0, q3: 4 }).q3, 4)
 })
 
 test('normalizes backend psychological assessment result for display', () => {
   const result = normalizeAssessmentResult({
     assessment_id: 12,
-    score: 15,
-    level: 'high',
-    tag: '高压预警',
-    diagnosis: '近期压力偏高',
+    score: 96,
+    max_score: 120,
+    level: 'healthy',
+    tag: '心理健康状态良好',
+    diagnosis: '整体情绪较稳定',
     suggestions: ['联系可信任的人', '减少刺激信息'],
+    subscale_scores: { emotional_wellbeing: 20 },
+    raw_answers: { q1: 4 },
+    scored_answers: { q1: 4 },
+    scale_version: 'teen-mental-wellness-30-v1',
     consent_usage: '匿名化后用于研究/产品分析/商业合作',
   })
 
   assert.equal(result.id, 12)
-  assert.equal(result.level, 'high')
-  assert.equal(result.title, '高压预警')
-  assert.match(result.summary, /压力/)
+  assert.equal(result.level, 'healthy')
+  assert.equal(result.score, 96)
+  assert.equal(result.maxScore, 120)
+  assert.equal(result.title, '心理健康状态良好')
+  assert.match(result.summary, /稳定/)
+  assert.equal(result.subscaleScores.emotional_wellbeing, 20)
+  assert.equal(result.rawAnswers.q1, 4)
+  assert.equal(result.scaleVersion, 'teen-mental-wellness-30-v1')
   assert.equal(result.suggestions.length, 2)
 })
 

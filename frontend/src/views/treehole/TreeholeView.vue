@@ -495,7 +495,7 @@
             <div class="voice-player">
               <component :is="Microphone" class="voice-icon-large" />
               <div class="voice-duration">{{ selectedEntry.duration || 0 }}s</div>
-              <audio v-if="selectedEntry.voice_url" :src="selectedEntry.voice_url" controls />
+              <audio v-if="getEntryVoiceSource(selectedEntry)" :src="getEntryVoiceSource(selectedEntry)" controls />
               <div v-else class="voice-hint">{{ locale === 'zh-CN' ? '音频未上传，仅保留时长记录' : 'Audio is not uploaded; duration only' }}</div>
             </div>
           </div>
@@ -642,6 +642,8 @@ const mediaRecorder = ref(null)
 const recordingStream = ref(null)
 const audioChunks = ref([])
 const voiceBlobUrl = ref(null)
+const recordedVoiceDataUrl = ref(null)
+const voiceDataPromise = ref(null)
 const aiResponse = ref('')
 const riskLevel = ref('safe')
 const uploadedImage = ref(null)
@@ -684,6 +686,20 @@ function getTypeLabel(type) {
     image: locale.value === 'zh-CN' ? '图片' : 'Image'
   }
   return (labels[type] || type) + (locale.value === 'zh-CN' ? '内容' : ' Content')
+}
+
+function getEntryVoiceSource(entry) {
+  return entry?.voice_data || entry?.voiceData || entry?.voice_url || entry?.voiceUrl || ''
+}
+
+function clearVoiceDraft() {
+  if (voiceBlobUrl.value) {
+    URL.revokeObjectURL(voiceBlobUrl.value)
+  }
+  voiceBlobUrl.value = null
+  recordedVoiceDataUrl.value = null
+  voiceDataPromise.value = null
+  audioChunks.value = []
 }
 
 function toggleComposerPanel(panelName) {
@@ -824,6 +840,27 @@ async function submitReply(entry, commentId) {
   }
 }
 
+function readBlobAsDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(reader.error || new Error('Audio read failed'))
+    reader.readAsDataURL(blob)
+  })
+}
+
+async function resolveRecordedVoiceData() {
+  if (recordedVoiceDataUrl.value) {
+    return recordedVoiceDataUrl.value
+  }
+
+  if (voiceDataPromise.value) {
+    return voiceDataPromise.value
+  }
+
+  return ''
+}
+
 // 切换录音状态
 async function toggleRecording() {
   if (!isRecording.value) {
@@ -832,10 +869,7 @@ async function toggleRecording() {
       return
     }
 
-    if (voiceBlobUrl.value) {
-      URL.revokeObjectURL(voiceBlobUrl.value)
-      voiceBlobUrl.value = null
-    }
+    clearVoiceDraft()
 
     try {
       recordingStream.value = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -850,6 +884,16 @@ async function toggleRecording() {
         const blob = new Blob(audioChunks.value, { type: mediaRecorder.value?.mimeType || 'audio/webm' })
         if (blob.size > 0) {
           voiceBlobUrl.value = URL.createObjectURL(blob)
+          voiceDataPromise.value = readBlobAsDataUrl(blob)
+            .then((dataUrl) => {
+              recordedVoiceDataUrl.value = dataUrl
+              return dataUrl
+            })
+            .catch((error) => {
+              console.error('读取录音失败:', error)
+              recordedVoiceDataUrl.value = null
+              return ''
+            })
         }
       }
       mediaRecorder.value.start()
@@ -951,11 +995,19 @@ async function handleSubmit() {
 
   submitting.value = true
   try {
+    const recordedVoiceData = hasVoice ? await resolveRecordedVoiceData() : null
+    if (hasVoice && !recordedVoiceData) {
+      ElMessage.error(locale.value === 'zh-CN' ? '录音还没有准备好，请稍后再试' : 'Voice recording is not ready yet')
+      return
+    }
+
     const entryData = {
       ...entryForm.value,
       clientId: getTreeholeClientId(),
       duration: hasVoice ? recordingTime.value : 0,
-      voice_url: hasVoice ? voiceBlobUrl.value : null,
+      voiceData: hasVoice ? recordedVoiceData : null,
+      voice_data: hasVoice ? recordedVoiceData : null,
+      voice_url: hasVoice ? recordedVoiceData : null,
       created_at: new Date().toISOString(),
       id: Date.now(),
     }
@@ -987,7 +1039,7 @@ async function handleSubmit() {
     }
     uploadedImage.value = null
     recordingTime.value = 0
-    voiceBlobUrl.value = null
+    clearVoiceDraft()
     activeComposerPanel.value = null
 
     ElMessage.success(locale.value === 'zh-CN' ? '发送成功！' : 'Sent successfully!')
@@ -996,11 +1048,14 @@ async function handleSubmit() {
   } catch (error) {
     console.error('发送失败:', error)
     // 即使API失败也保存到本地
+    const recordedVoiceData = recordingTime.value > 0 ? await resolveRecordedVoiceData() : null
     const entryData = {
       ...entryForm.value,
       clientId: getTreeholeClientId(),
       duration: recordingTime.value > 0 ? recordingTime.value : 0,
-      voice_url: recordingTime.value > 0 ? voiceBlobUrl.value : null,
+      voiceData: recordingTime.value > 0 ? recordedVoiceData : null,
+      voice_data: recordingTime.value > 0 ? recordedVoiceData : null,
+      voice_url: recordingTime.value > 0 ? recordedVoiceData || voiceBlobUrl.value : null,
       created_at: new Date().toISOString(),
       id: Date.now(),
     }
@@ -1018,7 +1073,7 @@ async function handleSubmit() {
     }
     uploadedImage.value = null
     recordingTime.value = 0
-    voiceBlobUrl.value = null
+    clearVoiceDraft()
     activeComposerPanel.value = null
     loadEntries()
     loadMyEntries()
@@ -1129,6 +1184,7 @@ function cleanupRecordingResources() {
     recordingStream.value.getTracks().forEach((track) => track.stop())
     recordingStream.value = null
   }
+  clearVoiceDraft()
 }
 
 onMounted(() => {

@@ -40,6 +40,7 @@ class TreeholeMigrationTests(unittest.TestCase):
             conn.close()
 
             self.assertIn("image_data", columns)
+            self.assertIn("voice_data", columns)
             self.assertIn("duration", columns)
 
 
