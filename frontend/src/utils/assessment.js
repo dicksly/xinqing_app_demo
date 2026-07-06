@@ -50,6 +50,27 @@ function getInterpretation(score) {
   return INTERPRETATIONS.find((item) => score >= item.minScore) || INTERPRETATIONS.at(-1)
 }
 
+function normalizeNumericMap(value = {}) {
+  if (!value || typeof value !== 'object') return {}
+  return Object.fromEntries(
+    Object.entries(value)
+      .map(([key, itemValue]) => [key, Number(itemValue)])
+      .filter(([, itemValue]) => Number.isFinite(itemValue))
+  )
+}
+
+function sumCompleteScoredAnswers(scoredAnswers = {}) {
+  const values = ASSESSMENT_QUESTIONS.map((question) => scoredAnswers[question.key])
+  if (values.some((value) => !Number.isFinite(value))) return null
+  return values.reduce((sum, value) => sum + value, 0)
+}
+
+function sumCompleteSubscaleScores(subscaleScores = {}) {
+  const values = ASSESSMENT_CATEGORIES.map((category) => subscaleScores[category.key])
+  if (values.some((value) => !Number.isFinite(value))) return null
+  return values.reduce((sum, value) => sum + value, 0)
+}
+
 export function validateAssessmentConsent(form = {}) {
   const errors = []
   if (!form.accepted) {
@@ -97,18 +118,34 @@ export function buildAssessmentPayload(consent = {}, answers = {}, clientId = 'a
 
 export function normalizeAssessmentResult(response = {}) {
   const payload = response?.data && typeof response.data === 'object' ? response.data : response
+  const rawScore = Number(payload.score ?? 0)
+  const subscaleScores = normalizeNumericMap(payload.subscale_scores || payload.subscaleScores || {})
+  const rawAnswers = normalizeNumericMap(payload.raw_answers || payload.rawAnswers || {})
+  const scoredAnswers = normalizeNumericMap(payload.scored_answers || payload.scoredAnswers || {})
+  const scoreFromScoredAnswers = sumCompleteScoredAnswers(scoredAnswers)
+  const scoreFromSubscales = sumCompleteSubscaleScores(subscaleScores)
+  const score = scoreFromScoredAnswers ?? scoreFromSubscales ?? rawScore
+  const correctedBackendScore = Number.isFinite(rawScore) && rawScore !== score
+  const interpretation = getInterpretation(score)
+
   return {
     id: payload.assessment_id ?? payload.id ?? null,
-    score: Number(payload.score || 0),
+    score,
     maxScore: Number(payload.max_score ?? payload.maxScore ?? ASSESSMENT_MAX_SCORE),
-    level: payload.level || 'moderate',
-    title: payload.tag || payload.wellness_state || payload.title || '详细心理分析',
-    summary: payload.diagnosis || payload.summary || '',
-    suggestions: Array.isArray(payload.suggestions) ? payload.suggestions : [],
+    level: correctedBackendScore ? interpretation.level : (payload.level || interpretation.level),
+    title: correctedBackendScore
+      ? interpretation.title
+      : (payload.tag || payload.wellness_state || payload.title || interpretation.title),
+    summary: correctedBackendScore
+      ? interpretation.summary
+      : (payload.diagnosis || payload.summary || interpretation.summary),
+    suggestions: correctedBackendScore
+      ? interpretation.suggestions
+      : (Array.isArray(payload.suggestions) ? payload.suggestions : interpretation.suggestions),
     consentUsage: payload.consent_usage || payload.consentUsage || '',
-    rawAnswers: payload.raw_answers || payload.rawAnswers || {},
-    scoredAnswers: payload.scored_answers || payload.scoredAnswers || {},
-    subscaleScores: payload.subscale_scores || payload.subscaleScores || {},
+    rawAnswers,
+    scoredAnswers,
+    subscaleScores,
     scaleVersion: payload.scale_version || payload.scaleVersion || ASSESSMENT_SCALE_VERSION,
     createdAt: payload.created_at || payload.createdAt || new Date().toISOString(),
   }

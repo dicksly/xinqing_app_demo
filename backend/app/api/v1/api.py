@@ -5,6 +5,7 @@ API v1 路由
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
+import base64
 import json
 import re
 import uuid
@@ -40,6 +41,7 @@ from ...schemas.schemas import (
     DailyQuoteCreate, DailyQuoteUpdate, DailyQuoteResponse,
     KnowledgeTopicCreate, KnowledgeTopicUpdate, KnowledgeTopicResponse,
     KnowledgeContentCreate, KnowledgeContentUpdate, KnowledgeContentResponse,
+    KnowledgeTTSRequest, KnowledgeTTSResponse,
     WeeklyReportResponse,
     UserCreate, UserLogin, UserResponse, TokenResponse,
     PasswordResetRequest, PasswordResetRequestResponse, PasswordResetConfirm,
@@ -48,6 +50,11 @@ from ...schemas.schemas import (
 )
 from ...services.emotion_service import EmotionService
 from ...services.ai_service import AIService
+from ...services.volcengine_tts_service import (
+    TTSConfigurationError,
+    TTSSynthesisError,
+    VolcengineTTSService,
+)
 from ...services.auth_service import (
     verify_password, get_password_hash, create_access_token,
     ensure_default_admin_user,
@@ -61,6 +68,7 @@ router = APIRouter()
 # 初始化服务
 emotion_service = EmotionService()
 ai_service = AIService()
+tts_service = VolcengineTTSService(settings)
 
 CONSENT_VERSION = "2026-05-anonymized-research-product-business"
 CONSENT_USAGE = "匿名化后用于研究/产品分析/商业合作"
@@ -841,6 +849,37 @@ async def get_public_knowledge_topics(
         .filter(KnowledgeTopic.status == "published")
         .order_by(KnowledgeTopic.sort_order.asc(), KnowledgeTopic.id.desc())
         .all()
+    )
+
+
+@router.post("/knowledge/tts", response_model=KnowledgeTTSResponse)
+async def synthesize_knowledge_tts(request: KnowledgeTTSRequest):
+    """把知识文章内容合成为朗读音频。"""
+    try:
+        audio_bytes = await tts_service.synthesize(
+            request.text,
+            title=request.title,
+            voice=request.voice,
+            speed=request.speed,
+        )
+    except TTSConfigurationError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="语音朗读服务尚未配置",
+        )
+    except TTSSynthesisError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc) or "语音朗读生成失败",
+        )
+
+    audio_format = settings.VOLCENGINE_TTS_AUDIO_FORMAT
+    audio_base64 = base64.b64encode(audio_bytes).decode("ascii")
+    return KnowledgeTTSResponse(
+        audio_data=f"data:audio/{audio_format};base64,{audio_base64}",
+        audio_format=audio_format,
+        provider="volcengine",
+        text_length=len(request.text),
     )
 
 

@@ -55,6 +55,18 @@ class Settings(BaseSettings):
     AI_API_KEY: Optional[str] = None
     AI_API_BASE: Optional[str] = None
     AI_MODEL: str = "Pro/deepseek-ai/DeepSeek-V3.2"
+    VOLCENGINE_TTS_API_KEY: Optional[str] = None
+    VOLCENGINE_TTS_ENDPOINT: str = "wss://openspeech.bytedance.com/api/v3/tts/bidirection"
+    VOLCENGINE_TTS_RESOURCE_ID: str = "seed-tts-2.0"
+    VOLCENGINE_TTS_MODEL: Optional[str] = None
+    VOLCENGINE_TTS_SPEAKER: str = "zh_female_wenrouxiaoya_uranus_bigtts"
+    VOLCENGINE_TTS_AUDIO_FORMAT: str = "mp3"
+    VOLCENGINE_TTS_SAMPLE_RATE: int = 24000
+    VOLCENGINE_TTS_BIT_RATE: int = 128000
+    VOLCENGINE_TTS_SPEECH_RATE: int = 0
+    VOLCENGINE_TTS_LOUDNESS_RATE: int = 0
+    VOLCENGINE_TTS_MAX_CHARS: int = 2400
+    VOLCENGINE_TTS_TIMEOUT_SECONDS: int = 25
     
     # 文件上传配置
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB

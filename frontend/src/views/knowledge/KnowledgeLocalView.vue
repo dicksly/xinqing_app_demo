@@ -18,8 +18,40 @@
 
     <template v-if="article">
       <section class="care-card pad local-hero">
-        <span class="local-kicker">本地精选整理</span>
-        <p>{{ article.summary }}</p>
+        <div class="local-hero-copy">
+          <span class="local-kicker">本地精选整理</span>
+          <p>{{ article.summary }}</p>
+        </div>
+        <div class="tts-control-row">
+          <button
+            type="button"
+            class="tts-main-button"
+            :class="{ loading: ttsLoading, playing: ttsPlaying }"
+            :disabled="ttsLoading"
+            @click="toggleArticleReadAloud"
+          >
+            <component :is="ttsMainIcon" />
+            <span>{{ ttsMainLabel }}</span>
+          </button>
+          <button
+            v-if="ttsAudioUrl"
+            type="button"
+            class="tts-stop-button"
+            aria-label="停止朗读"
+            @click="stopArticleAudio"
+          >
+            <component :is="Close" />
+          </button>
+        </div>
+        <p v-if="ttsError" class="tts-error">{{ ttsError }}</p>
+        <audio
+          ref="ttsAudioRef"
+          :src="ttsAudioUrl"
+          preload="none"
+          @play="ttsPlaying = true"
+          @pause="ttsPlaying = false"
+          @ended="handleArticleAudioEnded"
+        ></audio>
       </section>
 
       <section class="local-section-list">
@@ -73,16 +105,34 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Link, WarningFilled } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { ArrowLeft, Close, Headset, Link, Loading, VideoPause, WarningFilled } from '@element-plus/icons-vue'
+import { knowledgeApi } from '../../api/index.js'
 import { getLocalKnowledgeArticleById } from './knowledge-local-content.js'
+import { buildLocalKnowledgeSpeechText, createKnowledgeTtsPayload } from './knowledge-tts.js'
 
 const route = useRoute()
 const router = useRouter()
 
 const article = computed(() => getLocalKnowledgeArticleById(getRouteId(route.params.id)))
 const backLabel = '返回知识页'
+const ttsAudioRef = ref(null)
+const ttsAudioUrl = ref('')
+const ttsLoading = ref(false)
+const ttsPlaying = ref(false)
+const ttsError = ref('')
+
+const ttsMainIcon = computed(() => {
+  if (ttsLoading.value) return Loading
+  return ttsPlaying.value ? VideoPause : Headset
+})
+const ttsMainLabel = computed(() => {
+  if (ttsLoading.value) return '生成中'
+  if (ttsPlaying.value) return '暂停朗读'
+  return ttsAudioUrl.value ? '继续朗读' : '朗读文章'
+})
 
 function getRouteId(value) {
   if (Array.isArray(value)) return value[0] || ''
@@ -101,6 +151,83 @@ function goBack() {
 function goKnowledge() {
   router.push('/knowledge')
 }
+
+async function toggleArticleReadAloud() {
+  if (ttsLoading.value) return
+
+  if (ttsPlaying.value) {
+    pauseArticleAudio()
+    return
+  }
+
+  if (ttsAudioUrl.value && ttsAudioRef.value) {
+    await playArticleAudio()
+    return
+  }
+
+  await generateArticleAudio()
+}
+
+async function generateArticleAudio() {
+  const currentArticle = article.value
+  if (!currentArticle) return
+
+  const payload = createKnowledgeTtsPayload({
+    title: currentArticle.title,
+    text: buildLocalKnowledgeSpeechText(currentArticle),
+  })
+
+  if (!payload.text) {
+    ElMessage.warning('这篇内容暂时没有可朗读文字')
+    return
+  }
+
+  ttsLoading.value = true
+  ttsError.value = ''
+
+  try {
+    const response = await knowledgeApi.synthesizeSpeech(payload)
+    ttsAudioUrl.value = response.data.audio_data
+    await nextTick()
+    await playArticleAudio()
+  } catch (error) {
+    const message = error?.response?.data?.detail || '朗读音频生成失败，请稍后再试'
+    ttsError.value = message
+    ElMessage.error(message)
+  } finally {
+    ttsLoading.value = false
+  }
+}
+
+async function playArticleAudio() {
+  try {
+    await ttsAudioRef.value?.play()
+    ttsPlaying.value = true
+  } catch {
+    ttsError.value = '浏览器暂时无法自动播放，请再点一次朗读'
+  }
+}
+
+function pauseArticleAudio() {
+  ttsAudioRef.value?.pause()
+  ttsPlaying.value = false
+}
+
+function stopArticleAudio() {
+  if (ttsAudioRef.value) {
+    ttsAudioRef.value.pause()
+    ttsAudioRef.value.currentTime = 0
+  }
+  ttsPlaying.value = false
+}
+
+function handleArticleAudioEnded() {
+  ttsPlaying.value = false
+}
+
+onBeforeUnmount(() => {
+  stopArticleAudio()
+})
 </script>
 
 <style scoped>
@@ -166,6 +293,13 @@ function goKnowledge() {
   background:
     linear-gradient(135deg, rgba(205, 232, 214, 0.82), rgba(255, 255, 255, 0.94) 58%),
     var(--h5-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.local-hero-copy {
+  min-width: 0;
 }
 
 .local-kicker {
@@ -182,6 +316,74 @@ function goKnowledge() {
   color: var(--color-text-secondary);
   font-size: 15px;
   line-height: 1.72;
+}
+
+.tts-control-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tts-main-button,
+.tts-stop-button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.tts-main-button {
+  min-width: 128px;
+  padding: 0 16px;
+  gap: 7px;
+  background: var(--h5-primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+  box-shadow: 0 12px 28px rgba(217, 94, 118, 0.22);
+}
+
+.tts-main-button.playing {
+  background: #6FAF8B;
+}
+
+.tts-main-button:disabled {
+  cursor: wait;
+  opacity: 0.82;
+}
+
+.tts-main-button svg,
+.tts-stop-button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.tts-main-button.loading svg {
+  animation: tts-spin 1s linear infinite;
+}
+
+.tts-stop-button {
+  width: 42px;
+  flex: 0 0 auto;
+  background: rgba(217, 94, 118, 0.1);
+  color: var(--h5-primary);
+}
+
+.local-hero .tts-error {
+  margin: -2px 0 0;
+  color: var(--h5-primary);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+@keyframes tts-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .local-section-list {
@@ -295,6 +497,14 @@ function goKnowledge() {
   .source-link,
   .empty-action {
     width: 100%;
+  }
+
+  .tts-control-row {
+    align-items: stretch;
+  }
+
+  .tts-main-button {
+    flex: 1;
   }
 }
 </style>

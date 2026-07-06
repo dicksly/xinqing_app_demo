@@ -343,6 +343,36 @@
             {{ tag }}
           </span>
         </div>
+        <div class="dialog-tts-row">
+          <button
+            type="button"
+            class="dialog-tts-button"
+            :class="{ loading: contentTtsLoading, playing: contentTtsPlaying }"
+            :disabled="contentTtsLoading"
+            @click="toggleDialogReadAloud"
+          >
+            <component :is="contentTtsMainIcon" />
+            <span>{{ contentTtsMainLabel }}</span>
+          </button>
+          <button
+            v-if="contentTtsAudioUrl"
+            type="button"
+            class="dialog-tts-stop"
+            aria-label="停止朗读"
+            @click="stopDialogAudio"
+          >
+            <component :is="Close" />
+          </button>
+        </div>
+        <p v-if="contentTtsError" class="dialog-tts-error">{{ contentTtsError }}</p>
+        <audio
+          ref="contentTtsAudioRef"
+          :src="contentTtsAudioUrl"
+          preload="none"
+          @play="contentTtsPlaying = true"
+          @pause="contentTtsPlaying = false"
+          @ended="handleDialogAudioEnded"
+        ></audio>
       </div>
       <template #footer>
         <div class="dialog-footer">
@@ -410,13 +440,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, nextTick, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import {
+  Close,
   Trophy,
   View,
+  Headset,
+  Loading,
   VideoPlay,
+  VideoPause,
   StarFilled,
   CircleCheckFilled,
   Cpu,
@@ -427,6 +461,7 @@ import { knowledgeApi } from '../../api/index.js'
 import { ElMessage } from 'element-plus'
 import { SBTI_TEST, getPreparedMaterialSummary, mapKnowledgePageData } from './knowledge-public-data.js'
 import { getLocalKnowledgeArticleBySourceUrl } from './knowledge-local-content.js'
+import { buildDialogKnowledgeSpeechText, createKnowledgeTtsPayload } from './knowledge-tts.js'
 import articleIcon from '../../assets/icons/image2-content-article.png'
 import quizIcon from '../../assets/icons/image2-content-quiz.png'
 
@@ -816,6 +851,23 @@ const currentTest = ref({})
 const testCompleted = ref(false)
 const testResult = ref('')
 const testSuggestion = ref('')
+const contentTtsAudioRef = ref(null)
+const contentTtsAudioUrl = ref('')
+const contentTtsLoading = ref(false)
+const contentTtsPlaying = ref(false)
+const contentTtsError = ref('')
+
+const contentTtsMainIcon = computed(() => {
+  if (contentTtsLoading.value) return Loading
+  return contentTtsPlaying.value ? VideoPause : Headset
+})
+const contentTtsMainLabel = computed(() => {
+  if (contentTtsLoading.value) return locale.value === 'zh-CN' ? '生成中' : 'Generating'
+  if (contentTtsPlaying.value) return locale.value === 'zh-CN' ? '暂停朗读' : 'Pause'
+  return contentTtsAudioUrl.value
+    ? (locale.value === 'zh-CN' ? '继续朗读' : 'Resume')
+    : (locale.value === 'zh-CN' ? '朗读内容' : 'Read aloud')
+})
 
 // 解析标签
 const parsedTags = computed(() => {
@@ -849,6 +901,7 @@ function formatTime(dateString) {
 
 // 查看内容
 function viewContent(item) {
+  resetDialogAudio()
   currentContent.value = item
   showContentDialog.value = true
 }
@@ -908,6 +961,7 @@ function viewArticle(article) {
     ...article,
     type: 'article',
   }
+  resetDialogAudio()
   showContentDialog.value = true
 }
 
@@ -998,6 +1052,86 @@ function likeContent() {
   showContentDialog.value = false
 }
 
+async function toggleDialogReadAloud() {
+  if (contentTtsLoading.value) return
+
+  if (contentTtsPlaying.value) {
+    pauseDialogAudio()
+    return
+  }
+
+  if (contentTtsAudioUrl.value && contentTtsAudioRef.value) {
+    await playDialogAudio()
+    return
+  }
+
+  await generateDialogAudio()
+}
+
+async function generateDialogAudio() {
+  const payload = createKnowledgeTtsPayload({
+    title: currentContent.value.title,
+    text: buildDialogKnowledgeSpeechText(currentContent.value),
+    locale: locale.value,
+  })
+
+  if (!payload.text) {
+    ElMessage.warning(locale.value === 'zh-CN' ? '这条内容暂时没有可朗读文字' : 'No readable text yet')
+    return
+  }
+
+  contentTtsLoading.value = true
+  contentTtsError.value = ''
+
+  try {
+    const response = await knowledgeApi.synthesizeSpeech(payload)
+    contentTtsAudioUrl.value = response.data.audio_data
+    await nextTick()
+    await playDialogAudio()
+  } catch (error) {
+    const message = error?.response?.data?.detail
+      || (locale.value === 'zh-CN' ? '朗读音频生成失败，请稍后再试' : 'Failed to generate audio')
+    contentTtsError.value = message
+    ElMessage.error(message)
+  } finally {
+    contentTtsLoading.value = false
+  }
+}
+
+async function playDialogAudio() {
+  try {
+    await contentTtsAudioRef.value?.play()
+    contentTtsPlaying.value = true
+  } catch {
+    contentTtsError.value = locale.value === 'zh-CN'
+      ? '浏览器暂时无法自动播放，请再点一次朗读'
+      : 'Tap read aloud again to start playback'
+  }
+}
+
+function pauseDialogAudio() {
+  contentTtsAudioRef.value?.pause()
+  contentTtsPlaying.value = false
+}
+
+function stopDialogAudio() {
+  if (contentTtsAudioRef.value) {
+    contentTtsAudioRef.value.pause()
+    contentTtsAudioRef.value.currentTime = 0
+  }
+  contentTtsPlaying.value = false
+}
+
+function resetDialogAudio() {
+  stopDialogAudio()
+  contentTtsAudioUrl.value = ''
+  contentTtsError.value = ''
+}
+
+function handleDialogAudioEnded() {
+  contentTtsPlaying.value = false
+}
+
 // 加载内容
 async function loadContent() {
   loading.value = true
@@ -1032,6 +1166,16 @@ async function loadContent() {
 onMounted(() => {
   currentDate.value = formatDate()
   loadContent()
+})
+
+watch(showContentDialog, (visible) => {
+  if (!visible) {
+    stopDialogAudio()
+  }
+})
+
+onBeforeUnmount(() => {
+  resetDialogAudio()
 })
 </script>
 
@@ -1514,6 +1658,75 @@ onMounted(() => {
   background: var(--color-bg-tertiary, #f1f5f9);
   padding: 2px 8px;
   border-radius: var(--radius-full, 9999px);
+}
+
+.dialog-tts-row {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dialog-tts-button,
+.dialog-tts-stop {
+  min-height: 38px;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.dialog-tts-button {
+  min-width: 118px;
+  padding: 0 14px;
+  gap: 6px;
+  background: var(--h5-primary, #D95E76);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 10px 22px rgba(217, 94, 118, 0.2);
+}
+
+.dialog-tts-button.playing {
+  background: #6FAF8B;
+}
+
+.dialog-tts-button:disabled {
+  cursor: wait;
+  opacity: 0.82;
+}
+
+.dialog-tts-button svg,
+.dialog-tts-stop svg {
+  width: 16px;
+  height: 16px;
+}
+
+.dialog-tts-button.loading svg {
+  animation: tts-spin 1s linear infinite;
+}
+
+.dialog-tts-stop {
+  width: 38px;
+  flex: 0 0 auto;
+  background: rgba(217, 94, 118, 0.1);
+  color: var(--h5-primary, #D95E76);
+}
+
+.dialog-tts-error {
+  margin: -2px 0 0;
+  color: var(--h5-primary, #D95E76);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+@keyframes tts-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .dialog-footer {

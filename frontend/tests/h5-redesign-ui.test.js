@@ -17,6 +17,7 @@ const emotionView = readSource('../src/views/emotion/EmotionView.vue')
 const mindfulnessView = readSource('../src/views/mindfulness/MindfulnessView.vue')
 const treeholeView = readSource('../src/views/treehole/TreeholeView.vue')
 const knowledgeView = readSource('../src/views/knowledge/KnowledgeView.vue')
+const knowledgeLocalView = readOptionalSource('../src/views/knowledge/KnowledgeLocalView.vue')
 const knowledgeExternalView = readOptionalSource('../src/views/knowledge/KnowledgeExternalView.vue')
 const profileView = readSource('../src/views/profile/ProfileView.vue')
 
@@ -245,6 +246,17 @@ test('knowledge source links open inside an in-app embedded reader', () => {
   assert.match(knowledgeExternalView, /external-frame/)
   assert.match(knowledgeExternalView, /openOriginal/)
   assert.match(knowledgeExternalView, /route\.query\.url/)
+})
+
+test('knowledge articles expose backend TTS read-aloud controls', () => {
+  assert.match(knowledgeView, /knowledgeApi\.synthesizeSpeech/)
+  assert.match(knowledgeView, /buildDialogKnowledgeSpeechText/)
+  assert.match(knowledgeView, /contentTtsAudioRef/)
+  assert.match(knowledgeView, /朗读内容/)
+  assert.match(knowledgeLocalView, /knowledgeApi\.synthesizeSpeech/)
+  assert.match(knowledgeLocalView, /buildLocalKnowledgeSpeechText/)
+  assert.match(knowledgeLocalView, /ttsAudioRef/)
+  assert.match(knowledgeLocalView, /朗读文章/)
 })
 
 test('profile settings hides admin entry and exposes font sizing controls', () => {

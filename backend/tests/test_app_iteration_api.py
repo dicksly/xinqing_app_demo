@@ -160,6 +160,26 @@ class AppIterationApiTests(unittest.TestCase):
         finally:
             db.close()
 
+    def test_psychological_assessment_total_matches_subscale_sum_for_midpoint_answers(self):
+        response = self.client.post(
+            "/api/v1/psychological-assessments",
+            json={
+                "clientId": "midpoint-device",
+                "consentAccepted": True,
+                "userSignature": "测试用户",
+                "isMinor": False,
+                "answers": build_teen_wellness_answers(scored_value=2),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["score"], 60)
+        self.assertEqual(sum(payload["subscale_scores"].values()), payload["score"])
+        self.assertEqual(payload["subscale_scores"]["emotional_wellbeing"], 12)
+        self.assertEqual(payload["subscale_scores"]["stress_coping"], 12)
+        self.assertEqual(payload["level"], "moderate")
+
     def test_psychological_assessment_rejects_incomplete_docx_scale_answers(self):
         answers = build_teen_wellness_answers(scored_value=2)
         answers.pop("q30")

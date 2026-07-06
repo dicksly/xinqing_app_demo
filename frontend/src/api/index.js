@@ -93,6 +93,7 @@ export const knowledgeApi = {
   getDailyQuote: () => api.get('/public/daily-quote'),
   getList: (params) => api.get('/public/knowledge-contents', { params }),
   getTopics: () => api.get('/public/knowledge-topics'),
+  synthesizeSpeech: (data) => api.post('/knowledge/tts', data, { timeout: 60000 }),
 }
 
 // 用户认证 API

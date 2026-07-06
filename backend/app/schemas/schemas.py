@@ -2,6 +2,8 @@
 Pydantic Schemas - 用于数据验证和序列化
 """
 
+import re
+from html import unescape
 from pydantic import BaseModel, ConfigDict, Field, AliasChoices, field_validator, model_validator
 from typing import ClassVar, Optional, List
 from datetime import date, datetime
@@ -481,6 +483,40 @@ class KnowledgeContentResponse(KnowledgeContentBase):
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+
+def normalize_knowledge_tts_text(value: str) -> str:
+    text = unescape(value or "").replace("\xa0", " ")
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+class KnowledgeTTSRequest(BaseModel):
+    """知识文章语音朗读请求。"""
+
+    title: Optional[str] = Field(None, max_length=120)
+    text: str = Field(..., min_length=1, max_length=2400)
+    locale: str = Field("zh-CN", max_length=16)
+    voice: Optional[str] = Field(None, max_length=120)
+    speed: Optional[int] = Field(None, ge=-50, le=100)
+
+    @field_validator("text")
+    @classmethod
+    def validate_text(cls, value):
+        text = normalize_knowledge_tts_text(value)
+        if not text:
+            raise ValueError("朗读内容不能为空")
+        return text
+
+
+class KnowledgeTTSResponse(BaseModel):
+    """知识文章语音朗读响应。"""
+
+    audio_data: str
+    audio_format: str
+    provider: str
+    text_length: int
 
 
 class DailyQuoteBase(BaseModel):

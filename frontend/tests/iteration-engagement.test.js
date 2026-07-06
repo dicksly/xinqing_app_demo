@@ -426,6 +426,32 @@ test('normalizes backend psychological assessment result for display', () => {
   assert.equal(result.suggestions.length, 2)
 })
 
+test('normalizes inconsistent psychological assessment totals from subscale scores', () => {
+  const result = normalizeAssessmentResult({
+    assessment_id: 13,
+    score: 14,
+    max_score: 120,
+    level: 'moderate',
+    tag: '中等心理健康挑战',
+    diagnosis: '近期压力和情绪负担偏高',
+    suggestions: ['联系可信任的人'],
+    subscale_scores: {
+      emotional_wellbeing: 12,
+      stress_coping: 12,
+      social_connections: 12,
+      motivation_daily_functioning: 12,
+      self_care_habits: 12,
+    },
+  })
+
+  assert.equal(result.score, 60)
+  assert.equal(result.maxScore, 120)
+  assert.equal(result.level, 'moderate')
+  assert.equal(result.title, '中等心理健康挑战')
+  assert.match(result.summary, /持续的情绪|压力挑战/)
+  assert.notEqual(result.suggestions[0], '联系可信任的人')
+})
+
 test('defines twelve monthly meditation background themes', () => {
   assert.equal(MONTHLY_BACKGROUND_THEMES.length, 12)
   assert.equal(getMonthlyTheme(8).key, 'aug-ocean')
