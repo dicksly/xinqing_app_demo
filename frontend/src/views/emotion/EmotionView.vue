@@ -176,6 +176,31 @@
       width="92%"
       class="assessment-dialog"
     >
+      <div class="assessment-important-notes">
+        <h3>{{ locale === 'zh-CN' ? '重要说明' : 'Important Notes' }}</h3>
+        <ul>
+          <li>
+            {{ locale === 'zh-CN'
+              ? '本问卷仅供教育、自我反思与研究参考使用。'
+              : 'This questionnaire is for education, self-reflection, and research reference only.' }}
+          </li>
+          <li>
+            {{ locale === 'zh-CN'
+              ? '问卷结果应谨慎解读。'
+              : 'Questionnaire results should be interpreted with care.' }}
+          </li>
+          <li>
+            {{ locale === 'zh-CN'
+              ? '如果青少年长期感到情绪困扰、行为明显改变，或难以正常进行日常生活，建议及时寻求可信赖成年人或专业人士的帮助。'
+              : 'If a teenager has prolonged emotional distress, clear behavioral changes, or difficulty with daily life, support from a trusted adult or professional is recommended.' }}
+          </li>
+          <li>
+            {{ locale === 'zh-CN'
+              ? '心理健康状态会随着时间变化，一次测验结果并不能定义一个人。'
+              : 'Mental wellness can change over time, and one assessment result does not define a person.' }}
+          </li>
+        </ul>
+      </div>
       <div v-if="!assessmentConsentSaved" class="consent-form">
         <p class="consent-copy">
           {{ locale === 'zh-CN'
@@ -795,6 +820,34 @@ onMounted(() => {
   font-size: 14px;
   line-height: 1.6;
   font-weight: 800;
+}
+
+.assessment-important-notes {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 249, 237, 0.96);
+  border: 1px solid rgba(241, 212, 107, 0.46);
+}
+
+.assessment-important-notes h3 {
+  margin: 0 0 8px;
+  color: var(--color-text-primary);
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.assessment-important-notes ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.58;
+  font-weight: 800;
+}
+
+.assessment-important-notes li + li {
+  margin-top: 5px;
 }
 
 .assessment-section {

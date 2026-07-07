@@ -56,6 +56,54 @@ import {
 import { getMonthlyTheme, MONTHLY_BACKGROUND_THEMES } from '../src/utils/meditation-themes.js'
 import { getCutRatio, getRandomSoapSkin } from '../src/utils/soap-game.js'
 
+const DOCX_ASSESSMENT_INTERPRETATIONS = [
+  {
+    score: 0,
+    level: 'critical',
+    title: '严重心理健康风险',
+    summary: '可能正经历严重情绪困扰，需要尽快寻求专业心理帮助或可信赖成年人的支持。',
+  },
+  {
+    score: 25,
+    level: 'very_low',
+    title: '心理健康状态较差',
+    summary: '可能存在明显的情绪与生活困难，建议寻求辅导员、家长或专业人士的支持。',
+  },
+  {
+    score: 49,
+    level: 'moderate',
+    title: '中等心理健康挑战',
+    summary: '可能正面对一定程度的压力或情绪问题，但仍具备部分应对能力。适当支持与健康调节方式可能会有帮助。',
+  },
+  {
+    score: 73,
+    level: 'healthy',
+    title: '心理健康状态良好',
+    summary: '整体情绪较稳定，能够较好地应对生活中的挑战。继续保持健康习惯和支持关系很重要。',
+  },
+  {
+    score: 97,
+    level: 'strong',
+    title: '心理健康状态非常良好',
+    summary: '表现出较强的情绪韧性、社会支持与日常适应能力。建议继续维持良好的生活方式与人际关系。',
+  },
+]
+
+function buildAssessmentAnswersForScore(targetScore) {
+  let remaining = targetScore
+  return Object.fromEntries(
+    Array.from({ length: 30 }, (_, index) => {
+      const itemNumber = index + 1
+      const scoredValue = Math.max(0, Math.min(4, remaining))
+      remaining -= scoredValue
+      return [
+        `q${itemNumber}`,
+        REVERSE_SCORED_ITEM_NUMBERS.includes(itemNumber) ? 4 - scoredValue : scoredValue,
+      ]
+    })
+  )
+}
+
 test('updates continuous app streak and detects return prompt gap', () => {
   const first = updateStreakState({}, new Date('2026-05-01T12:00:00.000Z'))
   const second = updateStreakState(first, new Date('2026-05-02T12:00:00.000Z'))
@@ -359,6 +407,17 @@ test('scores detailed psychological analysis answers', () => {
   assert.equal(lowResult.level, 'moderate')
 })
 
+test('detailed psychological analysis interpretations match questionnaire docx', () => {
+  DOCX_ASSESSMENT_INTERPRETATIONS.forEach((expected) => {
+    const result = scoreAssessment(buildAssessmentAnswersForScore(expected.score))
+
+    assert.equal(result.score, expected.score)
+    assert.equal(result.level, expected.level)
+    assert.equal(result.title, expected.title)
+    assert.equal(result.summary, expected.summary)
+  })
+})
+
 test('builds backend payload for detailed psychological assessment', () => {
   const answers = Object.fromEntries(Array.from({ length: 30 }, (_, index) => [`q${index + 1}`, index % 5]))
   const payload = buildAssessmentPayload(
@@ -419,11 +478,11 @@ test('normalizes backend psychological assessment result for display', () => {
   assert.equal(result.score, 96)
   assert.equal(result.maxScore, 120)
   assert.equal(result.title, '心理健康状态良好')
-  assert.match(result.summary, /稳定/)
+  assert.equal(result.summary, '整体情绪较稳定，能够较好地应对生活中的挑战。继续保持健康习惯和支持关系很重要。')
   assert.equal(result.subscaleScores.emotional_wellbeing, 20)
   assert.equal(result.rawAnswers.q1, 4)
   assert.equal(result.scaleVersion, 'teen-mental-wellness-30-v1')
-  assert.equal(result.suggestions.length, 2)
+  assert.deepEqual(result.suggestions, [])
 })
 
 test('normalizes inconsistent psychological assessment totals from subscale scores', () => {
@@ -448,7 +507,7 @@ test('normalizes inconsistent psychological assessment totals from subscale scor
   assert.equal(result.maxScore, 120)
   assert.equal(result.level, 'moderate')
   assert.equal(result.title, '中等心理健康挑战')
-  assert.match(result.summary, /持续的情绪|压力挑战/)
+  assert.equal(result.summary, '可能正面对一定程度的压力或情绪问题，但仍具备部分应对能力。适当支持与健康调节方式可能会有帮助。')
   assert.notEqual(result.suggestions[0], '联系可信任的人')
 })
 

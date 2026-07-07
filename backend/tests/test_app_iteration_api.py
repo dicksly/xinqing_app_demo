@@ -12,6 +12,38 @@ from main import app
 
 
 REVERSE_SCORED_ITEMS = {3, 5, 8, 10, 12, 14, 17, 20, 22, 27}
+DOCX_SCORE_INTERPRETATIONS = [
+    (
+        0,
+        "critical",
+        "严重心理健康风险",
+        "可能正经历严重情绪困扰，需要尽快寻求专业心理帮助或可信赖成年人的支持。",
+    ),
+    (
+        25,
+        "very_low",
+        "心理健康状态较差",
+        "可能存在明显的情绪与生活困难，建议寻求辅导员、家长或专业人士的支持。",
+    ),
+    (
+        49,
+        "moderate",
+        "中等心理健康挑战",
+        "可能正面对一定程度的压力或情绪问题，但仍具备部分应对能力。适当支持与健康调节方式可能会有帮助。",
+    ),
+    (
+        73,
+        "healthy",
+        "心理健康状态良好",
+        "整体情绪较稳定，能够较好地应对生活中的挑战。继续保持健康习惯和支持关系很重要。",
+    ),
+    (
+        97,
+        "strong",
+        "心理健康状态非常良好",
+        "表现出较强的情绪韧性、社会支持与日常适应能力。建议继续维持良好的生活方式与人际关系。",
+    ),
+]
 
 
 def build_teen_wellness_answers(scored_value=2):
@@ -19,6 +51,18 @@ def build_teen_wellness_answers(scored_value=2):
         f"q{item_number}": 4 - scored_value if item_number in REVERSE_SCORED_ITEMS else scored_value
         for item_number in range(1, 31)
     }
+
+
+def build_teen_wellness_answers_for_score(target_score):
+    remaining = target_score
+    answers = {}
+    for item_number in range(1, 31):
+        scored_value = max(0, min(4, remaining))
+        answers[f"q{item_number}"] = (
+            4 - scored_value if item_number in REVERSE_SCORED_ITEMS else scored_value
+        )
+        remaining -= scored_value
+    return answers
 
 
 class AppIterationApiTests(unittest.TestCase):
@@ -179,6 +223,28 @@ class AppIterationApiTests(unittest.TestCase):
         self.assertEqual(payload["subscale_scores"]["emotional_wellbeing"], 12)
         self.assertEqual(payload["subscale_scores"]["stress_coping"], 12)
         self.assertEqual(payload["level"], "moderate")
+
+    def test_psychological_assessment_interpretations_match_questionnaire_docx(self):
+        for score, level, tag, diagnosis in DOCX_SCORE_INTERPRETATIONS:
+            with self.subTest(score=score):
+                response = self.client.post(
+                    "/api/v1/psychological-assessments",
+                    json={
+                        "clientId": f"docx-interpretation-{score}",
+                        "consentAccepted": True,
+                        "userSignature": "测试用户",
+                        "isMinor": False,
+                        "answers": build_teen_wellness_answers_for_score(score),
+                    },
+                )
+
+                self.assertEqual(response.status_code, 200)
+                payload = response.json()
+                self.assertEqual(payload["score"], score)
+                self.assertEqual(payload["level"], level)
+                self.assertEqual(payload["tag"], tag)
+                self.assertEqual(payload["wellness_state"], tag)
+                self.assertEqual(payload["diagnosis"], diagnosis)
 
     def test_psychological_assessment_rejects_incomplete_docx_scale_answers(self):
         answers = build_teen_wellness_answers(scored_value=2)

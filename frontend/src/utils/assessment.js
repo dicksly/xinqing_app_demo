@@ -13,36 +13,36 @@ const INTERPRETATIONS = [
     minScore: 97,
     level: 'strong',
     title: '心理健康状态非常良好',
-    summary: '你的整体心理健康资源很充足，情绪、支持系统和日常功能大多保持在稳定、有弹性的状态。',
-    suggestions: ['继续保留让你恢复的习惯', '把有效的支持方式记录下来', '在状态好时也给自己安排放松时间'],
+    summary: '表现出较强的情绪韧性、社会支持与日常适应能力。建议继续维持良好的生活方式与人际关系。',
+    suggestions: [],
   },
   {
     minScore: 73,
     level: 'healthy',
     title: '心理健康状态良好',
-    summary: '整体情绪较稳定，也具备一定的压力应对能力。近期仍可以继续观察容易消耗你的情境。',
-    suggestions: ['维持规律作息和运动', '遇到压力时主动寻求支持', '每周回顾一次让你感觉变好的事情'],
+    summary: '整体情绪较稳定，能够较好地应对生活中的挑战。继续保持健康习惯和支持关系很重要。',
+    suggestions: [],
   },
   {
     minScore: 49,
     level: 'moderate',
     title: '中等心理健康挑战',
-    summary: '你可能正在经历一些持续的情绪或压力挑战，建议把恢复目标拆小，并让可信任的人知道你的近况。',
-    suggestions: ['先固定一个睡眠和休息窗口', '每天记录一个压力来源和一个可控行动', '和朋友、家人或老师进行一次支持性谈话'],
+    summary: '可能正面对一定程度的压力或情绪问题，但仍具备部分应对能力。适当支持与健康调节方式可能会有帮助。',
+    suggestions: [],
   },
   {
     minScore: 25,
     level: 'very_low',
     title: '心理健康状态较差',
-    summary: '近期心理负担可能较重，情绪恢复、压力应对或日常功能受到了明显影响。请优先获得现实中的支持。',
-    suggestions: ['尽快联系可信任的成年人或专业咨询', '减少高刺激信息输入', '先完成吃饭、睡眠、洗漱等基础照顾'],
+    summary: '可能存在明显的情绪与生活困难，建议寻求辅导员、家长或专业人士的支持。',
+    suggestions: [],
   },
   {
     minScore: 0,
     level: 'critical',
     title: '严重心理健康风险',
-    summary: '你的作答提示近期心理健康风险较高。这个结果不是诊断，但建议尽快寻求家人、学校老师或专业机构的帮助。',
-    suggestions: ['马上告诉一个可信任的人你现在的状态', '避免独自承受高风险时刻', '如有伤害自己或他人的念头，请立即联系当地急救或危机干预热线'],
+    summary: '可能正经历严重情绪困扰，需要尽快寻求专业心理帮助或可信赖成年人的支持。',
+    suggestions: [],
   },
 ]
 
@@ -125,23 +125,16 @@ export function normalizeAssessmentResult(response = {}) {
   const scoreFromScoredAnswers = sumCompleteScoredAnswers(scoredAnswers)
   const scoreFromSubscales = sumCompleteSubscaleScores(subscaleScores)
   const score = scoreFromScoredAnswers ?? scoreFromSubscales ?? rawScore
-  const correctedBackendScore = Number.isFinite(rawScore) && rawScore !== score
   const interpretation = getInterpretation(score)
 
   return {
     id: payload.assessment_id ?? payload.id ?? null,
     score,
     maxScore: Number(payload.max_score ?? payload.maxScore ?? ASSESSMENT_MAX_SCORE),
-    level: correctedBackendScore ? interpretation.level : (payload.level || interpretation.level),
-    title: correctedBackendScore
-      ? interpretation.title
-      : (payload.tag || payload.wellness_state || payload.title || interpretation.title),
-    summary: correctedBackendScore
-      ? interpretation.summary
-      : (payload.diagnosis || payload.summary || interpretation.summary),
-    suggestions: correctedBackendScore
-      ? interpretation.suggestions
-      : (Array.isArray(payload.suggestions) ? payload.suggestions : interpretation.suggestions),
+    level: interpretation.level,
+    title: interpretation.title,
+    summary: interpretation.summary,
+    suggestions: interpretation.suggestions,
     consentUsage: payload.consent_usage || payload.consentUsage || '',
     rawAnswers,
     scoredAnswers,

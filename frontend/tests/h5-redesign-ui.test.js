@@ -146,6 +146,21 @@ test('emotion detailed assessment uses the configurable question source', () => 
   assert.doesNotMatch(emotionView, /const assessmentQuestions = computed\(\(\) => \[\s*\{/)
 })
 
+test('emotion detailed assessment displays questionnaire important notes', () => {
+  const notesIndex = emotionView.indexOf('assessment-important-notes')
+  const consentIndex = emotionView.indexOf('v-if="!assessmentConsentSaved"')
+
+  assert.match(emotionView, /assessment-important-notes/)
+  assert.match(emotionView, /重要说明/)
+  assert.match(emotionView, /本问卷仅供教育、自我反思与研究参考使用/)
+  assert.match(emotionView, /问卷结果应谨慎解读/)
+  assert.match(emotionView, /如果青少年长期感到情绪困扰、行为明显改变/)
+  assert.match(emotionView, /心理健康状态会随着时间变化，一次测验结果并不能定义一个人/)
+  assert.ok(notesIndex > -1)
+  assert.ok(consentIndex > -1)
+  assert.ok(notesIndex < consentIndex)
+})
+
 test('mindfulness page exposes practice player, breathing entry, and games', () => {
   assert.match(mindfulnessView, /min quiet practice/)
   assert.match(mindfulnessView, /\[5,\s*10,\s*20\]/)
