@@ -70,9 +70,9 @@
       <el-button type="primary" round @click="emit('close')">收好</el-button>
     </footer>
 
-    <audio ref="giftAudioRef" :src="FRUIT_SLASH_ASSETS.music.gift" preload="auto" />
-    <audio ref="winAudioRef" :src="FRUIT_SLASH_ASSETS.music.win" preload="auto" />
-    <audio ref="loseAudioRef" :src="FRUIT_SLASH_ASSETS.music.lose" preload="auto" />
+    <audio ref="giftAudioRef" :src="FRUIT_SLASH_ASSETS.music.gift" preload="none" />
+    <audio ref="winAudioRef" :src="FRUIT_SLASH_ASSETS.music.win" preload="none" />
+    <audio ref="loseAudioRef" :src="FRUIT_SLASH_ASSETS.music.lose" preload="none" />
   </div>
 </template>
 
@@ -346,7 +346,7 @@ onUnmounted(() => {
 }
 
 .slice-arena {
-  height: 368px;
+  height: clamp(240px, 45dvh, 368px);
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(118, 95, 89, 0.1);

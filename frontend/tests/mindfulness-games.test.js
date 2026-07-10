@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 
 import {
   createMatch3Board,
@@ -14,6 +15,10 @@ import {
   FRUIT_SLASH_ASSETS,
   sliceFruitSlashItems,
 } from '../src/utils/fruit-slice-game.js'
+
+const mindfulnessViewSource = readFileSync(new URL('../src/views/mindfulness/MindfulnessView.vue', import.meta.url), 'utf8')
+const fruitSliceViewSource = readFileSync(new URL('../src/views/mindfulness/games/FruitSliceGame.vue', import.meta.url), 'utf8')
+const globalStyleSource = readFileSync(new URL('../src/styles/global.css', import.meta.url), 'utf8')
 
 function sequenceRandom(values) {
   let index = 0
@@ -132,4 +137,13 @@ test('fruit slash path scores fruit, collects trophies, and punishes bombs once'
   assert.equal(secondPass.hitBombs, 0)
   assert.equal(secondPass.collectedTrophies, 0)
   assert.equal(secondPass.scoreDelta, 0)
+})
+
+test('fruit slice dialog stays above navigation and fits short mobile viewports', () => {
+  assert.match(mindfulnessViewSource, /<el-dialog[\s\S]{0,320}\bappend-to-body\b[\s\S]{0,320}class="game-dialog"/)
+  assert.match(mindfulnessViewSource, /:global\(\.game-dialog\)[\s\S]{0,220}max-height:\s*calc\(100dvh/)
+  assert.match(fruitSliceViewSource, /height:\s*clamp\(240px,\s*45dvh,\s*368px\)/)
+  assert.doesNotMatch(fruitSliceViewSource, /<audio[^>]+preload="auto"/)
+  assert.equal((fruitSliceViewSource.match(/preload="none"/g) || []).length, 3)
+  assert.match(globalStyleSource, /body:has\(\.game-dialog\)\s+\.bottom-nav/)
 })

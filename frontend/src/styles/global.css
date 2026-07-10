@@ -660,6 +660,12 @@ select {
   padding-top: env(safe-area-inset-top, 0px);
 }
 
+body:has(.game-dialog) .bottom-nav {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .el-button--primary,
 .el-button.el-button--primary.is-round {
   background: var(--h5-primary);

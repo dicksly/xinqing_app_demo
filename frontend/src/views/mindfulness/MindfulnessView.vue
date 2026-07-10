@@ -144,6 +144,7 @@
       width="90%"
       :style="{ maxWidth: '450px' }"
       :close-on-click-modal="false"
+      append-to-body
       destroy-on-close
       class="game-dialog"
     >
@@ -1070,8 +1071,22 @@ onMounted(() => {
 }
 
 /* 游戏弹窗 */
-.game-dialog :deep(.el-dialog__body) {
+:global(.game-dialog) {
+  max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  margin: calc(12px + env(safe-area-inset-top, 0px)) auto calc(12px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+}
+
+:global(.game-dialog .el-dialog__header) {
+  flex: 0 0 auto;
+}
+
+:global(.game-dialog .el-dialog__body) {
+  min-height: 0;
   padding: var(--spacing-md, 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .game-placeholder {
