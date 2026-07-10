@@ -185,6 +185,7 @@ import { useGamesStore } from '../../stores/games'
 import { getXinqingClientId } from '../../utils/client-id'
 import { getMonthlyTheme, MONTHLY_BACKGROUND_THEMES } from '../../utils/meditation-themes'
 import { EXTERNAL_MINI_GAMES, getExternalGameLinks } from '../../utils/external-games'
+import vibrationHelper from '../../utils/vibration'
 import AuthDialog from '../../components/auth/AuthDialog.vue'
 import BubbleGame from './games/BubbleGame.vue'
 import SoapGame from './games/SoapGame.vue'
@@ -530,7 +531,7 @@ watch(bgMusicType, async (newType) => {
 // 组件卸载时清理
 onUnmounted(() => {
   stopMeditation()
-  stopTickTimer()
+  stopBreathingCycle()
   if (audioContext) {
     audioContext.close()
     audioContext = null
@@ -560,6 +561,7 @@ function startBreathingCycle() {
     isExhaling.value = false
     transitionDuration.value = 4 // 吸气过渡时间4秒
     breathingText.value = breathingTexts.value.inhale
+    vibrationHelper.short()
 
     // 启动滴答声（每秒一次）
     startTickTimer(4)
@@ -574,6 +576,7 @@ function startBreathingCycle() {
       isExhaling.value = false
       transitionDuration.value = 0 // 屏息时不需要过渡
       breathingText.value = breathingTexts.value.hold
+      vibrationHelper.short()
 
       // 启动屏息滴答声
       startTickTimer(7)
@@ -588,6 +591,7 @@ function startBreathingCycle() {
         isExhaling.value = true
         transitionDuration.value = 8 // 呼气过渡时间8秒
         breathingText.value = breathingTexts.value.exhale
+        vibrationHelper.short()
 
         // 启动呼气滴答声
         startTickTimer(8)
@@ -608,6 +612,7 @@ function startBreathingCycle() {
             breathingTimer.value = setTimeout(cycle, 100)
           } else {
             isBreathingActive.value = false
+            vibrationHelper.double()
             ElMessage.success(t('mindfulness.breathing.trainingComplete'))
           }
         }, 8000)
@@ -619,10 +624,12 @@ function startBreathingCycle() {
 }
 
 function stopBreathingCycle() {
+  isBreathingActive.value = false
   isInhaling.value = false
   isHolding.value = false
   isExhaling.value = false
   breathingText.value = breathingTexts.value.ready
+  vibrationHelper.stop()
 
   if (breathingTimer.value) {
     clearTimeout(breathingTimer.value)

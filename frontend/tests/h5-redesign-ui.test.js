@@ -198,6 +198,28 @@ test('mindfulness page removes the unused voice volume control', () => {
   assert.doesNotMatch(mindfulnessView, /watch\(voiceVolume/)
 })
 
+test('mindfulness breathing training uses haptic cues for phase transitions', () => {
+  assert.match(mindfulnessView, /import vibrationHelper from '..\/..\/utils\/vibration'/)
+
+  const inhaleStart = mindfulnessView.indexOf('breathingTexts.value.inhale')
+  const holdStart = mindfulnessView.indexOf('breathingTexts.value.hold')
+  const exhaleStart = mindfulnessView.indexOf('breathingTexts.value.exhale')
+  const completionStart = mindfulnessView.indexOf("ElMessage.success(t('mindfulness.breathing.trainingComplete'))")
+  const stopStart = mindfulnessView.indexOf('function stopBreathingCycle()')
+
+  assert.notEqual(inhaleStart, -1, 'expected inhale phase text assignment')
+  assert.notEqual(holdStart, -1, 'expected hold phase text assignment')
+  assert.notEqual(exhaleStart, -1, 'expected exhale phase text assignment')
+  assert.notEqual(completionStart, -1, 'expected completion branch')
+  assert.notEqual(stopStart, -1, 'expected stopBreathingCycle function')
+
+  assert.match(mindfulnessView.slice(inhaleStart, holdStart), /vibrationHelper\.short\(\)/)
+  assert.match(mindfulnessView.slice(holdStart, exhaleStart), /vibrationHelper\.short\(\)/)
+  assert.match(mindfulnessView.slice(exhaleStart, completionStart), /vibrationHelper\.short\(\)/)
+  assert.match(mindfulnessView.slice(completionStart - 160, completionStart), /vibrationHelper\.double\(\)/)
+  assert.match(mindfulnessView.slice(stopStart, stopStart + 500), /vibrationHelper\.stop\(\)/)
+})
+
 test('treehole page exposes safe composer, privacy controls, and square feed', () => {
   assert.match(treeholeView, /t\('treehole\.title'\)/)
   assert.match(treeholeView, /t\('treehole\.placeholder'\)/)
